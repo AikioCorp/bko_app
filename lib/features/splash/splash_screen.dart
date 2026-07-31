@@ -11,33 +11,81 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+  
+  // Apple Staggered Animations
+  late Animation<double> _logoScale;
+  late Animation<double> _logoOpacity;
+  late Animation<double> _textOpacity;
+  late Animation<Offset> _textSlide;
+  late Animation<double> _subtextOpacity;
+  late Animation<double> _exitOpacity;
 
   @override
   void initState() {
     super.initState();
 
-    // Apple-inspired spring-like entrance animation (700ms)
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 2400),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.82, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.fastOutSlowIn),
+    // 1. Logo Scale (0.7 -> 1.0 with Apple-style subtle spring overshoot)
+    _logoScale = Tween<double>(begin: 0.70, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.35, curve: Curves.easeOutBack),
+      ),
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    // 2. Logo Opacity (Instant smooth fade-in)
+    _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.25, curve: Curves.easeOut),
+      ),
+    );
+
+    // 3. Text Title Slide Up & Fade (Staggered after logo)
+    _textOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.20, 0.50, curve: Curves.easeOut),
+      ),
+    );
+
+    _textSlide = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.20, 0.50, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    // 4. Subtitle Fade
+    _subtextOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.40, 0.70, curve: Curves.easeOut),
+      ),
+    );
+
+    // 5. Exit Fade-out at the end of animation (1.9s - 2.4s)
+    _exitOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.85, 1.0, curve: Curves.easeInOut),
+      ),
     );
 
     _controller.forward();
 
-    // Auto navigate after 2.2s to Onboarding
-    Future.delayed(const Duration(milliseconds: 2200), () {
-      if (mounted) {
-        context.go('/onboarding');
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (mounted) {
+          context.go('/onboarding');
+        }
       }
     });
   }
@@ -52,80 +100,84 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BkoTheme.bgObsidian,
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: ScaleTransition(
-            scale: _scaleAnimation,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Minimal Logo Container with Apple-style subtle depth
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: BkoTheme.bgSurface,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(color: BkoTheme.borderSubtle, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: BkoTheme.goldAccent.withValues(alpha: 0.12),
-                        blurRadius: 30,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(26),
-                    child: Image.asset(
-                      'assets/brand/app_icon.png',
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Center(
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: BkoTheme.goldAccent,
-                            borderRadius: BorderRadius.circular(16),
+      body: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Opacity(
+            opacity: _exitOpacity.value,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo with Apple Spring Scale & Opacity
+                  Opacity(
+                    opacity: _logoOpacity.value,
+                    child: Transform.scale(
+                      scale: _logoScale.value,
+                      child: Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: BkoTheme.bgSurface,
+                          borderRadius: BorderRadius.circular(26),
+                          border: Border.all(color: BkoTheme.borderSubtle, width: 1),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(25),
+                          child: Image.asset(
+                            'assets/brand/app_icon.png',
+                            width: 96,
+                            height: 96,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              color: BkoTheme.goldAccent,
+                              child: const Icon(Icons.mic, color: Colors.black, size: 40),
+                            ),
                           ),
-                          child: const Icon(Icons.mic, color: Colors.black, size: 32),
                         ),
                       ),
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                // Apple Typography
-                const Text(
-                  'BKO PODCAST',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 2.5,
-                    color: BkoTheme.textPrimary,
+                  // Title with Staggered Slide-Up & Fade
+                  SlideTransition(
+                    position: _textSlide,
+                    child: Opacity(
+                      opacity: _textOpacity.value,
+                      child: const Text(
+                        'BKO PODCAST',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 3.0,
+                          color: BkoTheme.textPrimary,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                const Text(
-                  'Les voix du Mali et d\'Afrique',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: -0.2,
-                    color: BkoTheme.textSecondary,
+                  // Subtitle with Fade
+                  Opacity(
+                    opacity: _subtextOpacity.value,
+                    child: const Text(
+                      'Écouter • Regarder • Découvrir',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
+                        color: BkoTheme.textSecondary,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
