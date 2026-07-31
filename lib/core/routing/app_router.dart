@@ -4,6 +4,15 @@ import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/home/podcast_details_screen.dart';
+import '../../features/explore/explore_screen.dart';
+import '../../features/search/search_screen.dart';
+import '../../features/auth/login_screen.dart';
+import '../../features/auth/register_screen.dart';
+import '../../features/auth/verify_otp_screen.dart';
+import '../../features/profile/profile_screen.dart';
+import '../../features/library/library_screen.dart';
+import '../../features/home/episode_details_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -16,6 +25,18 @@ final appRouter = GoRouter(
       path: '/onboarding',
       builder: (context, state) => const OnboardingScreen(),
     ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/register',
+      builder: (context, state) => const RegisterScreen(),
+    ),
+    GoRoute(
+      path: '/verify-otp',
+      builder: (context, state) => VerifyOtpScreen(email: state.uri.queryParameters['email'] ?? ''),
+    ),
     ShellRoute(
       builder: (context, state, child) {
         return AppShell(child: child);
@@ -27,27 +48,45 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/explore',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('Explorer Bko Podcast', style: TextStyle(color: Colors.white))),
-          ),
+          builder: (context, state) => const ExploreScreen(),
         ),
         GoRoute(
           path: '/search',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('Recherche Bko Podcast', style: TextStyle(color: Colors.white))),
-          ),
+          builder: (context, state) => const SearchScreen(),
         ),
         GoRoute(
           path: '/library',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('Bibliothèque Bko Podcast', style: TextStyle(color: Colors.white))),
-          ),
+          builder: (context, state) => const LibraryScreen(),
         ),
         GoRoute(
           path: '/profile',
-          builder: (context, state) => const Scaffold(
-            body: Center(child: Text('Profil Bko Podcast', style: TextStyle(color: Colors.white))),
+          builder: (context, state) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: '/favorites',
+          builder: (context, state) => const LibraryScreen(),
+        ),
+        GoRoute(
+          path: '/studio',
+          builder: (context, state) => Scaffold(
+            appBar: AppBar(title: const Text('Studio Bko Podcast')),
+            body: const Center(child: Text('Espace Créateur Bko Podcast', style: TextStyle(color: Colors.white))),
           ),
+        ),
+        GoRoute(
+          path: '/podcasts/:slug',
+          builder: (context, state) {
+            final slug = state.pathParameters['slug'] ?? '';
+            return PodcastDetailsScreen(slug: slug);
+          },
+        ),
+        GoRoute(
+          path: '/podcasts/:slug/episodes/:episodeSlug',
+          builder: (context, state) {
+            final slug = state.pathParameters['slug'] ?? '';
+            final episodeSlug = state.pathParameters['episodeSlug'] ?? '';
+            return EpisodeDetailsScreen(podcastSlug: slug, episodeSlug: episodeSlug);
+          },
         ),
       ],
     ),

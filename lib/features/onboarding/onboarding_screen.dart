@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/bko_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -13,57 +14,64 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  late AnimationController _iconAnimationController;
+  late AnimationController _floatController;
 
-  final List<_OnboardingData> _slides = const [
-    _OnboardingData(
-      step: '01 / 03',
-      badge: 'CULTURE & ACTUALITÉ',
-      title: 'Les voix qui font bouger Bamako.',
-      description: 'Accédez aux récits, débats, musiques et interviews des créateurs les plus influents du Mali et de la sous-région.',
-      iconType: _IconType.audioWave,
+  final List<_OnboardingItemData> _slides = const [
+    _OnboardingItemData(
+      badge: 'DÉCOUVREZ',
+      title: 'Les voix du Mali, réunies ici.',
+      description: 'Histoires, idées, culture et conversations à découvrir sur une seule plateforme.',
+      type: _SlideVisualType.discoveryPortrait,
     ),
-    _OnboardingData(
-      step: '02 / 03',
-      badge: 'EXPÉRIENCE MULTIMÉDIA',
-      title: 'En fond sonore ou en vidéo HD.',
-      description: 'Écoutez vos podcasts en arrière-plan pendant vos déplacements, ou basculez en vidéo HD en un clic.',
-      iconType: _IconType.videoStream,
+    _OnboardingItemData(
+      badge: 'ÉCOUTEZ OU REGARDEZ',
+      title: 'Votre podcast, à votre façon.',
+      description: 'Passez de l’audio à la vidéo et suivez chaque épisode comme vous le souhaitez.',
+      type: _SlideVisualType.audioVideoDual,
     ),
-    _OnboardingData(
-      step: '03 / 03',
-      badge: 'PATRIMOINE LOCAL',
-      title: 'Vos émissions en Bamanankan & Français.',
-      description: 'Découvrez des contenus authentiques en Bambara et en Français, pensés pour tous les auditeurs.',
-      iconType: _IconType.languageCulture,
+    _OnboardingItemData(
+      badge: 'DU MALI À L’AFRIQUE',
+      title: 'Des voix proches. Des idées sans frontières.',
+      description: 'Commencez au Mali, puis explorez les conversations qui font vibrer l’Afrique.',
+      type: _SlideVisualType.africanConnection,
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    // Continuous subtle Apple-style breath animation for icons
-    _iconAnimationController = AnimationController(
+    // Apple-style continuous gentle floating animation
+    _floatController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 3200),
     )..repeat(reverse: true);
   }
 
   @override
   void dispose() {
-    _iconAnimationController.dispose();
+    _floatController.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _finishOnboarding() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_seen_onboarding', true);
+    } catch (_) {}
+    if (mounted) {
+      context.go('/');
+    }
   }
 
   void _nextPage() {
     if (_currentIndex < _slides.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 350),
+        duration: const Duration(milliseconds: 400),
         curve: Curves.fastOutSlowIn,
       );
     } else {
-      context.go('/');
+      _finishOnboarding();
     }
   }
 
@@ -72,124 +80,170 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
     return Scaffold(
       backgroundColor: BkoTheme.bgObsidian,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Minimal Top Navigation: Step Badge & Skip
-              Row(
+        child: Column(
+          children: [
+            // Top Bar: Brand & Passer Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    _slides[_currentIndex].step,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      fontFamily: 'monospace',
-                      color: BkoTheme.goldAccent,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 26,
+                        height: 26,
+                        decoration: BoxDecoration(
+                          color: BkoTheme.bgSurface,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: BkoTheme.borderSubtle),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(7),
+                          child: Image.asset(
+                            'assets/brand/app_icon.png',
+                            width: 26,
+                            height: 26,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => const Icon(
+                              Icons.mic,
+                              color: BkoTheme.goldAccent,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'BKO PODCAST',
+                        style: BkoTheme.fontLato(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                          color: BkoTheme.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
                   TextButton(
-                    onPressed: () => context.go('/'),
+                    onPressed: _finishOnboarding,
                     style: TextButton.styleFrom(
                       foregroundColor: BkoTheme.textSecondary,
-                      padding: EdgeInsets.zero,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Passer',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: BkoTheme.fontLato(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: BkoTheme.textSecondary,
+                      ),
                     ),
                   ),
                 ],
               ),
+            ),
 
-              const Spacer(),
-
-              // Animated Minimal Icon & Content PageView
-              SizedBox(
-                height: 380,
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) {
-                    setState(() {
-                      _currentIndex = index;
-                    });
-                  },
-                  itemCount: _slides.length,
-                  itemBuilder: (context, index) {
-                    final slide = _slides[index];
-                    return Column(
+            // Main Visual Stage & Typography PageView
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                  });
+                },
+                itemCount: _slides.length,
+                itemBuilder: (context, index) {
+                  final slide = _slides[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Animated Sleek Minimal Icon Header
-                        _AnimatedMinimalIcon(
-                          iconType: slide.iconType,
-                          controller: _iconAnimationController,
-                        ),
+                        const SizedBox(height: 8),
 
-                        const SizedBox(height: 32),
-
-                        // Contextual Category Badge
-                        Text(
-                          slide.badge,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 2.0,
-                            color: BkoTheme.goldAccent,
+                        // Apple-style Visual Stage (Upper stage)
+                        Expanded(
+                          flex: 5,
+                          child: Center(
+                            child: _AppleVisualStage(
+                              type: slide.type,
+                              controller: _floatController,
+                            ),
                           ),
                         ),
 
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 20),
 
-                        // Apple Display Title
-                        Text(
-                          slide.title,
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.8,
-                            height: 1.12,
-                            color: BkoTheme.textPrimary,
-                          ),
-                        ),
+                        // Content (Lower stage)
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Petit titre (Badge)
+                              Text(
+                                slide.badge,
+                                style: BkoTheme.fontLato(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2.0,
+                                  color: BkoTheme.goldAccent,
+                                ),
+                              ),
 
-                        const SizedBox(height: 14),
+                              const SizedBox(height: 8),
 
-                        // Context-tailored Description
-                        Text(
-                          slide.description,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w400,
-                            height: 1.45,
-                            color: BkoTheme.textSecondary,
+                              // Titre principal
+                              Text(
+                                slide.title,
+                                style: BkoTheme.fontLato(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: -0.5,
+                                  height: 1.15,
+                                  color: BkoTheme.textPrimary,
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              // Description
+                              Text(
+                                slide.description,
+                                style: BkoTheme.fontLato(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.45,
+                                  color: BkoTheme.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
+            ),
 
-              const Spacer(),
-
-              // Bottom Section: Dots & Action Button
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Bottom Section: Dots & Primary Button
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
                 children: [
                   // Dot Indicator
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _slides.length,
                       (index) => AnimatedContainer(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.fastOutSlowIn,
-                        margin: const EdgeInsets.only(right: 6),
-                        width: _currentIndex == index ? 22 : 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentIndex == index ? 24 : 8,
                         height: 4,
                         decoration: BoxDecoration(
                           color: _currentIndex == index ? BkoTheme.goldAccent : BkoTheme.borderStrong,
@@ -199,9 +253,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
 
-                  // Minimal Action Button
+                  // Bouton Principal
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -214,52 +268,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        textStyle: const TextStyle(
+                      ),
+                      child: Text(
+                        _currentIndex == _slides.length - 1 ? 'Commencer à écouter' : 'Continuer',
+                        style: BkoTheme.fontLato(
                           fontSize: 14,
                           fontWeight: FontWeight.w900,
                           letterSpacing: -0.2,
+                          color: Colors.black,
                         ),
-                      ),
-                      child: Text(
-                        _currentIndex == _slides.length - 1 ? 'COMMENCER L\'EXPÉRIENCE' : 'CONTINUER',
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-enum _IconType { audioWave, videoStream, languageCulture }
+enum _SlideVisualType { discoveryPortrait, audioVideoDual, africanConnection }
 
-class _OnboardingData {
-  final String step;
+class _OnboardingItemData {
   final String badge;
   final String title;
   final String description;
-  final _IconType iconType;
+  final _SlideVisualType type;
 
-  const _OnboardingData({
-    required this.step,
+  const _OnboardingItemData({
     required this.badge,
     required this.title,
     required this.description,
-    required this.iconType,
+    required this.type,
   });
 }
 
-class _AnimatedMinimalIcon extends StatelessWidget {
-  final _IconType iconType;
+class _AppleVisualStage extends StatelessWidget {
+  final _SlideVisualType type;
   final AnimationController controller;
 
-  const _AnimatedMinimalIcon({
-    required this.iconType,
+  const _AppleVisualStage({
+    required this.type,
     required this.controller,
   });
 
@@ -268,23 +320,49 @@ class _AnimatedMinimalIcon extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, child) {
-        final scaleValue = 0.95 + (controller.value * 0.10); // 0.95 -> 1.05 breath
-        final translationY = -4.0 * controller.value; // -4px float
+        final floatY = -6.0 * controller.value;
 
-        return Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            color: BkoTheme.bgSurface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: BkoTheme.borderSubtle),
-          ),
-          child: Center(
-            child: Transform.translate(
-              offset: Offset(0, translationY),
-              child: Transform.scale(
-                scale: scaleValue,
-                child: _buildIconContent(),
+        return Transform.translate(
+          offset: Offset(0, floatY),
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(maxHeight: 250),
+            decoration: BoxDecoration(
+              color: BkoTheme.bgSurface,
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: BkoTheme.borderSubtle),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 24,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Stack(
+                children: [
+                  // Glow Background
+                  Positioned(
+                    top: -30,
+                    right: -30,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: BkoTheme.goldAccent.withValues(alpha: 0.08),
+                      ),
+                    ),
+                  ),
+
+                  // Stage Content
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: _buildVisualForType(),
+                  ),
+                ],
               ),
             ),
           ),
@@ -293,26 +371,151 @@ class _AnimatedMinimalIcon extends StatelessWidget {
     );
   }
 
-  Widget _buildIconContent() {
-    switch (iconType) {
-      case _IconType.audioWave:
-        return const Icon(
-          Icons.graphic_eq_rounded,
-          color: BkoTheme.goldAccent,
-          size: 34,
+  Widget _buildVisualForType() {
+    switch (type) {
+      case _SlideVisualType.discoveryPortrait:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Portrait Studio Scene Representation with Bko Logo
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: BkoTheme.bgObsidian,
+                shape: BoxShape.circle,
+                border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.4), width: 1.5),
+              ),
+              child: Center(
+                child: Container(
+                  width: 56,
+                  height: 56,
+                  decoration: const BoxDecoration(
+                    color: BkoTheme.bgSurfaceElevated,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.mic_external_on_rounded, color: BkoTheme.goldAccent, size: 28),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: BkoTheme.bgObsidian,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: BkoTheme.borderSubtle),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: BkoTheme.goldAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Bko Podcast Studio • Mali',
+                    style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w700, color: BkoTheme.textPrimary),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
-      case _IconType.videoStream:
-        return const Icon(
-          Icons.play_circle_outline_rounded,
-          color: BkoTheme.goldAccent,
-          size: 34,
+
+      case _SlideVisualType.audioVideoDual:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Episode Cover Deck with Audio Wave & Video Player Indicator
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: BkoTheme.bgObsidian,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: BkoTheme.borderSubtle),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      color: BkoTheme.bgSurfaceElevated,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: BkoTheme.borderSubtle),
+                    ),
+                    child: const Icon(Icons.graphic_eq_rounded, color: BkoTheme.goldAccent, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Voix de Bamako',
+                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w900, color: BkoTheme.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.volume_up_rounded, color: BkoTheme.textSecondary, size: 14),
+                            const SizedBox(width: 4),
+                            Text('Audio High Fidelity', style: BkoTheme.fontLato(fontSize: 10, color: BkoTheme.textSecondary)),
+                            const SizedBox(width: 10),
+                            const Icon(Icons.videocam_rounded, color: BkoTheme.goldAccent, size: 14),
+                            const SizedBox(width: 4),
+                            Text('Vidéo HD', style: BkoTheme.fontLato(fontSize: 10, color: BkoTheme.goldAccent, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
-      case _IconType.languageCulture:
-        return const Icon(
-          Icons.record_voice_over_outlined,
-          color: BkoTheme.goldAccent,
-          size: 34,
+
+      case _SlideVisualType.africanConnection:
+        return Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.public_rounded, color: BkoTheme.goldAccent, size: 48),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildRegionBadge('🇲🇱 Mali'),
+                const SizedBox(width: 8),
+                _buildRegionBadge('🇸🇳 Sénégal'),
+                const SizedBox(width: 8),
+                _buildRegionBadge('🇨🇮 Côte d\'Ivoire'),
+              ],
+            ),
+          ],
         );
     }
+  }
+
+  Widget _buildRegionBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: BkoTheme.bgObsidian,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: BkoTheme.borderSubtle),
+      ),
+      child: Text(
+        text,
+        style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w700, color: BkoTheme.textPrimary),
+      ),
+    );
   }
 }

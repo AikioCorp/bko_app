@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/bko_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -81,10 +82,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    _controller.addStatusListener((status) {
+    _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
         if (mounted) {
-          context.go('/onboarding');
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            final hasSeen = prefs.getBool('has_seen_onboarding') ?? false;
+            if (mounted) {
+              if (hasSeen) {
+                context.go('/');
+              } else {
+                context.go('/onboarding');
+              }
+            }
+          } catch (e) {
+            if (mounted) {
+              context.go('/');
+            }
+          }
         }
       }
     });
