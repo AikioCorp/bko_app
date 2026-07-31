@@ -264,6 +264,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
   Future<void> _shareEpisode() async {
     final episodeSlug = _episode?['slug'] ?? widget.episodeSlug;
     final podcastSlug = _podcast?['slug'] ?? widget.podcastSlug;
+    // ignore: deprecated_member_use
     await Share.share(
       'https://bamakopodcast.com/podcasts/$podcastSlug/episodes/$episodeSlug',
     );

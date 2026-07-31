@@ -803,11 +803,13 @@ class _AppShellState extends ConsumerState<AppShell>
                 final isSelected = selectedIndex == index;
                 final item = items[index];
 
-                return _ApplePodcastsNavItem(
-                  isSelected: isSelected,
-                  icon: item['icon'] as IconData,
-                  label: item['label'] as String,
-                  onTap: () => _onItemTapped(index, context),
+                return Flexible(
+                  child: _ApplePodcastsNavItem(
+                    isSelected: isSelected,
+                    icon: item['icon'] as IconData,
+                    label: item['label'] as String,
+                    onTap: () => _onItemTapped(index, context),
+                  ),
                 );
               }),
             ),
@@ -918,7 +920,7 @@ class _ApplePodcastsNavItemState extends State<_ApplePodcastsNavItem> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 280),
           curve: const Cubic(0.16, 1.0, 0.3, 1.0),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: bubbleBg,
             borderRadius: BorderRadius.circular(22),
