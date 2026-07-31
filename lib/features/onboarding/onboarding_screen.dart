@@ -9,27 +9,52 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  final List<_MinimalSlide> _slides = const [
-    _MinimalSlide(
+  late AnimationController _iconAnimationController;
+
+  final List<_OnboardingData> _slides = const [
+    _OnboardingData(
       step: '01 / 03',
-      title: 'Le son & l\'image du Mali.',
-      description: 'Découvrez les meilleures productions audio et vidéo créées par la communauté malienne et africaine.',
+      badge: 'CULTURE & ACTUALITÉ',
+      title: 'Les voix qui font bouger Bamako.',
+      description: 'Accédez aux récits, débats, musiques et interviews des créateurs les plus influents du Mali et de la sous-région.',
+      iconType: _IconType.audioWave,
     ),
-    _MinimalSlide(
+    _OnboardingData(
       step: '02 / 03',
-      title: 'Une expérience sans coupure.',
-      description: 'Basculez librement du flux audio haute fidélité aux sessions vidéo exclusives sans interrompre votre écoute.',
+      badge: 'EXPÉRIENCE MULTIMÉDIA',
+      title: 'En fond sonore ou en vidéo HD.',
+      description: 'Écoutez vos podcasts en arrière-plan pendant vos déplacements, ou basculez en vidéo HD en un clic.',
+      iconType: _IconType.videoStream,
     ),
-    _MinimalSlide(
+    _OnboardingData(
       step: '03 / 03',
-      title: 'En Bamanankan & Français.',
-      description: 'Conservez le lien avec votre culture, vos langues et vos voix préférées où que vous soyez.',
+      badge: 'PATRIMOINE LOCAL',
+      title: 'Vos émissions en Bamanankan & Français.',
+      description: 'Découvrez des contenus authentiques en Bambara et en Français, pensés pour tous les auditeurs.',
+      iconType: _IconType.languageCulture,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Continuous subtle Apple-style breath animation for icons
+    _iconAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _iconAnimationController.dispose();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   void _nextPage() {
     if (_currentIndex < _slides.length - 1) {
@@ -52,7 +77,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Minimal Top Header: Counter & Skip
+              // Minimal Top Navigation: Step Badge & Skip
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -75,7 +100,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                     child: const Text(
                       'Passer',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -83,9 +108,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
               const Spacer(),
 
-              // Ultra-Minimalist PageView Content (Pure Typography & Space)
+              // Animated Minimal Icon & Content PageView
               SizedBox(
-                height: 280,
+                height: 380,
                 child: PageView.builder(
                   controller: _pageController,
                   onPageChanged: (index) {
@@ -98,25 +123,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     final slide = _slides[index];
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        // Animated Sleek Minimal Icon Header
+                        _AnimatedMinimalIcon(
+                          iconType: slide.iconType,
+                          controller: _iconAnimationController,
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Contextual Category Badge
+                        Text(
+                          slide.badge,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2.0,
+                            color: BkoTheme.goldAccent,
+                          ),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Apple Display Title
                         Text(
                           slide.title,
                           style: const TextStyle(
-                            fontSize: 34,
+                            fontSize: 30,
                             fontWeight: FontWeight.w900,
-                            letterSpacing: -1.0,
-                            height: 1.10,
+                            letterSpacing: -0.8,
+                            height: 1.12,
                             color: BkoTheme.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 18),
+
+                        const SizedBox(height: 14),
+
+                        // Context-tailored Description
                         Text(
                           slide.description,
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w400,
-                            height: 1.5,
+                            height: 1.45,
                             color: BkoTheme.textSecondary,
                           ),
                         ),
@@ -128,11 +177,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
               const Spacer(),
 
-              // Bottom Bar: Dots & Minimal Action Button
+              // Bottom Section: Dots & Action Button
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Sleek Dot Indicator
+                  // Dot Indicator
                   Row(
                     children: List.generate(
                       _slides.length,
@@ -140,7 +189,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.fastOutSlowIn,
                         margin: const EdgeInsets.only(right: 6),
-                        width: _currentIndex == index ? 20 : 6,
+                        width: _currentIndex == index ? 22 : 6,
                         height: 4,
                         decoration: BoxDecoration(
                           color: _currentIndex == index ? BkoTheme.goldAccent : BkoTheme.borderStrong,
@@ -150,7 +199,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 28),
 
                   // Minimal Action Button
                   SizedBox(
@@ -187,14 +236,83 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-class _MinimalSlide {
+enum _IconType { audioWave, videoStream, languageCulture }
+
+class _OnboardingData {
   final String step;
+  final String badge;
   final String title;
   final String description;
+  final _IconType iconType;
 
-  const _MinimalSlide({
+  const _OnboardingData({
     required this.step,
+    required this.badge,
     required this.title,
     required this.description,
+    required this.iconType,
   });
+}
+
+class _AnimatedMinimalIcon extends StatelessWidget {
+  final _IconType iconType;
+  final AnimationController controller;
+
+  const _AnimatedMinimalIcon({
+    required this.iconType,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) {
+        final scaleValue = 0.95 + (controller.value * 0.10); // 0.95 -> 1.05 breath
+        final translationY = -4.0 * controller.value; // -4px float
+
+        return Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            color: BkoTheme.bgSurface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: BkoTheme.borderSubtle),
+          ),
+          child: Center(
+            child: Transform.translate(
+              offset: Offset(0, translationY),
+              child: Transform.scale(
+                scale: scaleValue,
+                child: _buildIconContent(),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildIconContent() {
+    switch (iconType) {
+      case _IconType.audioWave:
+        return const Icon(
+          Icons.graphic_eq_rounded,
+          color: BkoTheme.goldAccent,
+          size: 34,
+        );
+      case _IconType.videoStream:
+        return const Icon(
+          Icons.play_circle_outline_rounded,
+          color: BkoTheme.goldAccent,
+          size: 34,
+        );
+      case _IconType.languageCulture:
+        return const Icon(
+          Icons.record_voice_over_outlined,
+          color: BkoTheme.goldAccent,
+          size: 34,
+        );
+    }
+  }
 }
