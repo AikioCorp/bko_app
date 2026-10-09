@@ -127,6 +127,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return (ok: false, error: msg);
   }
 
+  Future<void> updateUser(Map<String, dynamic> newUser) async {
+    if (state.token != null) {
+      await TokenStorage.save(state.token!, newUser);
+      state = AuthState(
+        isAuthenticated: true,
+        token: state.token,
+        user: newUser,
+      );
+    }
+  }
+
   Future<void> logout() async {
     await TokenStorage.clear();
     state = const AuthState();

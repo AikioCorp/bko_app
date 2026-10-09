@@ -22,11 +22,9 @@ class _AppShellState extends ConsumerState<AppShell>
 
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    if (location.startsWith('/explore')) return 1;
-    if (location.startsWith('/library')) return 2;
-    if (location.startsWith('/favorites')) return 2;
-    if (location.startsWith('/search')) return 3;
-    if (location.startsWith('/profile')) return 4;
+    if (location.startsWith('/explore') || location.startsWith('/search')) return 1;
+    if (location.startsWith('/library') || location.startsWith('/favorites')) return 2;
+    if (location.startsWith('/profile')) return 3;
     return 0;
   }
 
@@ -70,9 +68,6 @@ class _AppShellState extends ConsumerState<AppShell>
         context.go('/library');
         break;
       case 3:
-        context.go('/search');
-        break;
-      case 4:
         context.go('/profile');
         break;
     }
@@ -768,12 +763,10 @@ class _AppShellState extends ConsumerState<AppShell>
 
     final items = [
       {'icon': Icons.home_rounded, 'label': 'Accueil'},
-      {'icon': Icons.grid_view_rounded, 'label': 'Nouveautés'},
+      {'icon': Icons.explore_rounded, 'label': 'Explorer'},
       {'icon': Icons.podcasts_rounded, 'label': 'Bibliothèque'},
-      {'icon': Icons.search_rounded, 'label': 'Recherche'},
       {'icon': Icons.person_outline_rounded, 'label': 'Profil'},
     ];
-    items[1] = {'icon': Icons.explore_rounded, 'label': 'Explorer'};
 
     return Container(
       key: const ValueKey('AppleFullBottomNav'),

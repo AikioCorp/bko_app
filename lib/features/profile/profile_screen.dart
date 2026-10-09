@@ -42,6 +42,19 @@ class ProfileScreen extends ConsumerWidget {
                     Text('${auth.user?['email'] ?? ''}',
                         textAlign: TextAlign.center,
                         style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: OutlinedButton.icon(
+                        onPressed: () => context.push('/profile/edit'),
+                        icon: const Icon(Icons.edit_rounded, size: 16),
+                        label: const Text('Modifier mon profil'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: textPri,
+                          side: BorderSide(color: border),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 32),
                     _tile('Ma bibliothèque', Icons.library_music, surface, border, textPri, () => context.go('/library')),
                     const SizedBox(height: 10),

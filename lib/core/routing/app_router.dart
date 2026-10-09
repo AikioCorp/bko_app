@@ -5,11 +5,11 @@ import '../../features/shell/app_shell.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/podcast_details_screen.dart';
 import '../../features/explore/explore_screen.dart';
-import '../../features/search/search_screen.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/auth/verify_otp_screen.dart';
 import '../../features/profile/profile_screen.dart';
+import '../../features/profile/profile_edit_screen.dart';
 import '../../features/library/library_screen.dart';
 import '../../features/home/episode_details_screen.dart';
 import '../../features/studio/studio_screen.dart';
@@ -54,16 +54,16 @@ final appRouter = GoRouter(
           builder: (context, state) => const ExploreScreen(),
         ),
         GoRoute(
-          path: '/search',
-          builder: (context, state) => const SearchScreen(),
-        ),
-        GoRoute(
           path: '/library',
           builder: (context, state) => const LibraryScreen(),
         ),
         GoRoute(
           path: '/profile',
           builder: (context, state) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: '/profile/edit',
+          builder: (context, state) => const ProfileEditScreen(),
         ),
         GoRoute(
           path: '/favorites',
