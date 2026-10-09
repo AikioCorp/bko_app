@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
@@ -13,6 +12,10 @@ import '../../features/auth/verify_otp_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/library/library_screen.dart';
 import '../../features/home/episode_details_screen.dart';
+import '../../features/studio/studio_screen.dart';
+import '../../features/studio/create_podcast_screen.dart';
+import '../../features/studio/create_episode_screen.dart';
+import '../../features/studio/rss_import_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -68,10 +71,19 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/studio',
-          builder: (context, state) => Scaffold(
-            appBar: AppBar(title: const Text('Studio Bko Podcast')),
-            body: const Center(child: Text('Espace Créateur Bko Podcast', style: TextStyle(color: Colors.white))),
-          ),
+          builder: (context, state) => const StudioScreen(),
+        ),
+        GoRoute(
+          path: '/studio/podcasts/new',
+          builder: (context, state) => const CreatePodcastScreen(),
+        ),
+        GoRoute(
+          path: '/studio/episodes/new',
+          builder: (context, state) => const CreateEpisodeScreen(),
+        ),
+        GoRoute(
+          path: '/studio/import-rss',
+          builder: (context, state) => const RssImportScreen(),
         ),
         GoRoute(
           path: '/podcasts/:slug',

@@ -1,3 +1,4 @@
+
 import 'package:dio/dio.dart';
 
 class ApiException implements Exception {
@@ -10,17 +11,20 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// Client HTTP unique. En production, fournir une URL HTTPS explicite avec :
-/// `--dart-define=BKO_API_BASE_URL=https://api.example.com/api/v1`.
+/// Client HTTP unique.
 class BkoApi {
-  static const String _configuredBaseUrl = String.fromEnvironment(
-    'BKO_API_BASE_URL',
-    defaultValue: 'https://api.bamakopodcast.com/api/v1',
-  );
+  static const String _envBaseUrl = String.fromEnvironment('BKO_API_BASE_URL');
+
+  static String _resolveDefaultBaseUrl() {
+    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
+    return 'http://c0mq60vovgz6xkdvi8hkyejk.194.31.52.77.sslip.io/api/v1';
+  }
+
+  static String _baseUrl = _resolveDefaultBaseUrl();
 
   static final Dio _dio = Dio(
     BaseOptions(
-      baseUrl: _configuredBaseUrl,
+      baseUrl: _baseUrl,
       connectTimeout: const Duration(seconds: 8),
       receiveTimeout: const Duration(seconds: 15),
       sendTimeout: const Duration(seconds: 15),
@@ -28,7 +32,12 @@ class BkoApi {
     ),
   );
 
-  static String get baseUrl => _configuredBaseUrl;
+  static String get baseUrl => _baseUrl;
+
+  static void setBaseUrl(String url) {
+    _baseUrl = url;
+    _dio.options.baseUrl = url;
+  }
 
   static Future<dynamic> get(String path, {String? token}) =>
       _request('GET', path, token: token);
@@ -82,7 +91,7 @@ class BkoApi {
       final apiError = payload is Map ? payload['error'] : null;
       final message = apiError is Map && apiError['message'] is String
           ? apiError['message'] as String
-          : 'Impossible de joindre Bko Podcast pour le moment.';
+          : 'Impossible de joindre Bamako Podcast pour le moment.';
       throw ApiException(message, statusCode: error.response?.statusCode);
     }
   }

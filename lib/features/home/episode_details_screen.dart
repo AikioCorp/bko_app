@@ -1,5 +1,4 @@
-import 'dart:io';
-import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -48,58 +47,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
 
   Future<void> _fetchEpisodeDetails() => _loadEpisodeFromApi();
 
-  // ignore: unused_element
-  Future<void> _fetchEpisodeDetailsLegacy() async {
-    final candidateHosts = [
-      '127.0.0.1',
-      '192.168.1.2',
-      'localhost',
-      '10.0.2.2'
-    ];
 
-    for (final host in candidateHosts) {
-      try {
-        final client = HttpClient()
-          ..connectionTimeout = const Duration(seconds: 2);
-
-        // Fetch podcast details
-        final podReq = await client.getUrl(
-          Uri.parse(
-              'http://$host:8080/api/v1/podcasts/${Uri.encodeComponent(widget.podcastSlug)}'),
-        );
-        final podRes = await podReq.close();
-        if (podRes.statusCode == 200) {
-          final body = await podRes.transform(utf8.decoder).join();
-          final json = jsonDecode(body);
-          if (json['success'] == true && json['data'] != null) {
-            final pData = json['data'];
-            final eps = (pData['episodes'] as List<dynamic>?) ?? [];
-            final matchEp = eps.firstWhere(
-              (e) =>
-                  e['slug'] == widget.episodeSlug ||
-                  e['id'] == widget.episodeSlug,
-              orElse: () => eps.isNotEmpty ? eps.first : null,
-            );
-
-            if (mounted) {
-              setState(() {
-                _podcast = pData;
-                _episode = matchEp;
-                _isLoading = false;
-              });
-              return;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
 
   Future<void> _loadEpisodeFromApi() async {
     try {
@@ -176,68 +124,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
     );
   }
 
-  // ignore: unused_element
-  void _startPlaybackLegacy(String mode) {
-    if (_episode == null) return;
 
-    final title = _episode!['title'] ?? 'Épisode';
-    final showName = _podcast?['name'] ?? 'Podcast';
-    final durationSeconds = _episode!['durationSeconds'] ?? 2400;
-    final minutes = (durationSeconds / 60).round();
-    final durationStr = '$minutes min';
-    final cover = _episode!['cover'] ?? _podcast?['cover'] ?? '';
-
-    final sources = (_episode!['mediaSources'] as List<dynamic>?) ?? [];
-    String? audioUrl = _episode!['primaryAudioSource']?['externalUrl'];
-    String? videoUrl = _episode!['primaryVideoSource']?['embedUrl'] ??
-        _episode!['primaryVideoSource']?['externalUrl'];
-
-    if (audioUrl == null) {
-      for (var s in sources) {
-        if (s['type'] == 'AUDIO' && s['externalUrl'] != null) {
-          audioUrl = s['externalUrl'];
-          break;
-        }
-      }
-    }
-
-    if (videoUrl == null) {
-      for (var s in sources) {
-        if (s['type'] == 'VIDEO') {
-          videoUrl = s['embedUrl'] ?? s['externalUrl'];
-          break;
-        }
-      }
-    }
-
-    final bool hasAudio = _episode!['audioAvailable'] ??
-        (audioUrl != null && audioUrl.isNotEmpty);
-    final bool hasVideo = _episode!['videoAvailable'] ??
-        ((videoUrl != null && videoUrl.isNotEmpty) || cover.contains('/vi/'));
-
-    ref.read(activeEpisodeProvider.notifier).playEpisode(
-          title: title,
-          showName: showName,
-          duration: durationStr,
-          coverUrl: cover,
-          audioUrl: audioUrl,
-          videoUrl: videoUrl,
-          hasAudio: hasAudio,
-          hasVideo: hasVideo,
-          initialMode: mode,
-        );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('▶ Lecture ($mode) : $title',
-            style: const TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold)),
-        duration: const Duration(seconds: 2),
-        backgroundColor: BkoTheme.goldAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   void _seekToTimestamp(String time) {
     final parts = time.split(':');

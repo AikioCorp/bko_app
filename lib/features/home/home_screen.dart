@@ -829,7 +829,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: episodesList.map((ep) {
                             final title = ep['title'] as String;
                             final podcastName =
-                                ep['podcast']?['name'] ?? 'Bko Podcast';
+                                ep['podcast']?['name'] ?? 'Bamako Podcast';
                             final date = ep['date'] ?? 'il y a 6 jours';
                             final duration =
                                 '${((ep['durationSeconds'] ?? 1800) / 60).round()} min';

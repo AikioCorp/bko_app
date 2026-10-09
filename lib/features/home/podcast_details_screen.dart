@@ -1,5 +1,4 @@
-import 'dart:convert';
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,117 +48,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
 
   Future<void> _fetchPodcastDetails() => _loadPodcastFromApi();
 
-  // ignore: unused_element
-  Future<void> _fetchPodcastDetailsLegacy() async {
-    final candidateHosts = [
-      '127.0.0.1',
-      '192.168.1.2',
-      'localhost',
-      '10.0.2.2'
-    ];
-    final decodedSlug = Uri.decodeComponent(widget.slug);
-    final normalized = _normalizeSlug(decodedSlug);
 
-    final slugCandidates = [
-      widget.slug,
-      decodedSlug,
-      Uri.encodeComponent(decodedSlug),
-      normalized,
-      widget.slug.replaceAll('-', ''),
-      decodedSlug.replaceAll('-', ''),
-    ];
-
-    for (final host in candidateHosts) {
-      for (final s in slugCandidates) {
-        if (s.isEmpty) continue;
-        try {
-          final client = HttpClient()
-            ..connectionTimeout = const Duration(seconds: 2);
-          final request = await client.getUrl(
-            Uri.parse(
-                'http://$host:8080/api/v1/podcasts/${Uri.encodeComponent(s)}'),
-          );
-          final response = await request.close();
-
-          if (response.statusCode == 200) {
-            final body = await response.transform(utf8.decoder).join();
-            final json = jsonDecode(body);
-            if (json['success'] == true && json['data'] != null) {
-              final data = json['data'];
-              final eps = (data['episodes'] as List<dynamic>?) ?? [];
-              if (mounted) {
-                setState(() {
-                  _podcast = data;
-                  _episodes = eps.isNotEmpty
-                      ? eps
-                      : _getDefaultEpisodes(data['name'] ?? widget.slug);
-                  _isLoading = false;
-                });
-              }
-              return;
-            }
-          }
-        } catch (_) {}
-      }
-    }
-
-    // Fallback: Fetch all podcasts list if direct slug not found
-    for (final host in candidateHosts) {
-      try {
-        final client = HttpClient()
-          ..connectionTimeout = const Duration(seconds: 2);
-        final request = await client.getUrl(
-          Uri.parse('http://$host:8080/api/v1/podcasts?limit=100'),
-        );
-        final response = await request.close();
-
-        if (response.statusCode == 200) {
-          final body = await response.transform(utf8.decoder).join();
-          final json = jsonDecode(body);
-          if (json['success'] == true && json['data'] != null) {
-            final list = (json['data'] is List)
-                ? json['data']
-                : (json['data']['data'] as List<dynamic>? ?? []);
-            final match = list.firstWhere(
-              (p) {
-                final pSlug = (p['slug'] as String? ?? '').toLowerCase();
-                final pName = (p['name'] as String? ?? '').toLowerCase();
-                return pSlug == widget.slug.toLowerCase() ||
-                    pSlug == decodedSlug.toLowerCase() ||
-                    _normalizeSlug(pSlug) == normalized ||
-                    _normalizeSlug(pName) == normalized ||
-                    pName.contains(decodedSlug.toLowerCase());
-              },
-              orElse: () => list.isNotEmpty ? list.first : null,
-            );
-            if (match != null && mounted) {
-              setState(() {
-                _podcast = match;
-                _episodes = (match['episodes'] as List<dynamic>?) ??
-                    _getDefaultEpisodes(match['name'] ?? widget.slug);
-                _isLoading = false;
-              });
-              return;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (mounted) {
-      setState(() {
-        _podcast = {
-          'name': widget.slug.replaceAll('-', ' ').toUpperCase(),
-          'description':
-              'Podcast exclusif d\'Afrique et de sa diaspora. Découvrez les histoires, le parcours et les épisodes marquants de nos voix captivantes.',
-          'cover': 'https://img.youtube.com/vi/KWhVBP8YQaM/maxresdefault.jpg',
-          'country': {'flagEmoji': '🇲🇱', 'name': 'Mali'},
-        };
-        _episodes = _getDefaultEpisodes(widget.slug);
-        _isLoading = false;
-      });
-    }
-  }
 
   Future<void> _loadPodcastFromApi() async {
     try {
@@ -180,31 +69,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     }
   }
 
-  List<dynamic> _getDefaultEpisodes(String showTitle) {
-    return [
-      {
-        'title': 'Épisode #1 : L\'histoire et les origines',
-        'description':
-            'Retour sur la genèse de $showTitle, les rencontres déterminantes et les défis majeurs.',
-        'durationSeconds': 2700,
-        'cover': 'https://img.youtube.com/vi/KWhVBP8YQaM/maxresdefault.jpg',
-      },
-      {
-        'title': 'Épisode #2 : Stratégie & Ambition Africaine',
-        'description':
-            'Comment faire rayonner la culture et l\'innovation depuis Bamako à travers le monde.',
-        'durationSeconds': 1980,
-        'cover': 'https://img.youtube.com/vi/Rr6vUM3pKqc/maxresdefault.jpg',
-      },
-      {
-        'title': 'Épisode #3 : Les secrets de la réussite',
-        'description':
-            'Conseils pratiques, retours d\'expérience et réponses aux questions des auditeurs.',
-        'durationSeconds': 2400,
-        'cover': 'https://img.youtube.com/vi/xS_Z1P6pUwo/maxresdefault.jpg',
-      },
-    ];
-  }
+
 
   Future<void> _playEpisode(Map<String, dynamic> ep) async {
     final audioUrl = BkoApi.extractAudioUrl(ep);
@@ -260,65 +125,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     }
   }
 
-  // ignore: unused_element
-  void _playEpisodeLegacy(Map<String, dynamic> ep) {
-    final title = ep['title'] ?? 'Épisode';
-    final podcastName = _podcast?['name'] ?? 'Podcast';
-    final durationSeconds = ep['durationSeconds'] ?? 2400;
-    final minutes = (durationSeconds / 60).round();
-    final durationStr = '$minutes min';
-    final cover = ep['cover'] ?? _podcast?['cover'] ?? '';
 
-    final sources = (ep['mediaSources'] as List<dynamic>?) ?? [];
-    String? audioUrl = ep['primaryAudioSource']?['externalUrl'];
-    String? videoUrl = ep['primaryVideoSource']?['embedUrl'] ??
-        ep['primaryVideoSource']?['externalUrl'];
-
-    if (audioUrl == null) {
-      for (var s in sources) {
-        if (s['type'] == 'AUDIO' && s['externalUrl'] != null) {
-          audioUrl = s['externalUrl'];
-          break;
-        }
-      }
-    }
-
-    if (videoUrl == null) {
-      for (var s in sources) {
-        if (s['type'] == 'VIDEO') {
-          videoUrl = s['embedUrl'] ?? s['externalUrl'];
-          break;
-        }
-      }
-    }
-
-    final bool hasAudio =
-        ep['audioAvailable'] ?? (audioUrl != null && audioUrl.isNotEmpty);
-    final bool hasVideo = ep['videoAvailable'] ??
-        ((videoUrl != null && videoUrl.isNotEmpty) || cover.contains('/vi/'));
-
-    ref.read(activeEpisodeProvider.notifier).playEpisode(
-          title: title,
-          showName: podcastName,
-          duration: durationStr,
-          coverUrl: cover,
-          audioUrl: audioUrl,
-          videoUrl: videoUrl,
-          hasAudio: hasAudio,
-          hasVideo: hasVideo,
-        );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('▶ Lecture : $title',
-            style: const TextStyle(
-                color: Colors.black, fontWeight: FontWeight.bold)),
-        duration: const Duration(seconds: 2),
-        backgroundColor: BkoTheme.goldAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {

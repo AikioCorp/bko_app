@@ -162,7 +162,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                     child: Opacity(
                       opacity: _textOpacity.value,
                       child: const Text(
-                        'BKO PODCAST',
+                        'BAMAKO PODCAST',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,

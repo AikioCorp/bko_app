@@ -11,7 +11,7 @@ Future<void> main() async {
     builder: BkoAudioHandler.new,
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'studio.bamakopodcast.app.playback',
-      androidNotificationChannelName: 'Lecture Bko Podcast',
+      androidNotificationChannelName: 'Lecture Bamako Podcast',
     ),
   );
   runApp(

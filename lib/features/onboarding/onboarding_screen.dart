@@ -115,7 +115,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'BKO PODCAST',
+                        'BAMAKO PODCAST',
                         style: BkoTheme.fontLato(
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
@@ -419,7 +419,7 @@ class _AppleVisualStage extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Bko Podcast Studio • Mali',
+                    'Bamako Podcast Studio • Mali',
                     style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w700, color: BkoTheme.textPrimary),
                   ),
                 ],
