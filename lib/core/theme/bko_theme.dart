@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class BkoTheme {
-  // Signature Gold Accent
-  static const Color goldAccent = Color(0xFFE6B009);
-  static const Color goldAccentHover = Color(0xFFF2C029);
+  // Signature Gold/Yellow Accent (Exact web #FFBF00)
+  static const Color goldAccent = Color(0xFFFFBF00);
+  static const Color goldAccentHover = Color(0xFFFFCF33);
 
-  // Dark Theme Tokens (Defaults)
-  static const Color darkBgObsidian = Color(0xFF0B0F17);
-  static const Color darkBgSurface = Color(0xFF161B22);
-  static const Color darkBgSurfaceElevated = Color(0xFF1F242D);
-  static const Color darkBorderSubtle = Color(0xFF21262D);
-  static const Color darkBorderStrong = Color(0xFF30363D);
-  static const Color darkTextPrimary = Color(0xFFF0F6FC);
-  static const Color darkTextSecondary = Color(0xFF8B949E);
-  static const Color darkTextMuted = Color(0xFF6E7681);
-  static const Color darkLiquidGlassBg = Color(0xCC161B22);
-  static const Color darkLiquidGlassBorder = Color(0x33E6B009);
-  static const Color darkLiquidGlassActive = Color(0x26E6B009);
+  // Dark Theme Tokens (Exact match with bko_web globals.css)
+  static const Color darkBgObsidian = Color(0xFF0B0B0B); // Pure dark neutral
+  static const Color darkBgSurface = Color(0xFF121212);
+  static const Color darkBgSurfaceElevated = Color(0xFF1A1A1A);
+  static const Color darkBorderSubtle = Color(0xFF262626);
+  static const Color darkBorderStrong = Color(0xFF333333);
+  static const Color darkTextPrimary = Color(0xFFFFFFFF);
+  static const Color darkTextSecondary = Color(0xFFB8B8B8);
+  static const Color darkTextMuted = Color(0xFF757575);
+  static const Color darkLiquidGlassBg = Color(0xCC121212);
+  static const Color darkLiquidGlassBorder = Color(0x33FFBF00);
+  static const Color darkLiquidGlassActive = Color(0x26FFBF00);
 
   // Light Theme Tokens (Black-Focused Luxury)
   static const Color lightBgObsidian = Color(0xFFF8F9FA);
@@ -93,17 +94,15 @@ class BkoTheme {
   static Color getActiveNavItemColor(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark ? goldAccent : const Color(0xFF0F172A);
 
-  // Safe Typography Helper with System Fallback (Offline & Production Safe)
-  static TextStyle fontLato({
+  // Official Brand Typography (Poppins with system fallbacks)
+  static TextStyle fontPoppins({
     double? fontSize,
     FontWeight? fontWeight,
     double? letterSpacing,
     double? height,
     Color? color,
   }) {
-    return TextStyle(
-      fontFamily: 'Lato',
-      fontFamilyFallback: const ['sans-serif', '.SF Pro Text', 'Roboto'],
+    return GoogleFonts.poppins(
       fontSize: fontSize,
       fontWeight: fontWeight,
       letterSpacing: letterSpacing,
@@ -111,6 +110,22 @@ class BkoTheme {
       color: color,
     );
   }
+
+  // Backward compatibility alias: redirects to official Poppins brand font
+  static TextStyle fontLato({
+    double? fontSize,
+    FontWeight? fontWeight,
+    double? letterSpacing,
+    double? height,
+    Color? color,
+  }) =>
+      fontPoppins(
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        letterSpacing: letterSpacing,
+        height: height,
+        color: color,
+      );
 
   // Dark ThemeData Definition
   static ThemeData get darkTheme {
@@ -123,8 +138,7 @@ class BkoTheme {
         secondary: goldAccentHover,
         surface: darkBgSurface,
       ),
-      fontFamily: 'Lato',
-      fontFamilyFallback: const ['sans-serif', '.SF Pro Text', 'Roboto'],
+      fontFamily: GoogleFonts.poppins().fontFamily,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -159,8 +173,7 @@ class BkoTheme {
         secondary: goldAccent,
         surface: lightBgSurface,
       ),
-      fontFamily: 'Lato',
-      fontFamilyFallback: const ['sans-serif', '.SF Pro Text', 'Roboto'],
+      fontFamily: GoogleFonts.poppins().fontFamily,
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,

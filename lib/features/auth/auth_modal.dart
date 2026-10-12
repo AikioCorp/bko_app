@@ -89,9 +89,11 @@ class AuthRequiredModal extends StatelessWidget {
             child: ElevatedButton(
               onPressed: () {
                 final router = GoRouter.of(context);
-                final redirect = Uri.encodeComponent(
-                  GoRouterState.of(context).uri.toString(),
-                );
+                String currentUri = '/';
+                try {
+                  currentUri = router.routeInformationProvider.value.uri.toString();
+                } catch (_) {}
+                final redirect = Uri.encodeComponent(currentUri);
                 Navigator.pop(context);
                 router.push('/login?redirect=$redirect');
               },

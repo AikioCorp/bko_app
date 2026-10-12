@@ -42,8 +42,11 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'format': _format,
-        'language': _language,
-        if (_coverUrlController.text.trim().isNotEmpty) 'cover': _coverUrlController.text.trim(),
+        'primaryLanguageCode': _language,
+        'countryId': 'ML',
+        'cover': _coverUrlController.text.trim().isNotEmpty
+            ? _coverUrlController.text.trim()
+            : 'https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/placeholder.jpg',
         'status': isDraft ? 'DRAFT' : 'PUBLISHED',
       };
 

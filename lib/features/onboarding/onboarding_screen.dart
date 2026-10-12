@@ -10,133 +10,109 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerProviderStateMixin {
+class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  late AnimationController _floatController;
-
-  final List<_OnboardingItemData> _slides = const [
-    _OnboardingItemData(
-      badge: 'DÉCOUVREZ',
-      title: 'Les voix du Mali, réunies ici.',
-      description: 'Histoires, idées, culture et conversations à découvrir sur une seule plateforme.',
-      type: _SlideVisualType.discoveryPortrait,
+  final List<_OnboardingSlideData> _slides = const [
+    _OnboardingSlideData(
+      badge: 'DÉCOUVRIR',
+      title: 'Des voix à découvrir. Des histoires à partager.',
+      description: 'Explorez des podcasts, des idées et des conversations selon vos envies.',
+      type: _VisualType.discover,
     ),
-    _OnboardingItemData(
-      badge: 'ÉCOUTEZ OU REGARDEZ',
-      title: 'Votre podcast, à votre façon.',
-      description: 'Passez de l’audio à la vidéo et suivez chaque épisode comme vous le souhaitez.',
-      type: _SlideVisualType.audioVideoDual,
+    _OnboardingSlideData(
+      badge: 'ÉCOUTER OU REGARDER',
+      title: 'Votre écoute, à votre façon.',
+      description: 'Découvrez des épisodes audio et vidéo, et retrouvez vos contenus préférés.',
+      type: _VisualType.listenOrWatch,
     ),
-    _OnboardingItemData(
-      badge: 'DU MALI À L’AFRIQUE',
-      title: 'Des voix proches. Des idées sans frontières.',
-      description: 'Commencez au Mali, puis explorez les conversations qui font vibrer l’Afrique.',
-      type: _SlideVisualType.africanConnection,
+    _OnboardingSlideData(
+      badge: 'COMMENCER',
+      title: 'Trouvez votre prochaine découverte.',
+      description: 'Parcourez les émissions, suivez celles qui vous plaisent et composez votre bibliothèque.',
+      type: _VisualType.start,
     ),
   ];
 
   @override
-  void initState() {
-    super.initState();
-    // Apple-style continuous gentle floating animation
-    _floatController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3200),
-    )..repeat(reverse: true);
-  }
-
-  @override
   void dispose() {
-    _floatController.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
-  Future<void> _finishOnboarding() async {
+  Future<void> _markOnboardingSeen() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('has_seen_onboarding', true);
     } catch (_) {}
+  }
+
+  Future<void> _skipOnboarding() async {
+    await _markOnboardingSeen();
     if (mounted) {
       context.go('/');
+    }
+  }
+
+  Future<void> _finishAndExplore() async {
+    await _markOnboardingSeen();
+    if (mounted) {
+      context.go('/');
+    }
+  }
+
+  Future<void> _finishAndLogin() async {
+    await _markOnboardingSeen();
+    if (mounted) {
+      context.push('/login');
     }
   }
 
   void _nextPage() {
     if (_currentIndex < _slides.length - 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 350),
         curve: Curves.fastOutSlowIn,
       );
     } else {
-      _finishOnboarding();
+      _finishAndExplore();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BkoTheme.bgObsidian,
+      backgroundColor: const Color(0xFF0B0B0B),
       body: SafeArea(
         child: Column(
           children: [
-            // Top Bar: Brand & Passer Button
+            // Top Bar: Passer Button
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 26,
-                        height: 26,
-                        decoration: BoxDecoration(
-                          color: BkoTheme.bgSurface,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: BkoTheme.borderSubtle),
+                  Semantics(
+                    button: true,
+                    label: "Passer l'introduction",
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: _skipOnboarding,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFFB8B8B8),
+                          minimumSize: const Size(48, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(7),
-                          child: Image.asset(
-                            'assets/brand/app_icon.png',
-                            width: 26,
-                            height: 26,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.mic,
-                              color: BkoTheme.goldAccent,
-                              size: 14,
-                            ),
+                        child: Text(
+                          'Passer',
+                          style: BkoTheme.fontPoppins(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFFB8B8B8),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'BAMAKO PODCAST',
-                        style: BkoTheme.fontLato(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.5,
-                          color: BkoTheme.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: _finishOnboarding,
-                    style: TextButton.styleFrom(
-                      foregroundColor: BkoTheme.textSecondary,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    ),
-                    child: Text(
-                      'Passer',
-                      style: BkoTheme.fontLato(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: BkoTheme.textSecondary,
                       ),
                     ),
                   ),
@@ -144,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
               ),
             ),
 
-            // Main Visual Stage & Typography PageView
+            // Page View
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -158,126 +134,194 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
                   final slide = _slides[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: const ClampingScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            child: IntrinsicHeight(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
 
-                        // Apple-style Visual Stage (Upper stage)
-                        Expanded(
-                          flex: 5,
-                          child: Center(
-                            child: _AppleVisualStage(
-                              type: slide.type,
-                              controller: _floatController,
+                                  // Offline Geometric Visual Container
+                                  Center(
+                                    child: ConstrainedBox(
+                                      constraints: const BoxConstraints(maxHeight: 220),
+                                      child: _VisualContainer(type: slide.type),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 24),
+
+                                  // Badge
+                                  Text(
+                                    slide.badge,
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 2.0,
+                                      color: BkoTheme.goldAccent,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 8),
+
+                                  // Main Title
+                                  Text(
+                                    slide.title,
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.4,
+                                      height: 1.25,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 12),
+
+                                  // Description
+                                  Text(
+                                    slide.description,
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.5,
+                                      color: const Color(0xFFB8B8B8),
+                                    ),
+                                  ),
+
+                                  const Spacer(),
+                                  const SizedBox(height: 12),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Content (Lower stage)
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Petit titre (Badge)
-                              Text(
-                                slide.badge,
-                                style: BkoTheme.fontLato(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 2.0,
-                                  color: BkoTheme.goldAccent,
-                                ),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              // Titre principal
-                              Text(
-                                slide.title,
-                                style: BkoTheme.fontLato(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                  height: 1.15,
-                                  color: BkoTheme.textPrimary,
-                                ),
-                              ),
-
-                              const SizedBox(height: 10),
-
-                              // Description
-                              Text(
-                                slide.description,
-                                style: BkoTheme.fontLato(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.45,
-                                  color: BkoTheme.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   );
                 },
               ),
             ),
 
-            // Bottom Section: Dots & Primary Button
+            // Bottom Section: Indicators & Action Buttons
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Dot Indicator
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
                       _slides.length,
-                      (index) => AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.fastOutSlowIn,
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentIndex == index ? 24 : 8,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: _currentIndex == index ? BkoTheme.goldAccent : BkoTheme.borderStrong,
-                          borderRadius: BorderRadius.circular(2),
+                      (index) => Semantics(
+                        label: 'Écran ${index + 1} sur ${_slides.length}',
+                        selected: _currentIndex == index,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.fastOutSlowIn,
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: _currentIndex == index ? 24 : 8,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: _currentIndex == index
+                                ? BkoTheme.goldAccent
+                                : const Color(0xFF383838),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
-                  // Bouton Principal
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _nextPage,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: BkoTheme.goldAccent,
-                        foregroundColor: Colors.black,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                  // Action Buttons with Smooth CrossFade
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 200),
+                    crossFadeState: _currentIndex == _slides.length - 1
+                        ? CrossFadeState.showSecond
+                        : CrossFadeState.showFirst,
+                    firstChild: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _nextPage,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BkoTheme.goldAccent,
+                          foregroundColor: Colors.black,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          'Continuer',
+                          style: BkoTheme.fontPoppins(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        _currentIndex == _slides.length - 1 ? 'Commencer à écouter' : 'Continuer',
-                        style: BkoTheme.fontLato(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.2,
-                          color: Colors.black,
+                    ),
+                    secondChild: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _finishAndExplore,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: BkoTheme.goldAccent,
+                              foregroundColor: Colors.black,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: Text(
+                              'Explorer les épisodes',
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: _finishAndLogin,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1A1A1A),
+                              foregroundColor: Colors.white,
+                              side: const BorderSide(color: Color(0xFF262626)),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: Text(
+                              'Se connecter',
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -290,15 +334,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> with SingleTickerPr
   }
 }
 
-enum _SlideVisualType { discoveryPortrait, audioVideoDual, africanConnection }
+enum _VisualType { discover, listenOrWatch, start }
 
-class _OnboardingItemData {
+class _OnboardingSlideData {
   final String badge;
   final String title;
   final String description;
-  final _SlideVisualType type;
+  final _VisualType type;
 
-  const _OnboardingItemData({
+  const _OnboardingSlideData({
     required this.badge,
     required this.title,
     required this.description,
@@ -306,216 +350,499 @@ class _OnboardingItemData {
   });
 }
 
-class _AppleVisualStage extends StatelessWidget {
-  final _SlideVisualType type;
-  final AnimationController controller;
+class _VisualContainer extends StatelessWidget {
+  final _VisualType type;
 
-  const _AppleVisualStage({
-    required this.type,
-    required this.controller,
-  });
+  const _VisualContainer({required this.type});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) {
-        final floatY = -6.0 * controller.value;
-
-        return Transform.translate(
-          offset: Offset(0, floatY),
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxHeight: 250),
-            decoration: BoxDecoration(
-              color: BkoTheme.bgSurface,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: BkoTheme.borderSubtle),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 24,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: Stack(
-                children: [
-                  // Glow Background
-                  Positioned(
-                    top: -30,
-                    right: -30,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: BkoTheme.goldAccent.withValues(alpha: 0.08),
-                      ),
-                    ),
-                  ),
-
-                  // Stage Content
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: _buildVisualForType(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF262626)),
+      ),
+      child: switch (type) {
+        _VisualType.discover => _buildDiscoverVisual(),
+        _VisualType.listenOrWatch => _buildListenOrWatchVisual(),
+        _VisualType.start => _buildStartVisual(),
       },
     );
   }
 
-  Widget _buildVisualForType() {
-    switch (type) {
-      case _SlideVisualType.discoveryPortrait:
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildDiscoverVisual() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
           children: [
-            // Portrait Studio Scene Representation with Bko Logo
-            Container(
-              width: 84,
-              height: 84,
-              decoration: BoxDecoration(
-                color: BkoTheme.bgObsidian,
-                shape: BoxShape.circle,
-                border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.4), width: 1.5),
-              ),
-              child: Center(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: BkoTheme.bgSurfaceElevated,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.mic_external_on_rounded, color: BkoTheme.goldAccent, size: 28),
+            _buildMiniCover(
+              icon: Icons.podcasts_rounded,
+              category: 'Société',
+              tag: 'Idées',
+              iconColor: BkoTheme.goldAccent,
+            ),
+            const SizedBox(width: 10),
+            _buildMiniCover(
+              icon: Icons.record_voice_over_rounded,
+              category: 'Débats',
+              tag: 'Direct',
+              iconColor: Colors.white,
+            ),
+            const SizedBox(width: 10),
+            _buildMiniCover(
+              icon: Icons.menu_book_rounded,
+              category: 'Récits',
+              tag: 'Culture',
+              iconColor: BkoTheme.goldAccent,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF262626)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF262626)),
+                ),
+                child: const Icon(
+                  Icons.explore_rounded,
+                  color: BkoTheme.goldAccent,
+                  size: 18,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: BkoTheme.bgObsidian,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: BkoTheme.borderSubtle),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Découverte libre & ouverte',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Des formats variés pour tous les goûts',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: const Color(0xFFB8B8B8),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: BkoTheme.goldAccent,
-                      shape: BoxShape.circle,
+              const Icon(
+                Icons.arrow_forward_rounded,
+                color: Color(0xFFB8B8B8),
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMiniCover({
+    required IconData icon,
+    required String category,
+    required String tag,
+    required Color iconColor,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF262626)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: iconColor, size: 22),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF121212),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF262626)),
+                  ),
+                  child: Text(
+                    tag,
+                    style: BkoTheme.fontPoppins(
+                      fontSize: 8,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFFB8B8B8),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Bamako Podcast Studio • Mali',
-                    style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w700, color: BkoTheme.textPrimary),
-                  ),
-                ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              category,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: BkoTheme.fontPoppins(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
           ],
-        );
+        ),
+      ),
+    );
+  }
 
-      case _SlideVisualType.audioVideoDual:
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Episode Cover Deck with Audio Wave & Video Player Indicator
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: BkoTheme.bgObsidian,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: BkoTheme.borderSubtle),
+  Widget _buildListenOrWatchVisual() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Mini Player Preview
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFF262626)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: BkoTheme.goldAccent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.play_arrow_rounded,
+                  color: Colors.black,
+                  size: 24,
+                ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: BkoTheme.bgSurfaceElevated,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: BkoTheme.borderSubtle),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Lecture en cours',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: const Icon(Icons.graphic_eq_rounded, color: BkoTheme.goldAccent, size: 28),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 6),
+                    Row(
                       children: [
-                        Text(
-                          'Voix de Bamako',
-                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w900, color: BkoTheme.textPrimary),
+                        Expanded(
+                          flex: 4,
+                          child: Container(
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: BkoTheme.goldAccent,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.volume_up_rounded, color: BkoTheme.textSecondary, size: 14),
-                            const SizedBox(width: 4),
-                            Text('Audio High Fidelity', style: BkoTheme.fontLato(fontSize: 10, color: BkoTheme.textSecondary)),
-                            const SizedBox(width: 10),
-                            const Icon(Icons.videocam_rounded, color: BkoTheme.goldAccent, size: 14),
-                            const SizedBox(width: 4),
-                            Text('Vidéo HD', style: BkoTheme.fontLato(fontSize: 10, color: BkoTheme.goldAccent, fontWeight: FontWeight.bold)),
-                          ],
+                        Expanded(
+                          flex: 6,
+                          child: Container(
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF262626),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Two Formats: Audio and Video
+        Row(
+          children: [
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF262626)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF121212),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF262626)),
+                      ),
+                      child: const Icon(
+                        Icons.headphones_rounded,
+                        color: BkoTheme.goldAccent,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Format Audio',
+                            style: BkoTheme.fontPoppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Écoute nomade',
+                            style: BkoTheme.fontPoppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFFB8B8B8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF262626)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF121212),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF262626)),
+                      ),
+                      child: const Icon(
+                        Icons.play_circle_outline_rounded,
+                        color: BkoTheme.goldAccent,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Format Vidéo',
+                            style: BkoTheme.fontPoppins(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Émissions filmées',
+                            style: BkoTheme.fontPoppins(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w400,
+                              color: const Color(0xFFB8B8B8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
-        );
-
-      case _SlideVisualType.africanConnection:
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.public_rounded, color: BkoTheme.goldAccent, size: 48),
-            const SizedBox(height: 14),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildRegionBadge('🇲🇱 Mali'),
-                const SizedBox(width: 8),
-                _buildRegionBadge('🇸🇳 Sénégal'),
-                const SizedBox(width: 8),
-                _buildRegionBadge('🇨🇮 Côte d\'Ivoire'),
-              ],
-            ),
-          ],
-        );
-    }
+        ),
+      ],
+    );
   }
 
-  Widget _buildRegionBadge(String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: BkoTheme.bgObsidian,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: BkoTheme.borderSubtle),
-      ),
-      child: Text(
-        text,
-        style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w700, color: BkoTheme.textPrimary),
-      ),
+  Widget _buildStartVisual() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Show / Follow card
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF262626)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF262626)),
+                ),
+                child: const Icon(
+                  Icons.podcasts_rounded,
+                  color: BkoTheme.goldAccent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Émissions suivies',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Abonnements aux flux favoris',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 10,
+                        color: const Color(0xFFB8B8B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: BkoTheme.goldAccent),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.check_rounded,
+                      color: BkoTheme.goldAccent,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Suivi',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: BkoTheme.goldAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        // Saved Episodes & Library Card
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF262626)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF121212),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF262626)),
+                ),
+                child: const Icon(
+                  Icons.bookmark_border_rounded,
+                  color: BkoTheme.goldAccent,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Épisodes enregistrés',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'À écouter et retrouver dans la bibliothèque',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 10,
+                        color: const Color(0xFFB8B8B8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.library_music_rounded,
+                color: Color(0xFFB8B8B8),
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

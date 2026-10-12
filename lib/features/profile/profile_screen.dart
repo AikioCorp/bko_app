@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/network/bko_api.dart';
 import '../auth/auth_controller.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -17,8 +18,8 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 100),
           child: auth.isAuthenticated
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -56,12 +57,18 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 32),
+                    _tile('Notifications', Icons.notifications_none_rounded, surface, border, textPri, () => context.push('/notifications')),
+                    const SizedBox(height: 10),
                     _tile('Ma bibliothèque', Icons.library_music, surface, border, textPri, () => context.go('/library')),
                     const SizedBox(height: 10),
                     _tile('Favoris', Icons.favorite_border, surface, border, textPri, () => context.go('/favorites')),
                     const SizedBox(height: 10),
+                    _tile('Personnalisation & Recommandations', Icons.tune_rounded, surface, border, textPri, () {
+                      _showPersonalizationSheet(context, ref);
+                    }),
+                    const SizedBox(height: 10),
                     _tile('Espace créateur', Icons.mic_none, surface, border, textPri, () => context.go('/studio')),
-                    const Spacer(),
+                    const SizedBox(height: 36),
                     OutlinedButton(
                       onPressed: () => ref.read(authProvider.notifier).logout(),
                       style: OutlinedButton.styleFrom(
@@ -123,6 +130,76 @@ class ProfileScreen extends ConsumerWidget {
             Text(label, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w600, color: text)),
             const Spacer(),
             Icon(Icons.chevron_right, color: text.withValues(alpha: 0.4)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPersonalizationSheet(BuildContext context, WidgetRef ref) {
+    final auth = ref.read(authProvider);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final surface = BkoTheme.getBgSurface(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: border, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('Personnalisation & Recommandations',
+                style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
+            const SizedBox(height: 8),
+            Text('Gérez vos signaux d\'écoute, activez ou réinitialisez votre profil de découverte.',
+                style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
+            const SizedBox(height: 24),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.refresh_rounded, color: BkoTheme.goldAccent),
+              title: Text('Réinitialiser mon profil de goûts',
+                  style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w700, color: textPri)),
+              subtitle: Text('Efface l\'historique d\'affinité et recalcule les suggestions',
+                  style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                if (auth.token != null) {
+                  try {
+                    await BkoApi.post('/recommendations/reset-profile', {}, token: auth.token);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Profil réinitialisé avec succès.')),
+                    );
+                  } catch (_) {}
+                }
+              },
+            ),
+            const Divider(color: Color(0xFF262626), height: 24),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.tune_rounded, color: BkoTheme.goldAccent),
+              title: Text('Modifier mes centres d\'intérêt',
+                  style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w700, color: textPri)),
+              subtitle: Text('Mettre à jour les thèmes choisis à l\'onboarding',
+                  style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+              onTap: () {
+                Navigator.pop(ctx);
+                context.push('/onboarding');
+              },
+            ),
           ],
         ),
       ),

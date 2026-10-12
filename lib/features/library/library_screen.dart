@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../auth/auth_controller.dart';
+import '../home/widgets/episode_list_item.dart';
 import '../shell/shell_providers.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -15,9 +16,12 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
-  int _tab = 0; // 0 = enregistrés, 1 = historique, 2 = playlists
+  int _tab = 0; // 0 = enregistrés, 1 = suivis, 2 = historique, 3 = playlists
   bool _loading = false;
+  String? _errorMessage;
+
   List<dynamic> _saved = [];
+  List<dynamic> _following = [];
   List<dynamic> _history = [];
   List<dynamic> _playlists = [];
   bool _loadedOnce = false;
@@ -34,19 +38,32 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Future<void> _fetch() async {
     final token = ref.read(authProvider).token;
     if (token == null) return;
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
 
-    if (_tab == 0) {
-      final data = await BkoApi.get('/me/saved', token: token);
-      if (mounted) setState(() => _saved = (data as List?) ?? []);
-    } else if (_tab == 1) {
-      final data = await BkoApi.get('/me/history', token: token);
-      if (mounted) setState(() => _history = (data as List?) ?? []);
-    } else {
-      final data = await BkoApi.get('/me/playlists', token: token);
-      if (mounted) setState(() => _playlists = (data as List?) ?? []);
+    try {
+      if (_tab == 0) {
+        final data = await BkoApi.get('/me/saved', token: token);
+        if (mounted) setState(() => _saved = (data as List?) ?? []);
+      } else if (_tab == 1) {
+        final data = await BkoApi.get('/me/following', token: token);
+        if (mounted) setState(() => _following = (data as List?) ?? []);
+      } else if (_tab == 2) {
+        final data = await BkoApi.get('/me/history', token: token);
+        if (mounted) setState(() => _history = (data as List?) ?? []);
+      } else {
+        final data = await BkoApi.get('/me/playlists', token: token);
+        if (mounted) setState(() => _playlists = (data as List?) ?? []);
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _errorMessage = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _errorMessage = 'Erreur lors du chargement des données.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
-    if (mounted) setState(() => _loading = false);
   }
 
   void _selectTab(int i) {
@@ -54,7 +71,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     _fetch();
   }
 
-  void _play(Map ep) {
+  void _play(Map ep, {int? resumePositionSeconds}) {
     final podcast = ep['podcast'] as Map?;
     final d = ep['durationSeconds'];
     final label = d is int ? '${(d / 60).round()} min' : '';
@@ -77,8 +94,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final cover = '${ep['cover'] ?? podcast?['cover'] ?? ''}';
     final bool hasAudio = audioUrl != null && audioUrl.isNotEmpty;
     final bool hasVideo = videoUrl != null && videoUrl.isNotEmpty;
+    final episodeId = '${ep['id'] ?? ''}';
 
-    ref.read(activeEpisodeProvider.notifier).playEpisode(
+    ref.read(activeEpisodeProvider.notifier).handlePlayOrPause(
           title: '${ep['title'] ?? ''}',
           showName: '${podcast?['name'] ?? ''}',
           duration: label,
@@ -87,9 +105,62 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           videoUrl: videoUrl,
           hasAudio: hasAudio,
           hasVideo: hasVideo,
-          episodeId: '${ep['id'] ?? ''}',
+          episodeId: episodeId,
           podcastSlug: '${podcast?['slug'] ?? ''}',
+          episodeSlug: '${ep['slug'] ?? ''}',
         );
+
+    if (resumePositionSeconds != null && resumePositionSeconds > 0) {
+      final active = ref.read(activeEpisodeProvider);
+      if (active.episodeId == episodeId && active.currentPosition == Duration.zero) {
+        ref.read(activeEpisodeProvider.notifier).seek(Duration(seconds: resumePositionSeconds));
+      }
+    }
+  }
+
+  Future<void> _createPlaylistDialog() async {
+    final controller = TextEditingController();
+    final created = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BkoTheme.getBgSurface(ctx),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Nouvelle playlist', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: BkoTheme.getTextPrimary(ctx))),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: BkoTheme.fontLato(fontSize: 14, color: BkoTheme.getTextPrimary(ctx)),
+          decoration: InputDecoration(
+            hintText: 'Nom de la playlist',
+            hintStyle: BkoTheme.fontLato(fontSize: 14, color: BkoTheme.getTextSecondary(ctx)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Annuler', style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextSecondary(ctx))),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: BkoTheme.goldAccent,
+              foregroundColor: Colors.black,
+            ),
+            child: Text('Créer', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black)),
+          ),
+        ],
+      ),
+    );
+
+    if (created == true && controller.text.trim().isNotEmpty) {
+      final token = ref.read(authProvider).token;
+      if (token == null) return;
+      try {
+        await BkoApi.post('/playlists', {'name': controller.text.trim(), 'isPublic': false}, token: token);
+        _fetch();
+      } catch (_) {}
+    }
   }
 
   @override
@@ -105,36 +176,70 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
 
     return Scaffold(
+      backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Text('Ma bibliothèque',
-                  style: BkoTheme.fontLato(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      color: textPri)),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _tabButton('Enregistrés', 0, surface, border, textSec),
-                  const SizedBox(width: 8),
-                  _tabButton('Historique', 1, surface, border, textSec),
-                  const SizedBox(width: 8),
-                  _tabButton('Playlists', 2, surface, border, textSec),
+                  Text('Ma bibliothèque',
+                      style: BkoTheme.fontLato(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: textPri)),
+                  if (_tab == 3)
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline_rounded, color: BkoTheme.goldAccent, size: 28),
+                      onPressed: _createPlaylistDialog,
+                    ),
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _tabButton('Enregistrés', 0, surface, border, textSec),
+                    const SizedBox(width: 8),
+                    _tabButton('Émissions suivies', 1, surface, border, textSec),
+                    const SizedBox(width: 8),
+                    _tabButton('Historique', 2, surface, border, textSec),
+                    const SizedBox(width: 8),
+                    _tabButton('Playlists', 3, surface, border, textSec),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
-              child: _loading
-                  ? const Center(
-                      child:
-                          CircularProgressIndicator(color: BkoTheme.goldAccent))
-                  : _buildTabContent(surface, border, textPri, textSec),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) =>
+                    handleShellScrollNotification(notification, ref),
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+                    : _errorMessage != null
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(_errorMessage!, style: BkoTheme.fontLato(fontSize: 13, color: Colors.red.shade300)),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: _fetch,
+                                  style: ElevatedButton.styleFrom(backgroundColor: BkoTheme.goldAccent, foregroundColor: Colors.black),
+                                  child: Text('Réessayer', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black)),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _buildTabContent(surface, border, textPri, textSec),
+              ),
             ),
           ],
         ),
@@ -144,39 +249,101 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
 
   Widget _buildTabContent(
       Color surface, Color border, Color textPri, Color textSec) {
-    if (_tab == 2) {
+    if (_tab == 3) {
       if (_playlists.isEmpty) return _empty('Aucune playlist.', textSec);
       return ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
         children: _playlists.map((pl) {
           final map = pl as Map;
           final count = (map['_count']?['items'] ?? 0).toString();
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: border)),
-            child: Row(
-              children: [
-                const Icon(Icons.queue_music, color: BkoTheme.goldAccent),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('${map['name'] ?? ''}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: BkoTheme.fontLato(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: textPri)),
-                ),
-                Text('$count épisodes',
-                    style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
-              ],
+          return GestureDetector(
+            onTap: () => context.push('/playlists/${map['id']}'),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: border)),
+              child: Row(
+                children: [
+                  const Icon(Icons.queue_music, color: BkoTheme.goldAccent),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('${map['name'] ?? ''}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: BkoTheme.fontLato(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: textPri)),
+                  ),
+                  Text('$count épisodes',
+                      style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right_rounded, color: textSec, size: 20),
+                ],
+              ),
             ),
           );
         }).toList(),
+      );
+    }
+
+    if (_tab == 1) {
+      // Émissions suivies
+      if (_following.isEmpty) return _empty('Vous ne suivez aucune émission pour le moment.', textSec);
+      return ListView.builder(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+        itemCount: _following.length,
+        itemBuilder: (context, index) {
+          final raw = _following[index];
+          final podcast = (raw is Map && raw['podcast'] is Map) ? raw['podcast'] as Map : (raw as Map);
+          final cover = '${podcast['cover'] ?? ''}';
+          final name = '${podcast['name'] ?? 'Émission'}';
+          final author = '${podcast['author']?['fullName'] ?? 'Bamako Podcast'}';
+          final slug = '${podcast['slug'] ?? ''}';
+
+          return GestureDetector(
+            onTap: () => context.push('/podcasts/$slug'),
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: border)),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: cover.startsWith('http')
+                        ? CachedNetworkImage(
+                            imageUrl: cover,
+                            width: 52,
+                            height: 52,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => _fallback(),
+                          )
+                        : _fallback(),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri)),
+                        const SizedBox(height: 2),
+                        Text(author, maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 11.5, color: textSec)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey, size: 14),
+                ],
+              ),
+            ),
+          );
+        },
       );
     }
 
@@ -192,11 +359,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
       children: list.map((raw) {
-        // Historique : l'épisode est imbriqué sous `episode`. Enregistrés : l'objet EST l'épisode.
-        final ep = (_tab == 1 && (raw as Map)['episode'] is Map)
-            ? Map<String, dynamic>.from((raw)['episode'])
-            : Map<String, dynamic>.from(raw as Map);
-        return _episodeTile(ep, surface, border, textPri, textSec);
+        final rawMap = raw is Map ? raw : {};
+        final isHist = _tab == 2;
+        final ep = (isHist && rawMap['episode'] is Map)
+            ? Map<String, dynamic>.from(rawMap['episode'] as Map)
+            : Map<String, dynamic>.from(rawMap);
+        final posSec = isHist && rawMap['positionSeconds'] is int ? rawMap['positionSeconds'] as int : null;
+
+        return EpisodeListItem(
+          episode: ep,
+          onPlay: () => _play(ep, resumePositionSeconds: posSec),
+        );
       }).toList(),
     );
   }
@@ -204,79 +377,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget _tabButton(
       String label, int index, Color surface, Color border, Color textSec) {
     final active = _tab == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => _selectTab(index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: active ? BkoTheme.goldAccent : surface,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: active ? BkoTheme.goldAccent : border),
-          ),
-          child: Text(label,
-              style: BkoTheme.fontLato(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: active ? Colors.black : textSec)),
+    return GestureDetector(
+      onTap: () => _selectTab(index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: active ? BkoTheme.goldAccent : surface,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: active ? BkoTheme.goldAccent : border),
         ),
-      ),
-    );
-  }
-
-  Widget _episodeTile(
-      Map ep, Color bg, Color border, Color textPri, Color textSec) {
-    final podcast = ep['podcast'] as Map?;
-    final url = '${ep['cover'] ?? podcast?['cover'] ?? ''}';
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: border)),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: url.startsWith('http')
-                ? CachedNetworkImage(
-                    imageUrl: url,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorWidget: (_, __, ___) => _fallback(),
-                    placeholder: (_, __) => _fallback(),
-                  )
-                : _fallback(),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('${ep['title'] ?? ''}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: BkoTheme.fontLato(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: textPri)),
-                const SizedBox(height: 2),
-                Text('${podcast?['name'] ?? ''}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.play_circle_fill,
-                color: BkoTheme.goldAccent, size: 34),
-            onPressed: () => _play(ep),
-          ),
-        ],
+        child: Text(label,
+            style: BkoTheme.fontLato(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: active ? Colors.black : textSec)),
       ),
     );
   }
@@ -289,7 +404,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       );
 
   Widget _empty(String text, Color color) => Center(
-      child: Text(text, style: BkoTheme.fontLato(fontSize: 13, color: color)));
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(text, textAlign: TextAlign.center, style: BkoTheme.fontLato(fontSize: 13, color: color)),
+      ));
 }
 
 class _LoginPrompt extends StatelessWidget {
@@ -300,6 +418,7 @@ class _LoginPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -316,7 +435,7 @@ class _LoginPrompt extends StatelessWidget {
                         color: textPri)),
                 const SizedBox(height: 6),
                 Text(
-                    'Connectez-vous pour retrouver vos épisodes enregistrés, votre historique et vos playlists.',
+                    'Connectez-vous pour retrouver vos épisodes enregistrés, vos émissions suivies, votre historique et vos playlists.',
                     textAlign: TextAlign.center,
                     style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
                 const SizedBox(height: 24),

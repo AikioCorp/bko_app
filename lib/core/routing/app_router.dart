@@ -16,6 +16,11 @@ import '../../features/studio/studio_screen.dart';
 import '../../features/studio/create_podcast_screen.dart';
 import '../../features/studio/create_episode_screen.dart';
 import '../../features/studio/rss_import_screen.dart';
+import '../../features/auth/forgot_password_screen.dart';
+import '../../features/notifications/notifications_screen.dart';
+import '../../features/library/playlist_details_screen.dart';
+import '../../features/downloads/downloads_screen.dart';
+import '../../features/shell/subpage_audio_shell.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -37,29 +42,73 @@ final appRouter = GoRouter(
       builder: (context, state) => const RegisterScreen(),
     ),
     GoRoute(
-      path: '/verify-otp',
-      builder: (context, state) => VerifyOtpScreen(email: state.uri.queryParameters['email'] ?? ''),
+      path: '/forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
     ),
-    ShellRoute(
-      builder: (context, state, child) {
-        return AppShell(child: child);
+    GoRoute(
+      path: '/verify-otp',
+      builder: (context, state) => VerifyOtpScreen(
+        email: state.uri.queryParameters['email'] ?? '',
+        redirect: state.uri.queryParameters['redirect'],
+      ),
+    ),
+
+    // Stateful branch navigation preserving tabs, scroll positions & input states
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) {
+        return AppShell(navigationShell: navigationShell);
       },
+      branches: [
+        // Branch 0: Accueil
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/',
+              builder: (context, state) => const HomeScreen(),
+            ),
+          ],
+        ),
+        // Branch 1: Explorer & Recherche
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/explore',
+              builder: (context, state) => const ExploreScreen(),
+            ),
+          ],
+        ),
+        // Branch 2: Bibliothèque & Favoris
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/library',
+              builder: (context, state) => const LibraryScreen(),
+            ),
+          ],
+        ),
+        // Branch 3: Profil
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/profile',
+              builder: (context, state) => const ProfileScreen(),
+            ),
+          ],
+        ),
+      ],
+    ),
+
+    // Sub-screens wrapped in SubpageAudioShell to keep mini-player persistent across navigation
+    ShellRoute(
+      builder: (context, state, child) => SubpageAudioShell(child: child),
       routes: [
         GoRoute(
-          path: '/',
-          builder: (context, state) => const HomeScreen(),
+          path: '/downloads',
+          builder: (context, state) => const DownloadsScreen(),
         ),
         GoRoute(
-          path: '/explore',
-          builder: (context, state) => const ExploreScreen(),
-        ),
-        GoRoute(
-          path: '/library',
-          builder: (context, state) => const LibraryScreen(),
-        ),
-        GoRoute(
-          path: '/profile',
-          builder: (context, state) => const ProfileScreen(),
+          path: '/notifications',
+          builder: (context, state) => const NotificationsScreen(),
         ),
         GoRoute(
           path: '/profile/edit',
@@ -98,6 +147,13 @@ final appRouter = GoRouter(
             final slug = state.pathParameters['slug'] ?? '';
             final episodeSlug = state.pathParameters['episodeSlug'] ?? '';
             return EpisodeDetailsScreen(podcastSlug: slug, episodeSlug: episodeSlug);
+          },
+        ),
+        GoRoute(
+          path: '/playlists/:id',
+          builder: (context, state) {
+            final id = state.pathParameters['id'] ?? '';
+            return PlaylistDetailsScreen(playlistId: id);
           },
         ),
       ],

@@ -1,12 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/network/bko_api.dart';
+import '../../core/network/bko_telemetry.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/theme/theme_provider.dart';
 import '../auth/auth_controller.dart';
+import '../downloads/download_manager.dart';
+import '../player/full_audio_player_sheet.dart';
 import '../shell/shell_providers.dart';
+import 'widgets/hero_banner_slider.dart';
+import 'widgets/bko_app_header.dart';
+import 'widgets/bko_drawer.dart';
+import 'widgets/episode_list_item.dart';
+import 'widgets/tracked_visibility_card.dart';
+import 'home_providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -16,43 +26,30 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  Map<String, dynamic>? _homeData;
-  List<dynamic> _categories = [];
-  List<dynamic> _historyData = [];
-  bool _isLoading = true;
   String _filterMode = 'ALL';
+  late final ScrollController _scrollController;
 
   @override
   void initState() {
     super.initState();
-    _fetchHomeData();
+    _scrollController = ScrollController();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(homeDataProvider.notifier).fetchInitial();
+    });
   }
 
-  Future<void> _fetchHomeData() async {
-    try {
-      final auth = ref.read(authProvider);
-      final userId = auth.user?['id'] ?? 'guest';
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-      final homeData = await BkoApi.get('/home?country=all&u=$userId');
-      final categoriesData = await BkoApi.get('/categories');
-      
-      List<dynamic> history = [];
-      if (auth.isAuthenticated && auth.token != null) {
-        try {
-          final h = await BkoApi.get('/me/continue-listening', token: auth.token);
-          history = _asList(h);
-        } catch (_) {}
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _homeData = homeData is Map ? Map<String, dynamic>.from(homeData) : null;
-        _categories = _asList(categoriesData);
-        _historyData = history;
-        _isLoading = false;
-      });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+  void _onScroll() {
+    if (_scrollController.hasClients &&
+        _scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 400) {
+      ref.read(homeDataProvider.notifier).fetchMoreFeed();
     }
   }
 
@@ -64,7 +61,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return [];
   }
 
-  void _triggerPlayEpisode(Map<String, dynamic> ep) {
+  void _triggerPlayEpisode(Map<String, dynamic> ep, {Map<String, dynamic>? attribution}) {
     final title = ep['title'] ?? 'Épisode';
     final podcastName = ep['podcast']?['name'] ?? 'Bamako Podcast';
     final durationSeconds = ep['durationSeconds'] ?? 1800;
@@ -72,21 +69,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
     final audioUrl = BkoApi.extractAudioUrl(ep);
     final videoUrl = BkoApi.extractVideoUrl(ep);
+    final episodeId = '${ep['id'] ?? ''}';
 
-    ref.read(activeEpisodeProvider.notifier).playEpisode(
+    final downloads = ref.read(downloadProvider);
+    final downloadTask = downloads.cast<DownloadTask?>().firstWhere(
+          (t) => t?.episodeId == episodeId,
+          orElse: () => null,
+        );
+    final localAudio = downloadTask?.status == DownloadStatus.completed
+        ? downloadTask?.localPath
+        : null;
+
+    final batchId = attribution?['batchId']?.toString();
+    final sectionId = attribution?['sectionId']?.toString();
+    final sectionSlug = attribution?['sectionSlug']?.toString();
+
+    final hasAudioTrack = audioUrl != null || localAudio != null;
+
+    final active = ref.read(activeEpisodeProvider);
+    final isAlreadyPlayingThis = active.hasActiveEpisode &&
+        active.episodeId == episodeId &&
+        active.isPlaying;
+
+    ref.read(activeEpisodeProvider.notifier).handlePlayOrPause(
           title: title,
           showName: podcastName,
           duration: duration,
           coverUrl: cover,
-          audioUrl: audioUrl,
+          audioUrl: localAudio ?? audioUrl,
           videoUrl: videoUrl,
-          hasAudio: audioUrl != null,
+          hasAudio: hasAudioTrack,
           hasVideo: videoUrl != null,
-          episodeId: '${ep['id'] ?? ''}',
+          episodeId: episodeId,
           podcastSlug: '${ep['podcast']?['slug'] ?? ''}',
+          episodeSlug: '${ep['slug'] ?? ''}',
+          batchId: batchId,
+          sectionId: sectionId,
+          sectionSlug: sectionSlug,
         );
+
+    if (!isAlreadyPlayingThis && mounted) {
+      FullAudioPlayerSheet.show(context);
+    }
+
+    if (batchId != null) {
+      BkoTelemetryService().trackInteraction(
+        batchId: batchId,
+        sectionId: sectionId ?? 'section',
+        sectionSlug: sectionSlug ?? 'unknown',
+        targetType: 'EPISODE',
+        targetId: episodeId,
+        action: 'PLAY_START',
+        token: ref.read(authProvider).token,
+      );
+    }
   }
 
+  // ignore: unused_element
   void _openUserProfileModal(BuildContext context) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     showModalBottomSheet(
@@ -350,17 +389,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
 
-    if (_isLoading) {
+    final homeState = ref.watch(homeDataProvider);
+    final data = homeState.homeData ?? {};
+    final categories = homeState.categories;
+    final historyData = homeState.historyData;
+
+    if (homeState.isLoading && !homeState.hasData) {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
         body: const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent)),
       );
     }
 
-    final data = _homeData ?? {};
+    if (!homeState.hasData && homeState.error != null) {
+      return Scaffold(
+        backgroundColor: BkoTheme.getBgObsidian(context),
+        drawer: const BkoDrawer(),
+        appBar: const BkoAppHeader(),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_off_rounded, size: 52, color: BkoTheme.goldAccent),
+                const SizedBox(height: 16),
+                Text(
+                  'Impossible de charger les données',
+                  textAlign: TextAlign.center,
+                  style: BkoTheme.fontPoppins(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: textPri,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  homeState.error ?? 'Veuillez vérifier votre connexion internet.',
+                  textAlign: TextAlign.center,
+                  style: BkoTheme.fontLato(
+                    fontSize: 13,
+                    color: textSec,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => ref.read(homeDataProvider.notifier).refresh(),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Réessayer'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BkoTheme.goldAccent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final heroEpisode = data['heroEpisode'];
+    final rawHeroSlides = _asList(data['heroSlides']);
     final latestEpisodesRaw = _asList(data['latestEpisodes']);
-    final categoryShelves = _asList(data['categoryShelves']);
+    final dynamicSections = _asList(data['sections']);
+
+    // Build heroSlides with fallbacks matching web HeroBanner logic
+    final List<dynamic> heroSlides = rawHeroSlides.isNotEmpty
+        ? rawHeroSlides
+        : [
+            if (heroEpisode != null) {'kind': 'featured', 'label': 'À la une', 'episode': heroEpisode},
+            ...latestEpisodesRaw.take(4).map((ep) => {'kind': 'latest', 'label': 'Nouveauté', 'episode': ep}),
+          ];
 
     // Filter latestEpisodes based on mode (Audio/Video)
     final latestEpisodes = latestEpisodesRaw.where((ep) {
@@ -373,140 +477,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
-      appBar: AppBar(
-        titleSpacing: 16,
-        title: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: bgSurf,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: borderSub, width: 1),
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(11),
-            child: Image.asset(
-              'assets/brand/app_icon.png',
-              width: 38,
-              height: 38,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => const Icon(
-                Icons.mic_rounded,
-                color: BkoTheme.goldAccent,
-                size: 22,
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: GestureDetector(
-              onTap: () => _openUserProfileModal(context),
-              child: Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: BkoTheme.getBgSurfaceElevated(context),
-                  border: Border.all(color: borderSub, width: 1.5),
-                ),
-                child: Center(
-                  child: Text(
-                    ref.read(authProvider).isAuthenticated 
-                      ? (ref.read(authProvider).user?['fullName']?.toString().substring(0, 1).toUpperCase() ?? 'U')
-                      : '?',
-                    style: BkoTheme.fontLato(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      color: BkoTheme.goldAccent,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: RefreshIndicator(
+      drawer: const BkoDrawer(),
+      body: Column(
+        children: [
+          const BkoAppHeader(),
+          Expanded(
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is ScrollUpdateNotification) {
+                  final delta = notification.scrollDelta ?? 0.0;
+                  final pixels = notification.metrics.pixels;
+                  if (pixels <= 10) {
+                    if (ref.read(homeHeaderCollapsedProvider)) {
+                      ref.read(homeHeaderCollapsedProvider.notifier).state = false;
+                    }
+                    ref.read(shellNavVisibilityProvider.notifier).setVisible(true);
+                  } else if (delta > 2.5 && pixels > 25) {
+                    if (!ref.read(homeHeaderCollapsedProvider)) {
+                      ref.read(homeHeaderCollapsedProvider.notifier).state = true;
+                    }
+                    ref.read(shellNavVisibilityProvider.notifier).setVisible(false);
+                  } else if (delta < -2.5) {
+                    if (ref.read(homeHeaderCollapsedProvider)) {
+                      ref.read(homeHeaderCollapsedProvider.notifier).state = false;
+                    }
+                    ref.read(shellNavVisibilityProvider.notifier).setVisible(true);
+                  }
+                } else if (notification is UserScrollNotification) {
+                  if (notification.direction == ScrollDirection.forward) {
+                    if (ref.read(homeHeaderCollapsedProvider)) {
+                      ref.read(homeHeaderCollapsedProvider.notifier).state = false;
+                    }
+                    ref.read(shellNavVisibilityProvider.notifier).setVisible(true);
+                  } else if (notification.direction == ScrollDirection.reverse &&
+                      notification.metrics.pixels > 25) {
+                    if (!ref.read(homeHeaderCollapsedProvider)) {
+                      ref.read(homeHeaderCollapsedProvider.notifier).state = true;
+                    }
+                    ref.read(shellNavVisibilityProvider.notifier).setVisible(false);
+                  }
+                }
+                return false;
+              },
+              child: RefreshIndicator(
         color: BkoTheme.goldAccent,
-        onRefresh: _fetchHomeData,
+        onRefresh: () => ref.read(homeDataProvider.notifier).refresh(),
         child: SingleChildScrollView(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Hero Banner
-              if (heroEpisode != null) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: GestureDetector(
-                    onTap: () => _triggerPlayEpisode(heroEpisode),
-                    child: Container(
-                      height: 280,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: borderSub),
-                        image: DecorationImage(
-                          image: CachedNetworkImageProvider(
-                            heroEpisode['cover'] ?? heroEpisode['podcast']?['cover'] ?? '',
-                          ),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(24),
-                          gradient: LinearGradient(
-                            colors: [Colors.black.withValues(alpha: 0.1), Colors.black.withValues(alpha: 0.8)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                        ),
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: BkoTheme.goldAccent,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text('Nouveauté', style: BkoTheme.fontLato(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.black)),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              heroEpisode['title'] ?? '',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: const BoxDecoration(
-                                    color: BkoTheme.goldAccent,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.black, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                Text('Écouter l\'épisode', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+              // 1. Hero Banner Slider (auto-sliding & swipeable carousel matching web HeroBanner)
+              if (heroSlides.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                HeroBannerSlider(
+                  slides: heroSlides,
+                  onPlay: (ep) => _triggerPlayEpisode(ep),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
               ],
 
               // 2. Filtres Rapides
@@ -527,27 +556,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: BkoTheme.goldAccent,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      child: Text('Tout explorer', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black)),
-                    ),
-                    ...categoryShelves.map((shelf) {
-                      return Container(
+                    GestureDetector(
+                      onTap: () => ref.read(homeDataProvider.notifier).selectCategory('all'),
+                      child: Container(
                         margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: bgSurf,
-                          border: Border.all(color: borderSub),
+                          color: homeState.selectedCategory == 'all' ? BkoTheme.goldAccent : bgSurf,
                           borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: homeState.selectedCategory == 'all' ? BkoTheme.goldAccent : borderSub,
+                          ),
                         ),
-                        child: Text('${shelf['name']}', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: textPri)),
+                        child: Text(
+                          'Tout explorer',
+                          style: BkoTheme.fontLato(
+                            fontSize: 12,
+                            fontWeight: homeState.selectedCategory == 'all' ? FontWeight.w900 : FontWeight.w800,
+                            color: homeState.selectedCategory == 'all' ? Colors.black : textPri,
+                          ),
+                        ),
+                      ),
+                    ),
+                    ...categories.map((cat) {
+                      final catSlug = (cat['slug'] ?? cat['id'] ?? cat['name'])?.toString() ?? '';
+                      final isActive = homeState.selectedCategory == catSlug ||
+                          homeState.selectedCategory == cat['id']?.toString() ||
+                          homeState.selectedCategory == cat['slug']?.toString();
+                      return GestureDetector(
+                        onTap: () => ref.read(homeDataProvider.notifier).selectCategory(catSlug),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: isActive ? BkoTheme.goldAccent : bgSurf,
+                            border: Border.all(color: isActive ? BkoTheme.goldAccent : borderSub),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Text(
+                            '${cat['name']}',
+                            style: BkoTheme.fontLato(
+                              fontSize: 12,
+                              fontWeight: isActive ? FontWeight.w900 : FontWeight.w800,
+                              color: isActive ? Colors.black : textPri,
+                            ),
+                          ),
+                        ),
                       );
                     }),
                   ],
@@ -556,272 +612,516 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 32),
 
-              // 3. Historique de lecture
-              if (_historyData.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
-                      const SizedBox(width: 8),
-                      Text('Historique de lecture', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 100,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _historyData.length > 4 ? 4 : _historyData.length,
-                    itemBuilder: (context, index) {
-                      final item = _historyData[index];
-                      final ep = item['episode'] ?? {};
-                      final pos = item['positionSeconds'] ?? 0;
-                      final dur = ep['durationSeconds'] ?? 1800;
-                      final percent = (dur > 0 ? (pos / dur) : 0.0).clamp(0.0, 1.0);
-                      final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
+              // 3. Sections Personnalisées du Moteur (avec fallback si sections vide)
+              if (dynamicSections.isNotEmpty) ...[
+                ...dynamicSections.map((sec) {
+                  final secSlug = sec['slug']?.toString() ?? '';
+                  final secType = sec['type']?.toString() ?? '';
+                  final secTitle = sec['title']?.toString() ?? '';
+                  final secSubtitle = sec['subtitle']?.toString();
+                  final items = _asList(sec['items']);
 
-                      return GestureDetector(
-                        onTap: () => _triggerPlayEpisode(ep),
-                        child: Container(
-                          width: 280,
-                          margin: const EdgeInsets.only(right: 12),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: bgSurf,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: borderSub),
-                          ),
-                          child: Column(
+                  if (items.isEmpty) return const SizedBox.shrink();
+
+                  // A. Continuer l'écoute (Reprendre)
+                  if (secSlug == 'continue-listening' || secType == 'RESUME_GRID') {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
                             children: [
-                              Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: CachedNetworkImage(
-                                      imageUrl: cover,
-                                      width: 48,
-                                      height: 48,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(ep['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri)),
-                                        const SizedBox(height: 4),
-                                        Text(ep['podcast']?['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const Spacer(),
-                              LinearProgressIndicator(
-                                value: percent,
-                                backgroundColor: BkoTheme.getBgObsidian(context),
-                                color: BkoTheme.goldAccent,
-                                minHeight: 4,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
+                              const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
+                              const SizedBox(width: 8),
+                              Text(secTitle.isNotEmpty ? secTitle : 'Reprendre l\'écoute',
+                                  style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-
-              // 4. Fraîchement publiés
-              if (latestEpisodesRaw.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Fraîchement publiés', style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      _buildFilterBtn('Tous', 'ALL'),
-                      const SizedBox(width: 8),
-                      _buildFilterBtn('Audio', 'AUDIO'),
-                      const SizedBox(width: 8),
-                      _buildFilterBtn('Vidéo', 'VIDEO'),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: latestEpisodes.take(6).map((ep) {
-                      final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
-                      return GestureDetector(
-                        onTap: () => _triggerPlayEpisode(ep),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.transparent),
+                        if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(secSubtitle, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
                           ),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: CachedNetworkImage(
-                                  imageUrl: cover,
-                                  width: 64,
-                                  height: 64,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                        ],
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          height: 110,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: items.length > 6 ? 6 : items.length,
+                            itemBuilder: (context, index) {
+                              final item = items[index];
+                              final ep = item['episode'] is Map ? Map<String, dynamic>.from(item['episode']) : <String, dynamic>{};
+                              final pos = (item['positionSeconds'] as num?)?.toInt() ?? 0;
+                              final dur = (ep['durationSeconds'] as num?)?.toInt() ?? 1800;
+                              final percent = (dur > 0 ? (pos / dur) : 0.0).clamp(0.0, 1.0);
+                              final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
+
+                              return GestureDetector(
+                                onTap: () => _triggerPlayEpisode(
+                                  ep,
+                                  attribution: item['attribution'] is Map ? Map<String, dynamic>.from(item['attribution']) : null,
                                 ),
-                              ),
-                              const SizedBox(width: 14),
+                                child: Container(
+                                  width: 280,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: bgSurf,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: borderSub),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Row(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: CachedNetworkImage(
+                                              imageUrl: cover,
+                                              width: 48,
+                                              height: 48,
+                                              fit: BoxFit.cover,
+                                              errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(ep['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                                                    style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri)),
+                                                const SizedBox(height: 4),
+                                                Text(ep['podcast']?['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                                                    style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const Spacer(),
+                                      LinearProgressIndicator(
+                                        value: percent,
+                                        backgroundColor: BkoTheme.getBgObsidian(context),
+                                        color: BkoTheme.goldAccent,
+                                        minHeight: 4,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
+                    );
+                  }
+
+                  // B. Épisodes recommandés (EPISODE_ROW ou items d'épisodes)
+                  if (secType == 'EPISODE_ROW' || (items.isNotEmpty && items.first['targetType'] == 'EPISODE')) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(ep['podcast']?['name'] ?? 'Bamako Podcast', style: BkoTheme.fontLato(fontSize: 10, fontWeight: FontWeight.w900, color: BkoTheme.goldAccent)),
-                                    const SizedBox(height: 4),
-                                    Text(ep['title'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri, height: 1.2)),
-                                    const SizedBox(height: 6),
-                                    Text('${(ep['durationSeconds'] ?? 1800) ~/ 60} min', style: BkoTheme.fontLato(fontSize: 11, color: textSec, fontWeight: FontWeight.w600)),
+                                    Row(
+                                      children: [
+                                        if (secSlug == 'for-you') ...[
+                                          const Icon(Icons.auto_awesome, color: BkoTheme.goldAccent, size: 20),
+                                          const SizedBox(width: 8),
+                                        ],
+                                        Expanded(
+                                          child: Text(secTitle,
+                                              style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
+                                        ),
+                                      ],
+                                    ),
+                                    if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Text(secSubtitle, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+                                    ],
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.more_vert_rounded, color: Colors.grey),
                             ],
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+                        if (secSlug == 'for-you') ...[
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(
+                              children: [
+                                _buildFilterBtn('Tous', 'ALL'),
+                                const SizedBox(width: 8),
+                                _buildFilterBtn('Audio', 'AUDIO'),
+                                const SizedBox(width: 8),
+                                _buildFilterBtn('Vidéo', 'VIDEO'),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Column(
+                            children: items.take(8).map((item) {
+                              final ep = item['episode'] is Map ? Map<String, dynamic>.from(item['episode']) : <String, dynamic>{};
+                              if (ep.isEmpty) return const SizedBox.shrink();
 
-              // 5. Category Shelves
-              ...categoryShelves.map((shelf) {
-                final podcasts = _asList(shelf['podcasts']);
-                if (podcasts.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('${shelf['name']}', style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri)),
-                    ),
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text('${podcasts.length} séries actives', style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 180,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
+                              if (secSlug == 'for-you') {
+                                if (_filterMode == 'VIDEO' && BkoApi.extractVideoUrl(ep) == null) {
+                                  return const SizedBox.shrink();
+                                }
+                                if (_filterMode == 'AUDIO' && BkoApi.extractVideoUrl(ep) != null) {
+                                  return const SizedBox.shrink();
+                                }
+                              }
+
+                              final attribution = item['attribution'] is Map ? Map<String, dynamic>.from(item['attribution']) : null;
+                              final batchId = attribution?['batchId']?.toString();
+
+                              final epCard = EpisodeListItem(
+                                episode: ep,
+                                recommendationReason: item['reason']?.toString(),
+                                onPlay: () => _triggerPlayEpisode(
+                                  ep,
+                                  attribution: attribution,
+                                ),
+                              );
+
+                              if (batchId != null) {
+                                return TrackedVisibilityCard(
+                                  batchId: batchId,
+                                  sectionId: sec['id']?.toString() ?? '',
+                                  sectionSlug: sec['slug']?.toString() ?? '',
+                                  targetType: 'EPISODE',
+                                  targetId: ep['id']?.toString() ?? '',
+                                  position: (item['position'] as num?)?.toInt() ?? 0,
+                                  reason: item['reason']?.toString(),
+                                  token: ref.read(authProvider).token,
+                                  child: epCard,
+                                );
+                              }
+
+                              return epCard;
+                            }).toList(),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    );
+                  }
+
+                  // C. Émissions recommandées (PODCAST_ROW ou items de podcasts)
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: podcasts.length,
-                        itemBuilder: (context, index) {
-                          final p = podcasts[index];
-                          return GestureDetector(
-                            onTap: () => context.push('/podcasts/${p['slug']}'),
-                            child: Container(
-                              width: 140,
-                              margin: const EdgeInsets.only(right: 14),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: AspectRatio(
-                                      aspectRatio: 1,
+                        child: Text(secTitle, style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri)),
+                      ),
+                      if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(secSubtitle, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+                        ),
+                      ],
+                      const SizedBox(height: 14),
+                      SizedBox(
+                        height: 235,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: items.length,
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            final p = item['podcast'] is Map ? Map<String, dynamic>.from(item['podcast']) : <String, dynamic>{};
+                            if (p.isEmpty) return const SizedBox.shrink();
+                            final pSlug = p['slug'] ?? '';
+                            final reason = item['reason']?.toString();
+
+                            final attribution = item['attribution'] is Map ? Map<String, dynamic>.from(item['attribution']) : null;
+                            final batchId = attribution?['batchId']?.toString();
+
+                            final podCard = GestureDetector(
+                              onTap: () {
+                                if (attribution != null) {
+                                  BkoTelemetryService().trackInteraction(
+                                    batchId: batchId ?? '',
+                                    sectionId: sec['id']?.toString() ?? '',
+                                    sectionSlug: sec['slug']?.toString() ?? '',
+                                    targetType: 'PODCAST',
+                                    targetId: p['id']?.toString() ?? '',
+                                    action: 'CLICK',
+                                    token: ref.read(authProvider).token,
+                                  );
+                                }
+                                context.push('/podcasts/$pSlug');
+                              },
+                              child: Container(
+                                width: 144,
+                                margin: const EdgeInsets.only(right: 14),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: AspectRatio(
+                                        aspectRatio: 1,
+                                        child: CachedNetworkImage(
+                                          imageUrl: p['cover'] ?? '',
+                                          fit: BoxFit.cover,
+                                          errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    if (reason != null && reason.isNotEmpty) ...[
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1E1E22),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: const Color(0xFF2C2C30)),
+                                        ),
+                                        child: Text(
+                                          reason,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: BkoTheme.fontLato(fontSize: 9, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                    ],
+                                    Text(p['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri)),
+                                    const SizedBox(height: 2),
+                                    Text(p['author']?['name'] ?? 'Bamako Podcast', maxLines: 1, overflow: TextOverflow.ellipsis,
+                                        style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
+                                  ],
+                                ),
+                              ),
+                            );
+
+                            if (batchId != null) {
+                              return TrackedVisibilityCard(
+                                batchId: batchId,
+                                sectionId: sec['id']?.toString() ?? '',
+                                sectionSlug: sec['slug']?.toString() ?? '',
+                                targetType: 'PODCAST',
+                                targetId: p['id']?.toString() ?? '',
+                                position: (item['position'] as num?)?.toInt() ?? index,
+                                reason: reason,
+                                token: ref.read(authProvider).token,
+                                child: podCard,
+                              );
+                            }
+
+                            return podCard;
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  );
+                }),
+              ] else ...[
+                // Fallback hérité : Historique de lecture
+                if (historyData.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
+                        const SizedBox(width: 8),
+                        Text('Historique de lecture', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    height: 110,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: historyData.length > 4 ? 4 : historyData.length,
+                      itemBuilder: (context, index) {
+                        final item = historyData[index];
+                        final ep = item['episode'] ?? {};
+                        final pos = item['positionSeconds'] ?? 0;
+                        final dur = ep['durationSeconds'] ?? 1800;
+                        final percent = (dur > 0 ? (pos / dur) : 0.0).clamp(0.0, 1.0);
+                        final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
+
+                        return GestureDetector(
+                          onTap: () => _triggerPlayEpisode(ep),
+                          child: Container(
+                            width: 280,
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: bgSurf,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: borderSub),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
                                       child: CachedNetworkImage(
-                                        imageUrl: p['cover'] ?? '',
+                                        imageUrl: cover,
+                                        width: 48,
+                                        height: 48,
                                         fit: BoxFit.cover,
                                         errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
                                       ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(p['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri)),
-                                  const SizedBox(height: 2),
-                                  Text(p['author']?['name'] ?? 'Bamako Podcast', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
-                                ],
-                              ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(ep['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri)),
+                                          const SizedBox(height: 4),
+                                          Text(ep['podcast']?['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Spacer(),
+                                LinearProgressIndicator(
+                                  value: percent,
+                                  backgroundColor: BkoTheme.getBgObsidian(context),
+                                  color: BkoTheme.goldAccent,
+                                  minHeight: 4,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                );
-              }),
-
-              // 6. Toutes les Catégories Officielles
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.menu_book_rounded, color: BkoTheme.goldAccent, size: 16),
-                    const SizedBox(width: 8),
-                    Text('Toutes les Catégories', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: _categories.map((cat) {
-                    return Container(
-                      width: (MediaQuery.of(context).size.width - 44) / 2,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: bgSurf,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: borderSub),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: BkoTheme.getBgObsidian(context),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.explore_rounded, color: Colors.grey, size: 18),
                           ),
-                          const SizedBox(height: 12),
-                          Text('${cat['name']}', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri)),
-                        ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                // Fallback hérité : Fraîchement publiés
+                if (latestEpisodesRaw.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Fraîchement publiés', style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        _buildFilterBtn('Tous', 'ALL'),
+                        const SizedBox(width: 8),
+                        _buildFilterBtn('Audio', 'AUDIO'),
+                        const SizedBox(width: 8),
+                        _buildFilterBtn('Vidéo', 'VIDEO'),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: latestEpisodes.take(6).map((ep) {
+                        return EpisodeListItem(
+                          episode: Map<String, dynamic>.from(ep),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ],
+
+              // 6. Flux continu d'épisodes (Défilement infini)
+              if (homeState.feedItems.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.stream_rounded, color: BkoTheme.goldAccent, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        homeState.selectedCategory == 'all'
+                            ? 'Flux Continu d\'Épisodes'
+                            : 'Flux : ${homeState.selectedCategory}',
+                        style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri),
                       ),
-                    );
-                  }).toList(),
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 14),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: homeState.feedItems.map((ep) {
+                      return EpisodeListItem(
+                        episode: Map<String, dynamic>.from(ep),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+
+              // Indicateur de chargement ou fin de flux
+              if (homeState.isLoadingMore) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: BkoTheme.goldAccent),
+                    ),
+                  ),
+                ),
+              ] else if (!homeState.hasMore && homeState.feedItems.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'Vous avez atteint la fin des recommandations actuelles.',
+                      style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                    ),
+                  ),
+                ),
+              ],
+              
+              const SizedBox(height: 32),
               
               const SizedBox(height: 48),
               
@@ -868,7 +1168,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ),
-    );
+    ),
+  ),
+],
+),
+);
   }
 
   Widget _buildFilterBtn(String label, String mode) {

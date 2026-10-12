@@ -82,20 +82,73 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
       final body = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
-        'status': isDraft ? 'DRAFT' : 'PUBLISHED',
-        if (_audioUrlController.text.trim().isNotEmpty) 'audioUrl': _audioUrlController.text.trim(),
-        if (_videoUrlController.text.trim().isNotEmpty) 'videoUrl': _videoUrlController.text.trim(),
         if (_coverUrlController.text.trim().isNotEmpty) 'cover': _coverUrlController.text.trim(),
-        if (_seasonController.text.trim().isNotEmpty) 'seasonNumber': int.tryParse(_seasonController.text.trim()),
         if (_episodeNumController.text.trim().isNotEmpty) 'episodeNumber': int.tryParse(_episodeNumController.text.trim()),
       };
 
-      await BkoApi.post('/creator/podcasts/$_selectedPodcastId/episodes', body, token: auth.token);
+      final episodeRes = await BkoApi.post('/creator/podcasts/$_selectedPodcastId/episodes', body, token: auth.token);
+      final episodeId = episodeRes is Map ? (episodeRes['id'] ?? (episodeRes['data'] is Map ? episodeRes['data']['id'] : null)) : null;
+
+      if (episodeId != null) {
+        // Associer la source audio
+        final audioUrl = _audioUrlController.text.trim();
+        if (audioUrl.isNotEmpty) {
+          try {
+            await BkoApi.post(
+              '/creator/episodes/$episodeId/media-sources',
+              {
+                'rawUrl': audioUrl,
+                'mediaTypePreference': 'AUDIO',
+                'isPrimaryAudio': true,
+              },
+              token: auth.token,
+            );
+          } catch (_) {}
+        }
+
+        // Associer la source vidéo
+        final videoUrl = _videoUrlController.text.trim();
+        if (videoUrl.isNotEmpty) {
+          try {
+            await BkoApi.post(
+              '/creator/episodes/$episodeId/media-sources',
+              {
+                'rawUrl': videoUrl,
+                'mediaTypePreference': 'VIDEO',
+                'isPrimaryVideo': true,
+              },
+              token: auth.token,
+            );
+          } catch (_) {}
+        }
+
+        // Publication si demandée
+        String message = 'Épisode enregistré en brouillon.';
+        if (!isDraft) {
+          try {
+            await BkoApi.post('/creator/episodes/$episodeId/publish', {}, token: auth.token);
+            message = 'Épisode publié avec succès !';
+          } catch (e) {
+            message = 'Brouillon enregistré. Ajoutez un média valide avant de publier.';
+          }
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: BkoTheme.goldAccent,
+          ),
+        );
+        context.pop();
+        return;
+      }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isDraft ? 'Épisode enregistré en brouillon.' : 'Épisode publié avec succès !'),
+          content: Text(isDraft ? 'Épisode enregistré en brouillon.' : 'Épisode créé.'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: BkoTheme.goldAccent,
         ),

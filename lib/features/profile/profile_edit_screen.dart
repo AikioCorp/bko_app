@@ -46,9 +46,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       );
       
       if (mounted) {
-        if (res is Map && res['data'] is Map) {
-          final updatedUser = Map<String, dynamic>.from(res['data'] as Map);
-          ref.read(authProvider.notifier).updateUser(updatedUser);
+        final userMap = res is Map && res['data'] is Map
+            ? Map<String, dynamic>.from(res['data'] as Map)
+            : (res is Map ? Map<String, dynamic>.from(res) : null);
+        if (userMap != null) {
+          ref.read(authProvider.notifier).updateUser(userMap);
         }
 
         ScaffoldMessenger.of(context).showSnackBar(

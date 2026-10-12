@@ -8,6 +8,8 @@ import '../../core/theme/bko_theme.dart';
 import '../shell/shell_providers.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
+import '../player/full_audio_player_sheet.dart';
+import 'widgets/episode_list_item.dart';
 
 class PodcastDetailsScreen extends ConsumerStatefulWidget {
   final String slug;
@@ -21,6 +23,8 @@ class PodcastDetailsScreen extends ConsumerStatefulWidget {
 class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
   Map<String, dynamic>? _podcast;
   List<dynamic> _episodes = [];
+  List<dynamic> _similarPodcasts = [];
+  String? _categoryName;
   bool _isLoading = true;
   bool _isFollowing = false;
 
@@ -30,43 +34,80 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     _fetchPodcastDetails();
   }
 
-  String _normalizeSlug(String str) {
-    return str
-        .toLowerCase()
-        .replaceAll("'", "")
-        .replaceAll("’", "")
-        .replaceAll("é", "e")
-        .replaceAll("è", "e")
-        .replaceAll("ê", "e")
-        .replaceAll("à", "a")
-        .replaceAll("â", "a")
-        .replaceAll("ù", "u")
-        .replaceAll("ô", "o")
-        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-  }
-
   Future<void> _fetchPodcastDetails() => _loadPodcastFromApi();
-
-
 
   Future<void> _loadPodcastFromApi() async {
     try {
+      final token = ref.read(authProvider).token;
       final data = await BkoApi.get(
         '/podcasts/${Uri.encodeComponent(widget.slug)}',
+        token: token,
       );
       if (!mounted) return;
       final podcast = data is Map ? Map<String, dynamic>.from(data) : null;
+      final viewer = podcast?['viewer'] is Map ? podcast!['viewer'] as Map : null;
+
+      final categories = podcast?['categories'] as List? ?? [];
+      final firstCategory = categories.isNotEmpty && categories.first['category'] != null
+          ? categories.first['category'] as Map
+          : null;
+      final categorySlug = firstCategory?['slug'] as String?;
+      final categoryName = firstCategory?['name'] as String?;
+
       setState(() {
         _podcast = podcast;
+        _categoryName = categoryName;
+        _isFollowing = viewer?['isFollowing'] == true;
         _episodes = podcast?['episodes'] is List
             ? List<dynamic>.from(podcast!['episodes'] as List)
             : [];
         _isLoading = false;
       });
+
+      _loadSimilarPodcasts(categorySlug: categorySlug);
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (!mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadSimilarPodcasts({String? categorySlug}) async {
+    try {
+      dynamic res;
+      if (categorySlug != null && categorySlug.isNotEmpty) {
+        res = await BkoApi.get('/podcasts?categorySlug=${Uri.encodeComponent(categorySlug)}&limit=8');
+      }
+
+      List<dynamic> list = [];
+      if (res is Map && res['data'] is List) {
+        list = res['data'] as List;
+      } else if (res is List) {
+        list = res;
+      }
+
+      // If category returned empty or none specified, load trending/general podcasts
+      if (list.isEmpty) {
+        final fallback = await BkoApi.get('/podcasts?limit=8');
+        if (fallback is Map && fallback['data'] is List) {
+          list = fallback['data'] as List;
+        } else if (fallback is List) {
+          list = fallback;
+        }
+      }
+
+      final currentId = '${_podcast?['id'] ?? ''}';
+      final filtered = list.where((p) {
+        if (p is! Map) return false;
+        final pId = '${p['id'] ?? ''}';
+        final pSlug = '${p['slug'] ?? ''}';
+        return pId != currentId && pSlug != widget.slug;
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _similarPodcasts = filtered;
+        });
+      }
+    } catch (_) {}
   }
 
 
@@ -75,7 +116,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     final audioUrl = BkoApi.extractAudioUrl(ep);
     final videoUrl = BkoApi.extractVideoUrl(ep);
     final durationSeconds = ep['durationSeconds'] as num? ?? 0;
-    final started = await ref.read(activeEpisodeProvider.notifier).playEpisode(
+    final episodeId = '${ep['id'] ?? ''}';
+
+    final active = ref.read(activeEpisodeProvider);
+    final isAlreadyPlayingThis = active.hasActiveEpisode &&
+        active.episodeId == episodeId &&
+        active.isPlaying;
+
+    await ref.read(activeEpisodeProvider.notifier).handlePlayOrPause(
           title: '${ep['title'] ?? ''}',
           showName: '${_podcast?['name'] ?? ''}',
           duration: durationSeconds > 0
@@ -86,19 +134,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
           videoUrl: videoUrl,
           hasAudio: audioUrl != null,
           hasVideo: videoUrl != null,
-          episodeId: '${ep['id'] ?? ''}',
+          episodeId: episodeId,
           podcastSlug: '${_podcast?['slug'] ?? widget.slug}',
+          episodeSlug: '${ep['slug'] ?? ''}',
         );
-    if (!mounted || started) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ref.read(activeEpisodeProvider).errorMessage ??
-              'MÃ©dia indisponible.',
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+
+    if (!isAlreadyPlayingThis && mounted) {
+      FullAudioPlayerSheet.show(context);
+    }
   }
 
   Future<void> _toggleFollow() async {
@@ -150,6 +193,15 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     final countryFlag = _podcast?['country']?['flagEmoji'] ?? '🇲🇱';
     final countryName = _podcast?['country']?['name'] ?? 'Mali';
 
+    final firstEpisodeId =
+        _episodes.isNotEmpty ? '${_episodes.first['id'] ?? ''}' : '';
+    final isFirstPlaying = firstEpisodeId.isNotEmpty &&
+        ref.watch(
+          activeEpisodeProvider.select(
+            (s) => s.hasActiveEpisode && s.episodeId == firstEpisodeId && s.isPlaying,
+          ),
+        );
+
     return Scaffold(
       backgroundColor: bgSurf,
       appBar: AppBar(
@@ -172,8 +224,11 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (notification) =>
+            handleShellScrollNotification(notification, ref),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -260,10 +315,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    icon: const Icon(Icons.play_arrow_rounded,
-                        color: Colors.black, size: 24),
+                    icon: Icon(
+                        isFirstPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: Colors.black,
+                        size: 24),
                     label: Text(
-                      'ÉCOUTER',
+                      isFirstPlaying ? 'PAUSE' : 'ÉCOUTER',
                       style: BkoTheme.fontLato(
                         fontSize: 14,
                         fontWeight: FontWeight.w900,
@@ -358,106 +417,131 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                 ),
               )
             else
-              ListView.separated(
+              ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _episodes.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final ep = _episodes[index];
-                  final epTitle = ep['title'] ?? 'Épisode ${index + 1}';
-                  final epDesc = ep['description'] ?? '';
-                  final epCover = ep['cover'] ?? coverUrl;
-                  final durationSec = ep['durationSeconds'] ?? 2400;
-                  final min = (durationSec / 60).round();
-
-                  final epSlug = (ep['slug'] as String? ?? '').isNotEmpty
-                      ? ep['slug']
-                      : _normalizeSlug(epTitle);
-
-                  return GestureDetector(
-                    onTap: () {
-                      context.push('/podcasts/${widget.slug}/episodes/$epSlug');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: BkoTheme.getBgSurfaceElevated(context),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: borderSub),
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: epCover,
-                              width: 52,
-                              height: 52,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Container(
-                                width: 52,
-                                height: 52,
-                                color: bgSurf,
-                                child: const Icon(Icons.graphic_eq_rounded,
-                                    color: BkoTheme.goldAccent),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  epTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: BkoTheme.fontLato(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: textPri,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  epDesc.isNotEmpty ? epDesc : '$min min',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: BkoTheme.fontLato(
-                                      fontSize: 11.5, color: textSec),
-                                ),
-                              ],
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => _playEpisode(ep),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: const BoxDecoration(
-                                color: BkoTheme.goldAccent,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow_rounded,
-                                color: Colors.black,
-                                size: 22,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  final ep = Map<String, dynamic>.from(_episodes[index]);
+                  ep['podcast'] ??= _podcast;
+                  return EpisodeListItem(
+                    episode: ep,
+                    showPodcastName: false,
                   );
                 },
               ),
+
+            // Similar / Recommended Podcasts Section
+            if (_similarPodcasts.isNotEmpty) ...[
+              const SizedBox(height: 36),
+              Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded,
+                      color: BkoTheme.goldAccent, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    _categoryName != null
+                        ? 'DANS LA MÊME THÉMATIQUE ($_categoryName)'
+                        : 'VOUS POURRIEZ AUSSI AIMER',
+                    style: BkoTheme.fontLato(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                      color: BkoTheme.goldAccent,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 185,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: _similarPodcasts.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 14),
+                  itemBuilder: (context, index) {
+                    final item =
+                        Map<String, dynamic>.from(_similarPodcasts[index]);
+                    final simSlug = '${item['slug'] ?? ''}';
+                    final simName = '${item['name'] ?? ''}';
+                    final simCover = '${item['cover'] ?? ''}';
+                    final epCount = item['_count']?['episodes'] ?? 0;
+
+                    return GestureDetector(
+                      onTap: () {
+                        if (simSlug.isNotEmpty) {
+                          context.push('/podcasts/$simSlug');
+                        }
+                      },
+                      child: Container(
+                        width: 130,
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF141416),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: borderSub),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: 114,
+                                height: 114,
+                                color: const Color(0xFF1E1E24),
+                                child: simCover.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: simCover,
+                                        fit: BoxFit.cover,
+                                        errorWidget: (_, __, ___) => const Icon(
+                                          Icons.podcasts_rounded,
+                                          color: BkoTheme.goldAccent,
+                                          size: 32,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.podcasts_rounded,
+                                        color: BkoTheme.goldAccent,
+                                        size: 32,
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              simName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: BkoTheme.fontLato(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: textPri,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '$epCount épisodes',
+                              maxLines: 1,
+                              style: BkoTheme.fontLato(
+                                fontSize: 11,
+                                color: textSec,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
 
             const SizedBox(height: 180),
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 }

@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../auth/auth_controller.dart';
-import '../player/youtube_player_widget.dart';
+import '../player/full_audio_player_sheet.dart';
+import 'bko_mini_player.dart';
 import 'shell_providers.dart';
 
 class AppShell extends ConsumerStatefulWidget {
-  final Widget child;
-  const AppShell({super.key, required this.child});
+  final StatefulNavigationShell? navigationShell;
+  final Widget? child;
+  const AppShell({super.key, this.navigationShell, this.child});
 
   @override
   ConsumerState<AppShell> createState() => _AppShellState();
@@ -21,6 +23,9 @@ class _AppShellState extends ConsumerState<AppShell>
   DateTime? _lastHistorySync;
 
   int _calculateSelectedIndex(BuildContext context) {
+    if (widget.navigationShell != null) {
+      return widget.navigationShell!.currentIndex;
+    }
     final location = GoRouterState.of(context).uri.toString();
     if (location.startsWith('/explore') || location.startsWith('/search')) return 1;
     if (location.startsWith('/library') || location.startsWith('/favorites')) return 2;
@@ -57,6 +62,13 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   void _onItemTapped(int index, BuildContext context) {
+    if (widget.navigationShell != null) {
+      widget.navigationShell!.goBranch(
+        index,
+        initialLocation: index == widget.navigationShell!.currentIndex,
+      );
+      return;
+    }
     switch (index) {
       case 0:
         context.go('/');
@@ -78,9 +90,27 @@ class _AppShellState extends ConsumerState<AppShell>
     final selectedIndex = _calculateSelectedIndex(context);
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
-    final activeEpisode = ref.watch(activeEpisodeProvider);
-    ref.listen<ActiveEpisodeState>(activeEpisodeProvider, (_, next) {
+    final hasLecture = ref.watch(activeEpisodeProvider.select((s) => s.hasActiveEpisode));
+    ref.listen<ActiveEpisodeState>(activeEpisodeProvider, (prev, next) {
       _syncHistory(next);
+      if (next.errorMessage != null &&
+          next.errorMessage != prev?.errorMessage &&
+          context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              next.errorMessage!,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            backgroundColor: const Color(0xFF991B1B),
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     });
     final isNavVisible = ref.watch(shellNavVisibilityProvider);
 
@@ -88,7 +118,6 @@ class _AppShellState extends ConsumerState<AppShell>
     const appleEase = Cubic(0.2, 0.9, 0.2, 1.0);
     const animDuration = Duration(milliseconds: 320);
 
-    final bool hasLecture = activeEpisode.hasActiveEpisode;
     final bool isMorphed3Pills = hasLecture && !isNavVisible;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -98,7 +127,7 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return Scaffold(
       extendBody: true,
-      body: widget.child,
+      body: widget.navigationShell ?? widget.child,
       bottomNavigationBar: AnimatedContainer(
         duration: animDuration,
         curve: appleEase,
@@ -124,8 +153,8 @@ class _AppShellState extends ConsumerState<AppShell>
               firstChild: Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: isMorphed3Pills
-                    ? _buildCompactMorphed3PillBar(context, activeEpisode)
-                    : _buildFullMiniPlayerCapsule(context, activeEpisode),
+                    ? _buildCompactMorphed3PillBar(context)
+                    : const BkoMiniPlayer(),
               ),
               secondChild: const SizedBox.shrink(),
             ),
@@ -150,334 +179,14 @@ class _AppShellState extends ConsumerState<AppShell>
     );
   }
 
-  void _openFullPlayerModal(
-      BuildContext context, ActiveEpisodeState activeEpisode) {
-    showModalBottomSheet(
-      context: context,
-      useRootNavigator: true,
-      useSafeArea: true,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F172A),
-      builder: (modalContext) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final activeState = ref.watch(activeEpisodeProvider);
-            final position = activeState.currentPosition;
-            final minutes =
-                position.inMinutes.remainder(60).toString().padLeft(2, '0');
-            final seconds =
-                position.inSeconds.remainder(60).toString().padLeft(2, '0');
-            final timeStr = '$minutes:$seconds';
-
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: const BoxDecoration(
-                color: Color(0xFF0F172A),
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white30,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(modalContext),
-                        child: const Icon(Icons.keyboard_arrow_down_rounded,
-                            color: Colors.white70, size: 28),
-                      ),
-                      Text(
-                        activeState.mode == 'VIDEO'
-                            ? 'EN COURS DE VISIONNAGE'
-                            : 'EN COURS D\'ÉCOUTE',
-                        style: BkoTheme.fontLato(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 2.0,
-                          color: BkoTheme.goldAccent,
-                        ),
-                      ),
-                      const Icon(Icons.more_horiz_rounded,
-                          color: Colors.white70, size: 24),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Mode Toggle Pill (ÉCOUTER / REGARDER)
-                  if (activeState.hasVideo)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E2638),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: Colors.white10),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (activeState.hasAudio)
-                            GestureDetector(
-                              onTap: () => ref
-                                  .read(activeEpisodeProvider.notifier)
-                                  .setMode('AUDIO'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: activeState.mode == 'AUDIO'
-                                      ? BkoTheme.goldAccent
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.headphones_rounded,
-                                      size: 14,
-                                      color: activeState.mode == 'AUDIO'
-                                          ? Colors.black
-                                          : Colors.white70,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'ÉCOUTER',
-                                      style: BkoTheme.fontLato(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: activeState.mode == 'AUDIO'
-                                            ? Colors.black
-                                            : Colors.white70,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          GestureDetector(
-                            onTap: () => ref
-                                .read(activeEpisodeProvider.notifier)
-                                .setMode('VIDEO'),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: activeState.mode == 'VIDEO'
-                                    ? BkoTheme.goldAccent
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.videocam_rounded,
-                                    size: 14,
-                                    color: activeState.mode == 'VIDEO'
-                                        ? Colors.black
-                                        : Colors.white70,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'REGARDER',
-                                    style: BkoTheme.fontLato(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: activeState.mode == 'VIDEO'
-                                          ? Colors.black
-                                          : Colors.white70,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  if (activeState.mode == 'VIDEO')
-                    BkoYoutubePlayerWidget(
-                      coverUrl: activeState.coverUrl,
-                      videoUrl: activeState.videoUrl,
-                      autoPlay: activeState.isPlaying,
-                      startPosition: activeState.currentPosition,
-                    )
-                  else
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(24),
-                      child: AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: activeState.coverUrl.isNotEmpty
-                            ? Image.network(
-                                activeState.coverUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                  color: const Color(0xFF1E2638),
-                                  child: const Icon(Icons.graphic_eq_rounded,
-                                      color: BkoTheme.goldAccent, size: 64),
-                                ),
-                              )
-                            : Container(
-                                color: const Color(0xFF1E2638),
-                                child: const Icon(Icons.graphic_eq_rounded,
-                                    color: BkoTheme.goldAccent, size: 64),
-                              ),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  Text(
-                    activeState.title.isNotEmpty
-                        ? activeState.title
-                        : 'Épisode',
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: BkoTheme.fontLato(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(modalContext);
-                      final slug = activeState.showName
-                          .toLowerCase()
-                          .replaceAll(RegExp(r'[^a-z0-9]+'), '-');
-                      context.push('/podcasts/$slug');
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          activeState.showName.isNotEmpty
-                              ? activeState.showName
-                              : 'Voir la chaîne du podcast',
-                          style: BkoTheme.fontLato(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: BkoTheme.goldAccent,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded,
-                            color: BkoTheme.goldAccent, size: 18),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SliderTheme(
-                    data: const SliderThemeData(
-                      trackHeight: 3,
-                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
-                      activeTrackColor: BkoTheme.goldAccent,
-                      inactiveTrackColor: Colors.white24,
-                      thumbColor: BkoTheme.goldAccent,
-                    ),
-                    child: Slider(
-                      value: activeState.progress.clamp(0.0, 1.0),
-                      onChanged: (val) {
-                        final total = activeState.totalDuration;
-                        if (total.inMilliseconds > 0) {
-                          final newPos = Duration(
-                              milliseconds:
-                                  (val * total.inMilliseconds).round());
-                          ref.read(activeEpisodeProvider.notifier).seek(newPos);
-                        }
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(timeStr,
-                            style: BkoTheme.fontLato(
-                                fontSize: 11, color: Colors.white54)),
-                        Text(activeState.duration,
-                            style: BkoTheme.fontLato(
-                                fontSize: 11, color: Colors.white54)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.replay_10_rounded,
-                            color: Colors.white, size: 30),
-                        onPressed: () {
-                          final current = activeState.currentPosition;
-                          final newPos = current - const Duration(seconds: 10);
-                          ref.read(activeEpisodeProvider.notifier).seek(
-                              newPos < Duration.zero ? Duration.zero : newPos);
-                        },
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          ref
-                              .read(activeEpisodeProvider.notifier)
-                              .togglePlayPause();
-                        },
-                        child: Container(
-                          width: 60,
-                          height: 60,
-                          decoration: const BoxDecoration(
-                            color: BkoTheme.goldAccent,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            activeState.isPlaying
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            color: Colors.black,
-                            size: 36,
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.forward_10_rounded,
-                            color: Colors.white, size: 30),
-                        onPressed: () {
-                          final current = activeState.currentPosition;
-                          final newPos = current + const Duration(seconds: 10);
-                          ref.read(activeEpisodeProvider.notifier).seek(newPos);
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+  void _openFullPlayerModal(BuildContext context) {
+    FullAudioPlayerSheet.show(context);
   }
 
   // ---------------------------------------------------------------------------
   // MORPHED 3-PILL BAR (Scroll Down Mode during Active Lecture)
   // ---------------------------------------------------------------------------
-  Widget _buildCompactMorphed3PillBar(
-    BuildContext context,
-    ActiveEpisodeState activeEpisode,
-  ) {
+  Widget _buildCompactMorphed3PillBar(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final glassBg = isDark ? const Color(0xE6161B22) : const Color(0xECFFFFFF);
     final glassBorder =
@@ -523,85 +232,85 @@ class _AppShellState extends ConsumerState<AppShell>
                     borderRadius: BorderRadius.circular(26),
                     border: Border.all(color: glassBorder, width: 1.2),
                   ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () =>
-                              _openFullPlayerModal(context, activeEpisode),
-                          child: Row(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  activeEpisode.coverUrl.isNotEmpty
-                                      ? activeEpisode.coverUrl
-                                      : '',
-                                  width: 36,
-                                  height: 36,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                    width: 36,
-                                    height: 36,
-                                    color:
-                                        BkoTheme.getBgSurfaceElevated(context),
-                                    child: const Icon(Icons.graphic_eq_rounded,
-                                        color: BkoTheme.goldAccent, size: 18),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      activeEpisode.title.isNotEmpty
-                                          ? activeEpisode.title
-                                          : "Management humain...",
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: BkoTheme.fontLato(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w800,
-                                        color: BkoTheme.getTextPrimary(context),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      activeEpisode.showName.isNotEmpty
-                                          ? activeEpisode.showName
-                                          : "14 janvier",
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: BkoTheme.fontLato(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                        color:
-                                            BkoTheme.getTextSecondary(context),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final title = ref.watch(activeEpisodeProvider.select((s) => s.title));
+                      final showName = ref.watch(activeEpisodeProvider.select((s) => s.showName));
+                      final coverUrl = ref.watch(activeEpisodeProvider.select((s) => s.coverUrl));
+                      final isPlaying = ref.watch(activeEpisodeProvider.select((s) => s.isPlaying));
 
-                      // Solid Play Triangle Button ▶
-                      _AppleSpringPlayButton(
-                        isPlaying: activeEpisode.isPlaying,
-                        onTap: () {
-                          ref
-                              .read(activeEpisodeProvider.notifier)
-                              .togglePlayPause();
-                        },
-                      ),
-                    ],
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => _openFullPlayerModal(context),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      coverUrl.isNotEmpty ? coverUrl : '',
+                                      width: 36,
+                                      height: 36,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Container(
+                                        width: 36,
+                                        height: 36,
+                                        color: BkoTheme.getBgSurfaceElevated(context),
+                                        child: const Icon(Icons.graphic_eq_rounded,
+                                            color: BkoTheme.goldAccent, size: 18),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          title.isNotEmpty ? title : "Bamako Podcast",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: BkoTheme.fontLato(
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: BkoTheme.getTextPrimary(context),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          showName.isNotEmpty ? showName : "En cours",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: BkoTheme.fontLato(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
+                                            color: BkoTheme.getTextSecondary(context),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+
+                          // Solid Play Triangle Button ▶
+                          _AppleSpringPlayButton(
+                            isPlaying: isPlaying,
+                            onTap: () {
+                              ref
+                                  .read(activeEpisodeProvider.notifier)
+                                  .togglePlayPause();
+                            },
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -624,131 +333,7 @@ class _AppShellState extends ConsumerState<AppShell>
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // FULL MINI PLAYER CAPSULE (Top Capsule when Nav Bar is Visible)
-  // ---------------------------------------------------------------------------
-  Widget _buildFullMiniPlayerCapsule(
-    BuildContext context,
-    ActiveEpisodeState activeEpisode,
-  ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glassBg = isDark ? const Color(0xE6161B22) : const Color(0xECFFFFFF);
-    final glassBorder =
-        isDark ? const Color(0x33E6B009) : const Color(0x250F172A);
 
-    return Container(
-      key: const ValueKey('FullMiniPlayerCapsule'),
-      height: 56,
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: glassBg,
-              borderRadius: BorderRadius.circular(26),
-              border: Border.all(color: glassBorder, width: 1.2),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _openFullPlayerModal(context, activeEpisode),
-                    child: Row(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(11),
-                          child: Image.network(
-                            activeEpisode.coverUrl.isNotEmpty
-                                ? activeEpisode.coverUrl
-                                : '',
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                              width: 40,
-                              height: 40,
-                              color: BkoTheme.getBgSurfaceElevated(context),
-                              child: const Icon(Icons.graphic_eq_rounded,
-                                  color: BkoTheme.goldAccent, size: 20),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                activeEpisode.title.isNotEmpty
-                                    ? activeEpisode.title
-                                    : "Management humain : concilier exigence...",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: BkoTheme.fontLato(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: BkoTheme.getTextPrimary(context),
-                                ),
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                activeEpisode.showName.isNotEmpty
-                                    ? "${activeEpisode.showName} • ${activeEpisode.duration}"
-                                    : "14 janvier",
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: BkoTheme.fontLato(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: BkoTheme.getTextSecondary(context),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 4),
-
-                // Play/Pause Button ▶
-                _AppleSpringPlayButton(
-                  isPlaying: activeEpisode.isPlaying,
-                  onTap: () {
-                    ref.read(activeEpisodeProvider.notifier).togglePlayPause();
-                  },
-                ),
-
-                const SizedBox(width: 4),
-
-                // Skip 30s Icon (30)
-                _AppleTactileIconButton(
-                  icon: Icons.forward_30_rounded,
-                  color: BkoTheme.getTextPrimary(context),
-                  size: 22,
-                  onPressed: () {},
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   // ---------------------------------------------------------------------------
   // FULL BOTTOM NAVIGATION CAPSULE (Apple Podcasts Style)

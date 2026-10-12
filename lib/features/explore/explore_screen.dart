@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../home/widgets/episode_list_item.dart';
 import '../shell/shell_providers.dart';
 
 class ExploreScreen extends ConsumerStatefulWidget {
@@ -108,28 +109,6 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     }
   }
 
-  void _playEpisode(Map<String, dynamic> ep) {
-    final title = ep['title'] ?? 'Épisode';
-    final podcastName = ep['podcast']?['name'] ?? 'Bamako Podcast';
-    final durationSeconds = ep['durationSeconds'] ?? 1800;
-    final duration = '${(durationSeconds / 60).round()} min';
-    final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
-    final audioUrl = BkoApi.extractAudioUrl(ep);
-    final videoUrl = BkoApi.extractVideoUrl(ep);
-
-    ref.read(activeEpisodeProvider.notifier).playEpisode(
-          title: title,
-          showName: podcastName,
-          duration: duration,
-          coverUrl: cover,
-          audioUrl: audioUrl,
-          videoUrl: videoUrl,
-          hasAudio: audioUrl != null,
-          hasVideo: videoUrl != null,
-          episodeId: '${ep['id'] ?? ''}',
-          podcastSlug: '${ep['podcast']?['slug'] ?? ''}',
-        );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,6 +136,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         TextField(
                           controller: _searchController,
                           onChanged: _onSearchChanged,
+                          onTapOutside: (_) =>
+                              FocusManager.instance.primaryFocus?.unfocus(),
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (_) =>
+                              FocusManager.instance.primaryFocus?.unfocus(),
                           style: BkoTheme.fontLato(fontSize: 15, color: textPri),
                           decoration: InputDecoration(
                             hintText: 'Rechercher une émission, un épisode...',
@@ -185,9 +169,13 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
                   // Content Body
                   Expanded(
-                    child: _query.length < 2
-                        ? _buildExploreDefaultMode(textPri, textSec, surface, border)
-                        : _buildSearchResultsMode(textPri, textSec, surface, border),
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (notification) =>
+                          handleShellScrollNotification(notification, ref),
+                      child: _query.length < 2
+                          ? _buildExploreDefaultMode(textPri, textSec, surface, border)
+                          : _buildSearchResultsMode(textPri, textSec, surface, border),
+                    ),
                   ),
                 ],
               ),
@@ -211,7 +199,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             ),
             const SizedBox(height: 16),
             SizedBox(
-              height: 160,
+              height: 195,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: _trending.length > 6 ? 6 : _trending.length,
@@ -260,7 +248,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.8,
+                childAspectRatio: 1.45,
               ),
               itemCount: _categories.length,
               itemBuilder: (context, index) {
@@ -405,44 +393,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                 Text('Épisodes', style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w900, color: textPri)),
                 const SizedBox(height: 12),
                 ..._searchEpisodes.map((ep) {
-                  return GestureDetector(
-                    onTap: () => _playEpisode(ep as Map<String, dynamic>),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: border),
-                      ),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: ep['cover'] ?? ep['podcast']?['cover'] ?? '',
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(ep['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri)),
-                                const SizedBox(height: 4),
-                                Text('${ep['podcast']?['name'] ?? ''} • ${((ep['durationSeconds'] ?? 1800) / 60).round()} min', maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.play_circle_fill_rounded, color: BkoTheme.goldAccent, size: 36),
-                        ],
-                      ),
-                    ),
+                  return EpisodeListItem(
+                    episode: Map<String, dynamic>.from(ep as Map),
                   );
                 }),
               ],
