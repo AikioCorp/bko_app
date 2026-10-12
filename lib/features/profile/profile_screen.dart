@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/network/bko_api.dart';
 import '../auth/auth_controller.dart';
@@ -62,6 +63,10 @@ class ProfileScreen extends ConsumerWidget {
                     _tile('Ma bibliothèque', Icons.library_music, surface, border, textPri, () => context.go('/library')),
                     const SizedBox(height: 10),
                     _tile('Favoris', Icons.favorite_border, surface, border, textPri, () => context.go('/favorites')),
+                    const SizedBox(height: 10),
+                    _tile('Mes préférences d\'écoute', IconsaxPlusBold.music_filter, surface, border, textPri, () {
+                      context.push('/taste-onboarding?mode=edit');
+                    }),
                     const SizedBox(height: 10),
                     _tile('Personnalisation & Recommandations', Icons.tune_rounded, surface, border, textPri, () {
                       _showPersonalizationSheet(context, ref);

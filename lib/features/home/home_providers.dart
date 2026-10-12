@@ -14,6 +14,7 @@ class HomeDataState {
   final bool isRefreshing;
   final bool isLoadingMore;
   final String? error;
+  final String? feedError;
   final DateTime? lastFetched;
 
   const HomeDataState({
@@ -28,6 +29,7 @@ class HomeDataState {
     this.isRefreshing = false,
     this.isLoadingMore = false,
     this.error,
+    this.feedError,
     this.lastFetched,
   });
 
@@ -45,12 +47,15 @@ class HomeDataState {
     bool? isRefreshing,
     bool? isLoadingMore,
     String? error,
+    String? feedError,
     DateTime? lastFetched,
     bool clearError = false,
+    bool clearFeedError = false,
     bool clearCursor = false,
+    bool clearHomeData = false,
   }) {
     return HomeDataState(
-      homeData: homeData ?? this.homeData,
+      homeData: clearHomeData ? null : (homeData ?? this.homeData),
       categories: categories ?? this.categories,
       historyData: historyData ?? this.historyData,
       selectedCategory: selectedCategory ?? this.selectedCategory,
@@ -61,6 +66,7 @@ class HomeDataState {
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       error: clearError ? null : (error ?? this.error),
+      feedError: clearFeedError ? null : (feedError ?? this.feedError),
       lastFetched: lastFetched ?? this.lastFetched,
     );
   }
@@ -181,16 +187,19 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
       isLoading: true,
       feedItems: const [],
       clearCursor: true,
+      clearFeedError: true,
       hasMore: false,
+      isLoadingMore: false,
     );
-    await refresh(silent: false);
+    // Une ancienne actualisation ne doit pas absorber la nouvelle catégorie.
+    await _performFetch(isInitial: true);
   }
 
   /// Défilement infini : charge le lot d'épisodes suivant
   Future<void> fetchMoreFeed() async {
     if (state.isLoadingMore || !state.hasMore || state.nextCursor == null) return;
 
-    state = state.copyWith(isLoadingMore: true);
+    state = state.copyWith(isLoadingMore: true, clearFeedError: true);
     final int thisGeneration = _requestGeneration;
     final String? thisUserId = ref.read(authProvider).user?['id'] as String?;
 
@@ -229,13 +238,17 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
           nextCursor: nextCursor,
           hasMore: hasMore,
           isLoadingMore: false,
+          clearFeedError: true,
         );
       } else {
         state = state.copyWith(isLoadingMore: false);
       }
     } catch (_) {
       if (thisGeneration == _requestGeneration && thisUserId == _activeUserId) {
-        state = state.copyWith(isLoadingMore: false);
+        state = state.copyWith(
+          isLoadingMore: false,
+          feedError: 'Impossible de charger la suite du catalogue.',
+        );
       }
     }
   }
@@ -249,26 +262,28 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
     if (newUserId == null) {
       // Déconnexion : efface immédiatement toutes les données personnelles (sections personnalisées, historique)
       state = state.copyWith(
-        homeData: null,
+        clearHomeData: true,
         historyData: const [],
         feedItems: const [],
         clearCursor: true,
         hasMore: false,
         isLoading: false,
         isRefreshing: false,
+        isLoadingMore: false,
       );
       // Recharge l'accueil anonyme propre
       refresh(silent: false);
     } else {
       // Changement de compte : efface les données de l'ancien compte et recharge immédiatement
       state = state.copyWith(
-        homeData: null,
+        clearHomeData: true,
         historyData: const [],
         feedItems: const [],
         clearCursor: true,
         hasMore: false,
         isLoading: true,
         isRefreshing: false,
+        isLoadingMore: false,
       );
       refresh(silent: true);
     }

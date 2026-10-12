@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/equalizer_loader.dart';
 import '../player/full_audio_player_sheet.dart';
 import 'shell_providers.dart';
 
@@ -28,15 +31,7 @@ class BkoMiniPlayer extends ConsumerWidget {
       label: 'Lecteur en cours : ${active.title}',
       child: Container(
         height: 58,
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+        decoration: const BoxDecoration(),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(26),
           child: BackdropFilter(
@@ -133,11 +128,12 @@ class BkoMiniPlayer extends ConsumerWidget {
                         const SizedBox(width: 4),
                         // 3. Skip +30s Button
                         _SpringIconButton(
-                          icon: Icons.forward_30_rounded,
+                          icon: IconsaxPlusLinear.forward_15_seconds,
                           color: BkoTheme.getTextPrimary(context),
                           size: 22,
                           tooltip: 'Avancer de 30 secondes',
                           onPressed: () {
+                            BkoHaptics.select();
                             ref.read(activeEpisodeProvider.notifier).seekRelative(30);
                           },
                         ),
@@ -198,7 +194,10 @@ class _SpringMiniPlayButtonState extends State<_SpringMiniPlayButton> {
         onTapDown: (_) => setState(() => _isPressed = true),
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
-        onTap: widget.onTap,
+        onTap: () {
+          BkoHaptics.light();
+          widget.onTap();
+        },
         child: AnimatedScale(
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOutQuad,
@@ -212,18 +211,17 @@ class _SpringMiniPlayButtonState extends State<_SpringMiniPlayButton> {
             ),
             child: Center(
               child: widget.isLoading
-                  ? SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(playBtnIconColor),
-                      ),
+                  ? EqualizerLoader(
+                      size: 16,
+                      color: playBtnIconColor,
+                      isPlaying: true,
                     )
                   : Icon(
-                      widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                      widget.isPlaying
+                          ? IconsaxPlusBold.pause
+                          : IconsaxPlusBold.play,
                       color: playBtnIconColor,
-                      size: 22,
+                      size: 18,
                     ),
             ),
           ),

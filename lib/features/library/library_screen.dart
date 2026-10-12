@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import '../home/widgets/episode_list_item.dart';
 import '../shell/shell_providers.dart';
@@ -67,6 +71,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   void _selectTab(int i) {
+    BkoHaptics.select();
     setState(() => _tab = i);
     _fetch();
   }
@@ -193,7 +198,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           color: textPri)),
                   if (_tab == 3)
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline_rounded, color: BkoTheme.goldAccent, size: 28),
+                      icon: const Icon(IconsaxPlusLinear.add_circle, color: BkoTheme.goldAccent, size: 26),
                       onPressed: _createPlaylistDialog,
                     ),
                 ],
@@ -221,8 +226,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 onNotification: (notification) =>
                     handleShellScrollNotification(notification, ref),
                 child: _loading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+                    ? ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+                        itemCount: 5,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (_, __) => const BkoEpisodeRowSkeleton(),
+                      )
                     : _errorMessage != null
                         ? Center(
                             child: Column(
@@ -377,7 +386,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Widget _tabButton(
       String label, int index, Color surface, Color border, Color textSec) {
     final active = _tab == index;
-    return GestureDetector(
+    return BkoBounceable(
       onTap: () => _selectTab(index),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -400,7 +409,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         width: 48,
         height: 48,
         color: BkoTheme.goldAccent.withValues(alpha: 0.12),
-        child: const Icon(Icons.podcasts, color: BkoTheme.goldAccent),
+        child: const Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent),
       );
 
   Widget _empty(String text, Color color) => Center(
@@ -426,7 +435,7 @@ class _LoginPrompt extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.library_music_outlined, size: 64, color: textSec),
+                Icon(IconsaxPlusLinear.folder_2, size: 64, color: textSec),
                 const SizedBox(height: 16),
                 Text('Votre bibliothèque',
                     style: BkoTheme.fontLato(
@@ -439,21 +448,24 @@ class _LoginPrompt extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () => context.go('/login'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BkoTheme.goldAccent,
-                    foregroundColor: Colors.black,
+                BkoBounceable(
+                  onTap: () {
+                    BkoHaptics.light();
+                    context.go('/login');
+                  },
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(
+                      color: BkoTheme.goldAccent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text('SE CONNECTER',
+                        style: BkoTheme.fontLato(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black)),
                   ),
-                  child: Text('SE CONNECTER',
-                      style: BkoTheme.fontLato(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.black)),
                 ),
               ],
             ),

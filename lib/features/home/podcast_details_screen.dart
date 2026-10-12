@@ -3,8 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../shell/shell_providers.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
@@ -27,6 +31,10 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
   String? _categoryName;
   bool _isLoading = true;
   bool _isFollowing = false;
+  bool _hasMoreEpisodes = false;
+  bool _loadingMoreEpisodes = false;
+  String? _episodesError;
+  int _episodeOffset = 0;
 
   @override
   void initState() {
@@ -40,7 +48,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     try {
       final token = ref.read(authProvider).token;
       final data = await BkoApi.get(
-        '/podcasts/${Uri.encodeComponent(widget.slug)}',
+        '/podcasts/${Uri.encodeComponent(widget.slug)}?episodeLimit=30',
         token: token,
       );
       if (!mounted) return;
@@ -62,11 +70,36 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
             ? List<dynamic>.from(podcast!['episodes'] as List)
             : [];
         _isLoading = false;
+        _hasMoreEpisodes = podcast?['episodesPage']?['hasMore'] == true;
+        _episodeOffset = (podcast?['episodesPage']?['nextOffset'] as num?)?.toInt() ?? _episodes.length;
       });
 
       _loadSimilarPodcasts(categorySlug: categorySlug);
     } catch (_) {
-      if (!mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadMoreEpisodes() async {
+    if (_loadingMoreEpisodes || !_hasMoreEpisodes) return;
+    setState(() { _loadingMoreEpisodes = true; _episodesError = null; });
+    try {
+      final data = await BkoApi.get(
+        '/podcasts/${Uri.encodeComponent(widget.slug)}?episodeLimit=30&episodeOffset=$_episodeOffset',
+        token: ref.read(authProvider).token,
+      );
+      if (!mounted) return;
+      if (data is! Map || data['episodes'] is! List) throw const FormatException('Liste invalide');
+      final seen = _episodes.map((item) => item['id']).toSet();
+      setState(() {
+        _episodes.addAll((data['episodes'] as List).where((item) => seen.add(item['id'])));
+        _hasMoreEpisodes = data['episodesPage']?['hasMore'] == true;
+        _episodeOffset = (data['episodesPage']?['nextOffset'] as num?)?.toInt() ?? _episodes.length;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _episodesError = 'Impossible de charger les épisodes suivants.');
+    } finally {
+      if (mounted) setState(() => _loadingMoreEpisodes = false);
     }
   }
 
@@ -180,8 +213,67 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: bgSurf,
-        body: const Center(
-          child: CircularProgressIndicator(color: BkoTheme.goldAccent),
+        appBar: AppBar(
+          backgroundColor: bgSurf,
+          elevation: 0,
+          leading: const AppBackButton(),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          child: Column(
+            children: [
+              Center(
+                child: BkoSkeletonBox(
+                  width: 160,
+                  height: 160,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: BkoSkeletonBox(
+                  width: 200,
+                  height: 20,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: BkoSkeletonBox(
+                  width: 120,
+                  height: 14,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: BkoSkeletonBox(
+                      height: 48,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  BkoSkeletonBox(
+                    width: 110,
+                    height: 48,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              Column(
+                children: List.generate(
+                  3,
+                  (index) => const Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: BkoEpisodeRowSkeleton(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -195,23 +287,13 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
 
     final firstEpisodeId =
         _episodes.isNotEmpty ? '${_episodes.first['id'] ?? ''}' : '';
-    final isFirstPlaying = firstEpisodeId.isNotEmpty &&
-        ref.watch(
-          activeEpisodeProvider.select(
-            (s) => s.hasActiveEpisode && s.episodeId == firstEpisodeId && s.isPlaying,
-          ),
-        );
 
     return Scaffold(
       backgroundColor: bgSurf,
       appBar: AppBar(
         backgroundColor: bgSurf,
         elevation: 0,
-        leading: IconButton(
-          icon:
-              Icon(Icons.arrow_back_ios_new_rounded, color: textPri, size: 20),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(),
         title: Text(
           name,
           style: BkoTheme.fontLato(
@@ -219,20 +301,26 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.share_outlined, color: textPri, size: 20),
-            onPressed: () {},
+            icon: Icon(IconsaxPlusLinear.share, color: textPri, size: 20),
+            onPressed: () {
+              BkoHaptics.select();
+            },
           ),
         ],
       ),
       body: NotificationListener<ScrollNotification>(
-        onNotification: (notification) =>
-            handleShellScrollNotification(notification, ref),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Artwork & Bio
+        onNotification: (notification) {
+          if (notification.metrics.extentAfter < 500 && _episodesError == null) _loadMoreEpisodes();
+          return handleShellScrollNotification(notification, ref);
+        },
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [            // Header Artwork & Bio
             Center(
               child: Column(
                 children: [
@@ -291,7 +379,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                       Text('•', style: TextStyle(color: textSec)),
                       const SizedBox(width: 8),
                       Text(
-                        '${_episodes.length} Épisodes',
+                        '${_podcast?['_count']?['episodes'] ?? _episodes.length} Épisodes',
                         style: BkoTheme.fontLato(fontSize: 12, color: textSec),
                       ),
                     ],
@@ -306,33 +394,47 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: BkoTheme.goldAccent,
-                      foregroundColor: Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    icon: Icon(
-                        isFirstPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        color: Colors.black,
-                        size: 24),
-                    label: Text(
-                      isFirstPlaying ? 'PAUSE' : 'ÉCOUTER',
-                      style: BkoTheme.fontLato(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    onPressed: () {
-                      if (_episodes.isNotEmpty) {
-                        _playEpisode(_episodes.first);
-                      }
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final isFirstPlaying = firstEpisodeId.isNotEmpty &&
+                          ref.watch(
+                            activeEpisodeProvider.select(
+                              (s) =>
+                                  s.hasActiveEpisode &&
+                                  s.episodeId == firstEpisodeId &&
+                                  s.isPlaying,
+                            ),
+                          );
+                      return ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BkoTheme.goldAccent,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        icon: Icon(
+                            isFirstPlaying
+                                ? IconsaxPlusBold.pause
+                                : IconsaxPlusBold.play,
+                            color: Colors.black,
+                            size: 20),
+                        label: Text(
+                          isFirstPlaying ? 'PAUSE' : 'ÉCOUTER',
+                          style: BkoTheme.fontLato(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        onPressed: () {
+                          BkoHaptics.light();
+                          if (_episodes.isNotEmpty) {
+                            _playEpisode(_episodes.first);
+                          }
+                        },
+                      );
                     },
                   ),
                 ),
@@ -347,8 +449,10 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                     ),
                   ),
                   icon: Icon(
-                    _isFollowing ? Icons.check_rounded : Icons.add_rounded,
-                    color: textPri,
+                    _isFollowing
+                        ? IconsaxPlusBold.tick_circle
+                        : IconsaxPlusLinear.add_circle,
+                    color: _isFollowing ? BkoTheme.goldAccent : textPri,
                     size: 18,
                   ),
                   label: Text(
@@ -356,10 +460,13 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                     style: BkoTheme.fontLato(
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
-                      color: textPri,
+                      color: _isFollowing ? BkoTheme.goldAccent : textPri,
                     ),
                   ),
-                  onPressed: _toggleFollow,
+                  onPressed: () {
+                    BkoHaptics.success();
+                    _toggleFollow();
+                  },
                 ),
               ],
             ),
@@ -393,7 +500,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'ÉPISODES (${_episodes.length})',
+                  'ÉPISODES (${_podcast?['_count']?['episodes'] ?? _episodes.length})',
                   style: BkoTheme.fontLato(
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
@@ -401,53 +508,75 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                     color: BkoTheme.goldAccent,
                   ),
                 ),
-                Icon(Icons.sort_rounded, color: textSec, size: 20),
+                Icon(IconsaxPlusLinear.sort, color: textSec, size: 20),
               ],
             ),
 
             const SizedBox(height: 14),
 
-            // Episodes Items
-            if (_episodes.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                child: Text(
-                  'Aucun épisode disponible pour le moment.',
-                  style: BkoTheme.fontLato(fontSize: 13, color: textSec),
+                  ],
                 ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _episodes.length,
-                itemBuilder: (context, index) {
-                  final ep = Map<String, dynamic>.from(_episodes[index]);
-                  ep['podcast'] ??= _podcast;
-                  return EpisodeListItem(
-                    episode: ep,
-                    showPodcastName: false,
-                  );
-                },
               ),
-
-            // Similar / Recommended Podcasts Section
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: _episodes.isEmpty
+                  ? SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Text('Aucun épisode disponible pour le moment.',
+                          style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
+                      ),
+                    )
+                  : SliverList(
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final ep = Map<String, dynamic>.from(_episodes[index]);
+                        ep['podcast'] ??= {
+                          'id': _podcast?['id'],
+                          'name': _podcast?['name'],
+                          'slug': _podcast?['slug'],
+                          'cover': _podcast?['cover'],
+                        };
+                        return EpisodeListItem(
+                          key: ValueKey(ep['id']),
+                          episode: ep,
+                          showPodcastName: false,
+                        );
+                      }, childCount: _episodes.length),
+                    ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [                        if (_loadingMoreEpisodes) const Padding(
+              padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()),
+            ),
+            if (_hasMoreEpisodes && !_loadingMoreEpisodes) TextButton(
+              onPressed: _loadMoreEpisodes,
+              child: Text(_episodesError ?? 'Charger les épisodes suivants'),
+            ),// Similar / Recommended Podcasts Section
             if (_similarPodcasts.isNotEmpty) ...[
               const SizedBox(height: 36),
               Row(
                 children: [
-                  const Icon(Icons.auto_awesome_rounded,
+                  const Icon(IconsaxPlusBold.magic_star,
                       color: BkoTheme.goldAccent, size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    _categoryName != null
-                        ? 'DANS LA MÊME THÉMATIQUE ($_categoryName)'
-                        : 'VOUS POURRIEZ AUSSI AIMER',
-                    style: BkoTheme.fontLato(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                      color: BkoTheme.goldAccent,
+                  Expanded(
+                    child: Text(
+                      _categoryName != null
+                          ? 'DANS LA MÊME THÉMATIQUE ($_categoryName)'
+                          : 'VOUS POURRIEZ AUSSI AIMER',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: BkoTheme.fontLato(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                        color: BkoTheme.goldAccent,
+                      ),
                     ),
                   ),
                 ],
@@ -537,11 +666,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
               ),
             ],
 
-            const SizedBox(height: 180),
+                    const SizedBox(height: 180),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
-    ),
-  );
+    );
   }
 }

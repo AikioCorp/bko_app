@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
 import '../downloads/download_manager.dart';
@@ -300,9 +304,63 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
-        appBar: AppBar(elevation: 0, backgroundColor: Colors.transparent),
-        body: const Center(
-            child: CircularProgressIndicator(color: BkoTheme.goldAccent)),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          leading: AppBackButton(
+            color: Colors.white,
+            fallbackLocation: '/podcasts/${widget.podcastSlug}',
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const AspectRatio(
+                aspectRatio: 16 / 9,
+                child: BkoSkeletonBox(
+                  borderRadius: BorderRadius.all(Radius.circular(16)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              BkoSkeletonBox(
+                width: double.infinity,
+                height: 24,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const SizedBox(height: 10),
+              BkoSkeletonBox(
+                width: 160,
+                height: 14,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: BkoSkeletonBox(
+                      height: 50,
+                      borderRadius: BorderRadius.circular(25),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  const BkoSkeletonBox(
+                    width: 48,
+                    height: 48,
+                    borderRadius: BorderRadius.all(Radius.circular(24)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+              BkoSkeletonBox(
+                width: double.infinity,
+                height: 80,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ],
+          ),
+        ),
       );
     }
 
@@ -343,25 +401,35 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-          onPressed: () => context.pop(),
+        leading: AppBackButton(
+          color: Colors.white,
+          fallbackLocation: '/podcasts/${widget.podcastSlug}',
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_rounded, color: Colors.white),
-            onPressed: _shareEpisode,
+            icon: const Icon(IconsaxPlusLinear.share, color: Colors.white, size: 22),
+            onPressed: () {
+              BkoHaptics.select();
+              _shareEpisode();
+            },
           ),
           IconButton(
             icon: Icon(
-              _isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+              _isSaved ? IconsaxPlusBold.archive_add : IconsaxPlusLinear.archive_add,
               color: _isSaved ? BkoTheme.goldAccent : Colors.white,
+              size: 22,
             ),
-            onPressed: _toggleSave,
+            onPressed: () {
+              BkoHaptics.light();
+              _toggleSave();
+            },
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-            onPressed: _openMoreActions,
+            icon: const Icon(IconsaxPlusLinear.more, color: Colors.white, size: 22),
+            onPressed: () {
+              BkoHaptics.select();
+              _openMoreActions();
+            },
           ),
         ],
       ),

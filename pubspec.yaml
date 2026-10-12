@@ -24,6 +24,7 @@ dependencies:
   share_plus: ^13.3.0
   youtube_player_iframe: ^5.2.1
   path_provider: ^2.1.2
+  iconsax_plus: ^1.0.0
 
 
 dev_dependencies:

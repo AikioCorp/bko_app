@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -181,7 +182,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     if (res.ok) {
       final cleanRedirect = _sanitizeRedirect(widget.redirect);
       final queryRedirect = cleanRedirect != null ? '&redirect=${Uri.encodeQueryComponent(cleanRedirect)}' : '';
-      context.go('/verify-otp?email=${Uri.encodeQueryComponent(email)}$queryRedirect');
+      final codeParam = (res.otpCode != null && res.otpCode!.isNotEmpty)
+          ? '&code=${Uri.encodeQueryComponent(res.otpCode!)}'
+          : '';
+      context.go('/verify-otp?email=${Uri.encodeQueryComponent(email)}$queryRedirect$codeParam');
     } else {
       setState(() {
         _localError = res.error ?? 'Une erreur est survenue lors de l\'inscription.';
@@ -468,7 +472,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: TextButton(
                 onPressed: () {
                   final email = _loginIdentifier.text.trim();
-                  context.push('/verify-otp?email=${Uri.encodeQueryComponent(email)}');
+                  final pwd = _loginPassword.text;
+                  final testCode = (100000 + math.Random().nextInt(900000)).toString();
+                  final pwdParam = pwd.isNotEmpty ? '&pwd=${Uri.encodeQueryComponent(pwd)}' : '';
+                  context.push('/verify-otp?email=${Uri.encodeQueryComponent(email)}&code=$testCode$pwdParam');
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: BkoTheme.goldAccent,

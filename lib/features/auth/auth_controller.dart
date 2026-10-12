@@ -97,8 +97,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Inscription. Ne connecte PAS l'utilisateur (le compte doit d'abord être
-  /// vérifié par OTP). Retourne (ok, message d'erreur éventuel, message de confirmation).
-  Future<({bool ok, String? error, String? message})> register({
+  /// Inscription. Ne connecte PAS l'utilisateur (le compte doit d'abord être
+  /// vérifié par OTP). Retourne (ok, message d'erreur éventuel, message de confirmation, code otp de test éventuel).
+  Future<({bool ok, String? error, String? message, String? otpCode})> register({
     required String fullName,
     required String email,
     required String password,
@@ -115,60 +116,91 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final msg = data is Map && data['message'] is String
           ? data['message'] as String
           : 'Un code de vérification a été envoyé à votre adresse e-mail.';
-      return (ok: true, error: null, message: msg);
+      final code = data is Map
+          ? (data['testOtpCode'] ?? data['otpCode'])?.toString()
+          : null;
+      return (ok: true, error: null, message: msg, otpCode: code);
     } on ApiException catch (error) {
-      return (ok: false, error: error.message, message: null);
+      return (ok: false, error: error.message, message: null, otpCode: null);
     } catch (_) {
       return (
         ok: false,
         error: 'Impossible de contacter le serveur. Vérifiez votre connexion.',
         message: null,
+        otpCode: null,
       );
     }
   }
 
   /// Renvoi d'un code OTP pour un compte non vérifié.
-  Future<({bool ok, String? error, String? message})> resendOtp({
+  Future<({bool ok, String? error, String? message, String? otpCode})> resendOtp({
     required String email,
   }) async {
     try {
-      final data = await BkoApi.post('/auth/register', {
+      final data = await BkoApi.post('/auth/resend-otp', {
         'email': email,
-        'fullName': 'Auditeur',
-        'password': 'TemporaryResendPassword123!',
       });
       final msg = data is Map && data['message'] is String
           ? data['message'] as String
-          : 'Nouveau code envoyé si le compte existe.';
-      return (ok: true, error: null, message: msg);
+          : 'Un nouveau code de vérification a été envoyé.';
+      final code = data is Map
+          ? (data['testOtpCode'] ?? data['otpCode'])?.toString()
+          : null;
+      return (ok: true, error: null, message: msg, otpCode: code);
     } on ApiException catch (error) {
-      return (ok: false, error: error.message, message: null);
+      return (ok: false, error: error.message, message: null, otpCode: null);
     } catch (_) {
       return (
         ok: false,
         error: 'Impossible de contacter le serveur.',
         message: null,
+        otpCode: null,
       );
     }
   }
 
   /// Vérification du code OTP reçu après inscription.
-  Future<({bool ok, String? error})> verifyOtp({
+  /// En cas de succès : le serveur valide le compte et délivre la session mobile.
+  /// Flutter persiste la session et connecte l'utilisateur automatiquement.
+  Future<({bool ok, String? error, bool onboardingCompleted})> verifyOtp({
     required String email,
     required String otpCode,
   }) async {
     try {
-      await BkoApi.post('/auth/verify-otp', {
+      final data = await BkoApi.post('/auth/verify-otp', {
         'email': email,
-        'otpCode': otpCode,
+        'otpCode': otpCode.trim(),
+        'deviceType': 'MOBILE',
+        'deviceName': 'Application Flutter',
       });
-      return (ok: true, error: null);
+
+      if (data is Map) {
+        final token = data['accessToken'] as String?;
+        final user = data['user'] is Map
+            ? Map<String, dynamic>.from(data['user'] as Map)
+            : null;
+
+        if (token == null || token.isEmpty || user == null || user['id'] == null) {
+          return (ok: false, error: 'Compte vérifié, mais session non reçue. Connectez-vous pour continuer.', onboardingCompleted: false);
+        }
+        if (token.isNotEmpty) {
+          await TokenStorage.save(token, user);
+          await BkoTelemetryService().onUserSwitched(user['id']?.toString());
+          state = AuthState(isAuthenticated: true, token: token, user: user);
+        }
+
+        final onboardingDone = user['onboardingCompleted'] == true;
+        return (ok: true, error: null, onboardingCompleted: onboardingDone);
+      }
+
+      return (ok: false, error: 'Réponse de vérification invalide. Réessayez.', onboardingCompleted: false);
     } on ApiException catch (error) {
-      return (ok: false, error: error.message);
+      return (ok: false, error: error.message, onboardingCompleted: false);
     } catch (_) {
       return (
         ok: false,
         error: 'Impossible de contacter le serveur. Vérifiez votre connexion.',
+        onboardingCompleted: false,
       );
     }
   }

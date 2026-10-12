@@ -2,8 +2,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/equalizer_loader.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../home/widgets/episode_actions_sheet.dart';
 import '../home/widgets/episode_comments_sheet.dart';
 import '../shell/shell_providers.dart';
@@ -13,13 +18,18 @@ import 'youtube_player_widget.dart';
 class FullAudioPlayerSheet extends ConsumerStatefulWidget {
   const FullAudioPlayerSheet({super.key});
 
-  static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+  static Future<void> show(BuildContext context) async {
+    final container = ProviderScope.containerOf(context, listen: false);
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const FullAudioPlayerSheet(),
     );
+    final active = container.read(activeEpisodeProvider);
+    if (active.mode == 'VIDEO' && active.isPlaying) {
+      container.read(activeEpisodeProvider.notifier).pauseVideo();
+    }
   }
 
   @override
@@ -41,16 +51,11 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
 
   @override
   void dispose() {
-    final active = ref.read(activeEpisodeProvider);
-    if (active.mode == 'VIDEO' && active.isPlaying) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(activeEpisodeProvider.notifier).togglePlayPause();
-      });
-    }
     super.dispose();
   }
 
   Future<void> _loadChaptersIfAvailable() async {
+    if (!mounted) return;
     final active = ref.read(activeEpisodeProvider);
     if (!active.hasActiveEpisode || active.episodeId.isEmpty) return;
     if (_lastLoadedEpisodeId == active.episodeId) return;
@@ -314,9 +319,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                      color: Colors.white, size: 28),
-                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(IconsaxPlusLinear.arrow_down_1,
+                      color: Colors.white, size: 24),
+                  onPressed: () {
+                    BkoHaptics.select();
+                    Navigator.pop(context);
+                  },
                 ),
                 Text(
                   active.mode == 'VIDEO'
@@ -330,9 +338,10 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.more_horiz_rounded,
-                      color: Colors.white, size: 24),
+                  icon: const Icon(IconsaxPlusLinear.more,
+                      color: Colors.white, size: 22),
                   onPressed: () {
+                    BkoHaptics.select();
                     EpisodeActionsSheet.show(context, episodeMap);
                   },
                 ),
@@ -578,33 +587,19 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     children: [
                       IconButton(
                         iconSize: 34,
-                        icon: const Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(Icons.replay_rounded,
-                                color: Colors.white, size: 34),
-                            Padding(
-                              padding: EdgeInsets.only(top: 2),
-                              child: Text(
-                                '15',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        icon: const Icon(IconsaxPlusLinear.backward_15_seconds,
+                            color: Colors.white, size: 30),
                         onPressed: () {
+                          BkoHaptics.select();
                           ref
                               .read(activeEpisodeProvider.notifier)
                               .seekRelative(-15);
                         },
                       ),
-                      GestureDetector(
+                      BkoBounceable(
                         onTap: () {
                           if (active.isBuffering) return;
+                          BkoHaptics.light();
                           ref
                               .read(activeEpisodeProvider.notifier)
                               .togglePlayPause();
@@ -618,30 +613,27 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           ),
                           child: Center(
                             child: active.isBuffering
-                                ? const SizedBox(
-                                    width: 30,
-                                    height: 30,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 3,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(Colors.black),
-                                    ),
+                                ? const EqualizerLoader(
+                                    size: 26,
+                                    color: Colors.black,
+                                    isPlaying: true,
                                   )
                                 : Icon(
                                     active.isPlaying
-                                        ? Icons.pause_rounded
-                                        : Icons.play_arrow_rounded,
+                                        ? IconsaxPlusBold.pause
+                                        : IconsaxPlusBold.play,
                                     color: Colors.black,
-                                    size: 38,
+                                    size: 34,
                                   ),
                           ),
                         ),
                       ),
                       IconButton(
                         iconSize: 34,
-                        icon: const Icon(Icons.forward_30_rounded,
-                            color: Colors.white),
+                        icon: const Icon(IconsaxPlusLinear.forward_15_seconds,
+                            color: Colors.white, size: 30),
                         onPressed: () {
+                          BkoHaptics.select();
                           ref
                               .read(activeEpisodeProvider.notifier)
                               .seekRelative(30);
@@ -683,13 +675,16 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                         // 2. Sleep Timer Button
                         IconButton(
                           icon: Icon(
-                            Icons.bedtime_outlined,
+                            IconsaxPlusLinear.timer_1,
                             color: active.sleepTimerEndsAt != null
                                 ? BkoTheme.goldAccent
                                 : Colors.white70,
                             size: 20,
                           ),
-                          onPressed: _showSleepTimerPicker,
+                          onPressed: () {
+                            BkoHaptics.select();
+                            _showSleepTimerPicker();
+                          },
                         ),
 
                         // 3. Queue Button
@@ -697,9 +692,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           alignment: Alignment.topRight,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.queue_music_rounded,
+                              icon: const Icon(IconsaxPlusLinear.music_playlist,
                                   color: Colors.white70, size: 22),
-                              onPressed: () => QueueSheet.show(context),
+                              onPressed: () {
+                                BkoHaptics.select();
+                                QueueSheet.show(context);
+                              },
                             ),
                             if (active.queue.isNotEmpty)
                               Container(
@@ -723,9 +721,10 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
 
                         // 4. Comments Button
                         IconButton(
-                          icon: const Icon(Icons.chat_bubble_outline_rounded,
+                          icon: const Icon(IconsaxPlusLinear.messages_2,
                               color: Colors.white70, size: 20),
                           onPressed: () {
+                            BkoHaptics.select();
                             EpisodeCommentsSheet.show(
                               context,
                               episodeId: active.episodeId,
@@ -838,9 +837,30 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                   ] else ...[
                     // Chapters List
                     if (_loadingChapters)
-                      const Center(
-                          child: CircularProgressIndicator(
-                              color: BkoTheme.goldAccent))
+                      Column(
+                        children: List.generate(
+                          3,
+                          (i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Row(
+                              children: [
+                                BkoSkeletonBox(
+                                  width: 48,
+                                  height: 24,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: BkoSkeletonBox(
+                                    height: 16,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
                     else if (_chapters.isEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(

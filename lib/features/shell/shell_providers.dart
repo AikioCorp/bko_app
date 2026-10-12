@@ -615,6 +615,39 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     return true;
   }
 
+  void pauseVideo() {
+    if (state.mode == 'VIDEO' && state.isPlaying) {
+      state = state.copyWith(
+        isPlaying: false,
+        playbackStatus: PlaybackStatus.paused,
+      );
+    }
+  }
+
+  Future<void> pause() async {
+    if (!state.hasActiveEpisode || !state.isPlaying) return;
+    if (state.mode == 'VIDEO') {
+      pauseVideo();
+    } else {
+      await _audioHandler.pause();
+      _lastTickTime = null;
+      if (_telemetrySessionId != null && state.episodeId.isNotEmpty) {
+        BkoTelemetryService().trackListeningEvent(
+          sessionId: _telemetrySessionId!,
+          episodeId: state.episodeId,
+          eventType: 'pause',
+          positionSeconds: state.currentPosition.inSeconds,
+          deltaSeconds: 0,
+          playbackRate: state.playbackSpeed,
+        );
+      }
+      state = state.copyWith(
+        isPlaying: false,
+        playbackStatus: PlaybackStatus.paused,
+      );
+    }
+  }
+
   Future<void> togglePlayPause() async {
     if (!state.hasActiveEpisode) return;
     if (state.mode == 'VIDEO') {

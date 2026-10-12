@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/onboarding/user_taste_onboarding_screen.dart';
 import '../../features/shell/app_shell.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/home/podcast_details_screen.dart';
@@ -50,6 +51,14 @@ final appRouter = GoRouter(
       builder: (context, state) => VerifyOtpScreen(
         email: state.uri.queryParameters['email'] ?? '',
         redirect: state.uri.queryParameters['redirect'],
+        initialCode: state.uri.queryParameters['code'],
+      ),
+    ),
+    GoRoute(
+      path: '/taste-onboarding',
+      builder: (context, state) => UserTasteOnboardingScreen(
+        isEditing: state.uri.queryParameters['mode'] == 'edit',
+        redirect: state.uri.queryParameters['redirect'],
       ),
     ),
 
@@ -73,7 +82,15 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/explore',
-              builder: (context, state) => const ExploreScreen(),
+              builder: (context, state) => ExploreScreen(
+                initialQuery: state.uri.queryParameters['q'],
+                initialCategory: state.uri.queryParameters['category'],
+                initialLang: state.uri.queryParameters['lang'],
+                initialDuration: state.uri.queryParameters['duration'],
+                initialSort: state.uri.queryParameters['sort'],
+                initialView: state.uri.queryParameters['view'],
+                isStandalone: false,
+              ),
             ),
           ],
         ),
@@ -102,6 +119,18 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => SubpageAudioShell(child: child),
       routes: [
+        GoRoute(
+          path: '/discovery',
+          builder: (context, state) => ExploreScreen(
+            initialQuery: state.uri.queryParameters['q'],
+            initialCategory: state.uri.queryParameters['category'],
+            initialLang: state.uri.queryParameters['lang'],
+            initialDuration: state.uri.queryParameters['duration'],
+            initialSort: state.uri.queryParameters['sort'],
+            initialView: state.uri.queryParameters['view'],
+            isStandalone: true,
+          ),
+        ),
         GoRoute(
           path: '/downloads',
           builder: (context, state) => const DownloadsScreen(),

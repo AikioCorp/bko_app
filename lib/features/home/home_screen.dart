@@ -16,6 +16,9 @@ import 'widgets/bko_app_header.dart';
 import 'widgets/bko_drawer.dart';
 import 'widgets/episode_list_item.dart';
 import 'widgets/tracked_visibility_card.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
 import 'home_providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -631,11 +634,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
-                              const SizedBox(width: 8),
-                              Text(secTitle.isNotEmpty ? secTitle : 'Reprendre l\'écoute',
-                                  style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
+                              Row(
+                                children: [
+                                  const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
+                                  const SizedBox(width: 8),
+                                  Text(secTitle.isNotEmpty ? secTitle : 'Reprendre l\'écoute',
+                                      style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
+                                ],
+                              ),
+                              _buildDiscoverMoreButton(
+                                sec['discoveryContext']?['targetUrl']?.toString(),
+                                defaultTarget: '/library',
+                              ),
                             ],
                           ),
                         ),
@@ -758,6 +770,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              _buildDiscoverMoreButton(
+                                sec['discoveryContext']?['targetUrl']?.toString(),
+                                defaultTarget: '/explore?view=episodes',
+                              ),
                             ],
                           ),
                         ),
@@ -834,15 +851,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(secTitle, style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri)),
-                      ),
-                      if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(secSubtitle, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(secTitle, style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri)),
+                                  if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(secSubtitle, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            _buildDiscoverMoreButton(
+                              sec['discoveryContext']?['targetUrl']?.toString(),
+                              defaultTarget: '/explore?view=podcasts',
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                       const SizedBox(height: 14),
                       SizedBox(
                         height: 235,
@@ -1072,14 +1103,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(Icons.stream_rounded, color: BkoTheme.goldAccent, size: 20),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            const Icon(Icons.stream_rounded, color: BkoTheme.goldAccent, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                homeState.selectedCategory == 'all'
+                                    ? 'Flux Continu d\'Épisodes'
+                                    : 'Flux : ${homeState.selectedCategory}',
+                                style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const SizedBox(width: 8),
-                      Text(
+                      _buildDiscoverMoreButton(
                         homeState.selectedCategory == 'all'
-                            ? 'Flux Continu d\'Épisodes'
-                            : 'Flux : ${homeState.selectedCategory}',
-                        style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri),
+                            ? '/explore?view=episodes'
+                            : '/explore?view=episodes&category=${homeState.selectedCategory}',
                       ),
                     ],
                   ),
@@ -1093,6 +1139,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         episode: Map<String, dynamic>.from(ep),
                       );
                     }).toList(),
+                  ),
+                ),
+              ],
+
+              // Message si catégorie vide
+              if (!homeState.isLoading && homeState.feedItems.isEmpty && homeState.selectedCategory != 'all') ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        const Icon(Icons.search_off_rounded, color: Colors.grey, size: 40),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Aucun épisode disponible pour la thématique "${homeState.selectedCategory}".',
+                          textAlign: TextAlign.center,
+                          style: BkoTheme.fontLato(fontSize: 14, color: textSec, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: BkoTheme.goldAccent,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          ),
+                          onPressed: () => ref.read(homeDataProvider.notifier).selectCategory('all'),
+                          child: Text('Revenir à Tout explorer', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+
+              // Indicateur d'erreur avec bouton Réessayer
+              if (homeState.feedError != null) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          homeState.feedError!,
+                          style: BkoTheme.fontLato(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: BkoTheme.goldAccent),
+                            foregroundColor: BkoTheme.goldAccent,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          ),
+                          onPressed: () => ref.read(homeDataProvider.notifier).fetchMoreFeed(),
+                          child: Text('Réessayer', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800)),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -1193,6 +1298,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
             color: isSelected ? Colors.white : Colors.grey,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiscoverMoreButton(String? targetUrl, {String? defaultTarget}) {
+    final url = (targetUrl != null && targetUrl.isNotEmpty) ? targetUrl : defaultTarget;
+    if (url == null || url.isEmpty) return const SizedBox.shrink();
+
+    return BkoBounceable(
+      onTap: () {
+        BkoHaptics.light();
+        final discoveryUrl = url.startsWith('/explore')
+            ? url.replaceFirst('/explore', '/discovery')
+            : url;
+        context.push(discoveryUrl);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF262626)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Découvrir davantage',
+              style: BkoTheme.fontLato(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFFD4D4D4),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              IconsaxPlusLinear.arrow_right_3,
+              size: 11,
+              color: Color(0xFF888888),
+            ),
+          ],
         ),
       ),
     );

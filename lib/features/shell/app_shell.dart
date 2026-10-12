@@ -2,8 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 import '../player/full_audio_player_sheet.dart';
 import 'bko_mini_player.dart';
@@ -198,8 +200,9 @@ class _AppShellState extends ConsumerState<AppShell>
         // 1. LEFT CIRCLE PILL: HOME 🏠
         _buildCircleActionPill(
           context,
-          icon: Icons.home_rounded,
+          icon: IconsaxPlusLinear.home_2,
           onTap: () {
+            BkoHaptics.select();
             ref.read(shellNavVisibilityProvider.notifier).setVisible(true);
             context.go('/');
           },
@@ -211,15 +214,7 @@ class _AppShellState extends ConsumerState<AppShell>
         Expanded(
           child: Container(
             height: 52,
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
+            decoration: const BoxDecoration(),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(26),
               child: BackdropFilter(
@@ -323,8 +318,9 @@ class _AppShellState extends ConsumerState<AppShell>
         // 3. RIGHT CIRCLE PILL: SEARCH 🔍
         _buildCircleActionPill(
           context,
-          icon: Icons.search_rounded,
+          icon: IconsaxPlusLinear.search_normal_1,
           onTap: () {
+            BkoHaptics.select();
             ref.read(shellNavVisibilityProvider.notifier).setVisible(true);
             context.go('/explore');
           },
@@ -344,26 +340,32 @@ class _AppShellState extends ConsumerState<AppShell>
     Color glassBg,
     Color glassBorder,
   ) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final items = [
-      {'icon': Icons.home_rounded, 'label': 'Accueil'},
-      {'icon': Icons.explore_rounded, 'label': 'Explorer'},
-      {'icon': Icons.podcasts_rounded, 'label': 'Bibliothèque'},
-      {'icon': Icons.person_outline_rounded, 'label': 'Profil'},
+      {
+        'linearIcon': IconsaxPlusLinear.home_2,
+        'boldIcon': IconsaxPlusBold.home_2,
+        'label': 'Accueil',
+      },
+      {
+        'linearIcon': IconsaxPlusLinear.discover,
+        'boldIcon': IconsaxPlusBold.discover,
+        'label': 'Explorer',
+      },
+      {
+        'linearIcon': IconsaxPlusLinear.folder_2,
+        'boldIcon': IconsaxPlusBold.folder_2,
+        'label': 'Bibliothèque',
+      },
+      {
+        'linearIcon': IconsaxPlusLinear.profile_circle,
+        'boldIcon': IconsaxPlusBold.profile_circle,
+        'label': 'Profil',
+      },
     ];
 
     return Container(
       key: const ValueKey('AppleFullBottomNav'),
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-            blurRadius: 28,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
+      decoration: const BoxDecoration(),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(32),
         child: BackdropFilter(
@@ -384,9 +386,13 @@ class _AppShellState extends ConsumerState<AppShell>
                 return Flexible(
                   child: _ApplePodcastsNavItem(
                     isSelected: isSelected,
-                    icon: item['icon'] as IconData,
+                    linearIcon: item['linearIcon'] as IconData,
+                    boldIcon: item['boldIcon'] as IconData,
                     label: item['label'] as String,
-                    onTap: () => _onItemTapped(index, context),
+                    onTap: () {
+                      BkoHaptics.select();
+                      _onItemTapped(index, context);
+                    },
                   ),
                 );
               }),
@@ -411,15 +417,7 @@ class _AppShellState extends ConsumerState<AppShell>
     return Container(
       width: 52,
       height: 52,
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
+      decoration: const BoxDecoration(),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(26),
         child: BackdropFilter(
@@ -457,13 +455,15 @@ class _AppShellState extends ConsumerState<AppShell>
 
 class _ApplePodcastsNavItem extends StatefulWidget {
   final bool isSelected;
-  final IconData icon;
+  final IconData linearIcon;
+  final IconData boldIcon;
   final String label;
   final VoidCallback onTap;
 
   const _ApplePodcastsNavItem({
     required this.isSelected,
-    required this.icon,
+    required this.linearIcon,
+    required this.boldIcon,
     required this.label,
     required this.onTap,
   });
@@ -507,7 +507,7 @@ class _ApplePodcastsNavItemState extends State<_ApplePodcastsNavItem> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                widget.icon,
+                widget.isSelected ? widget.boldIcon : widget.linearIcon,
                 size: 22,
                 color: widget.isSelected ? activeColor : inactiveColor,
               ),
@@ -558,7 +558,10 @@ class _AppleSpringPlayButtonState extends State<_AppleSpringPlayButton> {
       onTapDown: (_) => setState(() => _isPressed = true),
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
-      onTap: widget.onTap,
+      onTap: () {
+        BkoHaptics.light();
+        widget.onTap();
+      },
       child: AnimatedScale(
         duration: const Duration(milliseconds: 120),
         curve: Curves.easeOutQuad,
@@ -571,9 +574,11 @@ class _AppleSpringPlayButtonState extends State<_AppleSpringPlayButton> {
             shape: BoxShape.circle,
           ),
           child: Icon(
-            widget.isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            widget.isPlaying
+                ? IconsaxPlusBold.pause
+                : IconsaxPlusBold.play,
             color: playBtnIconColor,
-            size: 20,
+            size: 18,
           ),
         ),
       ),

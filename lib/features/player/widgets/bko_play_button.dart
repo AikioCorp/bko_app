@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../core/theme/bko_theme.dart';
+import '../../../core/widgets/bko_bounceable.dart';
+import '../../../core/widgets/bko_haptics.dart';
+import '../../../core/widgets/equalizer_loader.dart';
 import '../../shell/shell_providers.dart';
 import '../full_audio_player_sheet.dart';
 
@@ -84,6 +88,7 @@ class BkoPlayButton extends ConsumerWidget {
   }) : style = BkoPlayButtonStyle.pill;
 
   void _onTap(BuildContext context, WidgetRef ref) {
+    BkoHaptics.light();
     final active = ref.read(activeEpisodeProvider);
     final isAlreadyPlayingThis = active.hasActiveEpisode &&
         active.episodeId == episodeId &&
@@ -148,39 +153,29 @@ class BkoPlayButton extends ConsumerWidget {
     return Semantics(
       button: true,
       label: semanticsLabel,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _onTap(context, ref),
-          customBorder: const CircleBorder(),
+      child: BkoBounceable(
+        onTap: () => _onTap(context, ref),
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          alignment: Alignment.center,
           child: Container(
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            alignment: Alignment.center,
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                color: (isPlaying || (isCurrent && isLoading)) ? activeBg : defaultBg,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: isLoading
-                    ? SizedBox(
-                        width: iconSize * 0.8,
-                        height: iconSize * 0.8,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            isPlaying ? activeFg : BkoTheme.goldAccent,
-                          ),
-                        ),
-                      )
-                    : Icon(
-                        isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                        color: isPlaying ? activeFg : defaultFg,
-                        size: iconSize,
-                      ),
-              ),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: (isPlaying || (isCurrent && isLoading)) ? activeBg : defaultBg,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: isLoading
+                  ? EqualizerLoader(
+                      size: iconSize * 0.85,
+                      color: isPlaying ? activeFg : BkoTheme.goldAccent,
+                    )
+                  : Icon(
+                      isPlaying ? IconsaxPlusBold.pause : IconsaxPlusBold.play,
+                      color: isPlaying ? activeFg : defaultFg,
+                      size: iconSize,
+                    ),
             ),
           ),
         ),
@@ -201,47 +196,47 @@ class BkoPlayButton extends ConsumerWidget {
 
     if (isLoading) {
       labelText = 'CHARGEMENT...';
-      iconData = Icons.hourglass_top_rounded;
+      iconData = IconsaxPlusLinear.music_filter;
     } else if (isPlaying) {
       labelText = 'PAUSE';
-      iconData = Icons.pause_rounded;
+      iconData = IconsaxPlusBold.pause;
     } else if (isCurrent) {
       labelText = 'REPRENDRE';
-      iconData = Icons.play_arrow_rounded;
+      iconData = IconsaxPlusBold.play;
     } else {
       labelText = 'ÉCOUTER';
-      iconData = Icons.headphones_rounded;
+      iconData = IconsaxPlusLinear.headphone;
     }
 
     return Semantics(
       button: true,
       label: semanticsLabel,
-      child: ElevatedButton.icon(
-        onPressed: () => _onTap(context, ref),
-        icon: isLoading
-            ? const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                ),
-              )
-            : Icon(iconData, color: Colors.black, size: 18),
-        label: Text(
-          labelText,
-          style: BkoTheme.fontLato(
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-            color: Colors.black,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: BkoTheme.goldAccent,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          elevation: 0,
-          shape: RoundedRectangleBorder(
+      child: BkoBounceable(
+        onTap: () => _onTap(context, ref),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+          decoration: BoxDecoration(
+            color: BkoTheme.goldAccent,
             borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isLoading)
+                const EqualizerLoader(size: 16, color: Colors.black)
+              else
+                Icon(iconData, color: Colors.black, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                labelText,
+                style: BkoTheme.fontLato(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
+              ),
+            ],
           ),
         ),
       ),

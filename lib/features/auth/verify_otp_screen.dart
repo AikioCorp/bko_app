@@ -2,17 +2,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/equalizer_loader.dart';
 import 'auth_controller.dart';
 
 class VerifyOtpScreen extends ConsumerStatefulWidget {
   final String email;
   final String? redirect;
+  final String? initialCode;
 
   const VerifyOtpScreen({
     super.key,
     required this.email,
     this.redirect,
+    this.initialCode,
   });
 
   @override
@@ -26,6 +33,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   bool _success = false;
   String? _error;
   String? _infoMessage;
+  String? _devCode;
 
   int _resendCooldown = 60;
   Timer? _cooldownTimer;
@@ -33,6 +41,14 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   @override
   void initState() {
     super.initState();
+    final initial = widget.initialCode?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _devCode = initial;
+    } else {
+      _devCode = null;
+    }
+    // Champ vide : l'utilisateur saisit lui-même le code
+    _codeController.text = '';
     _startCooldown();
   }
 
@@ -79,16 +95,25 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
 
     if (res.ok) {
       setState(() => _success = true);
-      Future.delayed(const Duration(milliseconds: 1400), () {
+
+      Future.delayed(const Duration(milliseconds: 900), () {
         if (!mounted) return;
-        final queryParams = <String, String>{
-          'tab': 'login',
-        };
-        if (widget.redirect != null && widget.redirect!.isNotEmpty) {
-          queryParams['redirect'] = widget.redirect!;
+        // Si l'utilisateur n'a pas encore complété son onboarding de goûts, on l'y dirige.
+        if (!res.onboardingCompleted) {
+          final queryRedirect = (widget.redirect != null &&
+                  widget.redirect!.isNotEmpty &&
+                  widget.redirect != '/login')
+              ? '?redirect=${Uri.encodeQueryComponent(widget.redirect!)}'
+              : '';
+          context.go('/taste-onboarding$queryRedirect');
+        } else {
+          final target = (widget.redirect != null &&
+                  widget.redirect!.isNotEmpty &&
+                  widget.redirect != '/login')
+              ? widget.redirect!
+              : '/';
+          context.go(target);
         }
-        final uri = Uri(path: '/login', queryParameters: queryParams).toString();
-        context.go(uri);
       });
     } else {
       setState(() => _error = res.error ?? 'Code invalide ou expiré.');
@@ -110,12 +135,14 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
 
     if (res.ok) {
       setState(() {
-        _infoMessage = res.message ?? 'Nouveau code envoyé par e-mail.';
+        _devCode = (res.otpCode != null && res.otpCode!.isNotEmpty) ? res.otpCode : null;
+        _codeController.text = '';
+        _infoMessage = res.message ?? 'Nouveau code envoyé.';
       });
       _startCooldown();
     } else {
       setState(() {
-        _error = res.error ?? 'Impossible de renvoyer le code. Réessayez plus tard.';
+        _error = res.error ?? 'Impossible de renvoyer le code.';
       });
     }
   }
@@ -127,15 +154,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B0B0B),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFFB8B8B8), size: 20),
-          onPressed: () {
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            } else {
-              context.go('/login');
-            }
-          },
+        leading: const AppBackButton(
+          color: Color(0xFFB8B8B8),
+          fallbackLocation: '/login',
         ),
       ),
       body: SafeArea(
@@ -212,7 +233,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                           border: Border.all(color: const Color(0xFF15803D)),
                         ),
                         child: Text(
-                          'Compte vérifié avec succès ✓\nRedirection vers la connexion...',
+                          'Compte vérifié avec succès ✓\nAccès à votre espace en cours...',
                           textAlign: TextAlign.center,
                           style: BkoTheme.fontPoppins(
                             fontSize: 13,
@@ -264,6 +285,45 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         const SizedBox(height: 16),
                       ],
 
+                      // Petit badge discret avec le code de test en haut
+                      if (_devCode != null && _devCode!.isNotEmpty) ...[
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF19160E),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.35)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(IconsaxPlusBold.shield_security, color: BkoTheme.goldAccent, size: 12),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Code de test : ',
+                                  style: BkoTheme.fontPoppins(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFFB8B8B8),
+                                  ),
+                                ),
+                                SelectableText(
+                                  _devCode!,
+                                  style: BkoTheme.fontPoppins(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 2.0,
+                                    color: BkoTheme.goldAccent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Code Input Field
                       Container(
                         decoration: BoxDecoration(
@@ -302,29 +362,32 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                       // Verify Button
                       SizedBox(
                         height: 52,
-                        child: ElevatedButton(
-                          onPressed: _loading ? null : _submit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: BkoTheme.goldAccent,
-                            foregroundColor: Colors.black,
-                            elevation: 0,
-                            disabledBackgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.5),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          ),
-                          child: _loading
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black),
-                                )
-                              : Text(
-                                  'Valider le code',
-                                  style: BkoTheme.fontPoppins(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
+                        child: BkoBounceable(
+                          onTap: _loading
+                              ? null
+                              : () {
+                                  BkoHaptics.light();
+                                  _submit();
+                                },
+                          child: Container(
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: _loading
+                                  ? BkoTheme.goldAccent.withValues(alpha: 0.5)
+                                  : BkoTheme.goldAccent,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: _loading
+                                ? const EqualizerLoader(size: 18, color: Colors.black)
+                                : Text(
+                                    'Valider le code',
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black,
+                                    ),
                                   ),
-                                ),
+                          ),
                         ),
                       ),
 
