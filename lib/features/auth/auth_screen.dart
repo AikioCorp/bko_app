@@ -936,7 +936,36 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 8),
+
+          // Lien de récupération du mot de passe direct et accessible
+          Align(
+            alignment: Alignment.centerRight,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => context.push('/forgot-password'),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(IconsaxPlusLinear.key, size: 14, color: BkoTheme.goldAccent),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Mot de passe oublié ?',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: BkoTheme.goldAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
 
           // Session Information Badge
           Row(
