@@ -4,6 +4,19 @@ import '../core/theme/bko_theme.dart';
 import '../core/theme/theme_provider.dart';
 import '../core/routing/app_router.dart';
 
+/// Global fluid scroll behavior providing authentic Apple rubber-band bounce
+/// across all scrollable views, lists, and sheets on mobile platforms.
+class BkoScrollBehavior extends MaterialScrollBehavior {
+  const BkoScrollBehavior();
+
+  @override
+  ScrollPhysics getScrollPhysics(BuildContext context) {
+    return const BouncingScrollPhysics(
+      parent: AlwaysScrollableScrollPhysics(),
+    );
+  }
+}
+
 class BkoPodcastApp extends ConsumerWidget {
   const BkoPodcastApp({super.key});
 
@@ -28,6 +41,7 @@ class BkoPodcastApp extends ConsumerWidget {
       theme: BkoTheme.lightTheme,
       darkTheme: darkTheme,
       themeMode: mode,
+      scrollBehavior: const BkoScrollBehavior(),
       routerConfig: appRouter,
     );
   }

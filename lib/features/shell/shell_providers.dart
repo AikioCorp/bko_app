@@ -518,6 +518,16 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     state = state.copyWith(queue: const []);
   }
 
+  /// Arrête immédiatement la lecture audio/vidéo et réinitialise l'état du lecteur.
+  Future<void> stopAndClear() async {
+    _heartbeatTimer?.cancel();
+    _sleepTimer?.cancel();
+    try {
+      await _audioHandler.stop();
+    } catch (_) {}
+    state = const ActiveEpisodeState();
+  }
+
   /// Plays the next item in the queue, or stops if queue is empty
   Future<bool> playNextInQueue() async {
     if (state.queue.isEmpty) {

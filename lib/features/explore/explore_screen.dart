@@ -741,16 +741,17 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   }
 
   Widget _buildResultsList(Color textPri, Color textSec, Color surface, Color border) {
+    final Widget content;
     if (_activeView == 'episodes') {
       if (_episodes.isEmpty) {
-        return _buildEmptyState(textPri, textSec);
-      }
-
-      return ListView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-        itemCount: _episodes.length + (_hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
+        content = _buildEmptyState(textPri, textSec);
+      } else {
+        content = ListView.builder(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+          itemCount: _episodes.length + (_hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
           if (index == _episodes.length) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
@@ -774,13 +775,14 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           );
         },
       );
+    }
     } else {
       if (_podcasts.isEmpty) {
-        return _buildEmptyState(textPri, textSec);
-      }
-
-      return GridView.builder(
-        controller: _scrollController,
+        content = _buildEmptyState(textPri, textSec);
+      } else {
+        content = GridView.builder(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
@@ -895,6 +897,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         },
       );
     }
+    }
+
+    return RefreshIndicator(
+      color: BkoTheme.goldAccent,
+      backgroundColor: surface,
+      onRefresh: () async {
+        BkoHaptics.light();
+        await _fetchCatalog(reset: true);
+        BkoHaptics.select();
+      },
+      child: content,
+    );
   }
 
   Widget _buildEmptyState(Color textPri, Color textSec) {

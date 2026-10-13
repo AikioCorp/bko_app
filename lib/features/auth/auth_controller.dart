@@ -3,6 +3,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/network/bko_telemetry.dart';
 import '../../core/storage/token_storage.dart';
+import '../../core/routing/app_router.dart';
+import '../shell/shell_providers.dart';
+import '../downloads/download_manager.dart';
 
 /// État d'authentification.
 ///
@@ -27,7 +30,14 @@ class AuthState {
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier() : super(const AuthState()) {
+  final Ref? _ref;
+  static bool _isSuspensionHandled = false;
+
+  static void resetSuspensionHandled() {
+    _isSuspensionHandled = false;
+  }
+
+  AuthNotifier({Ref? ref}) : _ref = ref, super(const AuthState()) {
     BkoApi.tokenRefreshHandler = () async {
       final success = await refreshSession();
       return success ? state.token : null;
@@ -35,10 +45,48 @@ class AuthNotifier extends StateNotifier<AuthState> {
     BkoApi.onSessionExpired = () {
       handleSessionExpired();
     };
+    BkoApi.onAccountSuspended = (AccountSuspendedException exception) {
+      handleAccountSuspended(exception);
+    };
     _restoreSession();
   }
 
-  /// Restaure une session persistée au démarrage de l'app.
+  /// Traitement global et immédiat de la suspension de compte
+  Future<void> handleAccountSuspended([AccountSuspendedException? exception]) async {
+    if (_isSuspensionHandled) return;
+    _isSuspensionHandled = true;
+
+    // 1. Fermer la session et effacer les tokens persistés
+    await TokenStorage.clear();
+    await BkoTelemetryService().onUserSwitched(null);
+    state = const AuthState();
+
+    // 2. Arrêter la lecture en cours
+    if (_ref != null) {
+      try {
+        await _ref!.read(activeEpisodeProvider.notifier).stopAndClear();
+      } catch (_) {}
+      // Annuler les transferts en cours
+      try {
+        _ref!.read(downloadProvider.notifier).cancelAllActiveDownloads();
+      } catch (_) {}
+    }
+
+    final Map<String, dynamic> extra = {
+      'reason': exception?.reason ?? 'Compte suspendu par l\'administration.',
+      'isPermanent': exception?.isPermanent ?? true,
+      if (exception?.suspendedAt != null)
+        'suspendedAt': exception!.suspendedAt!.toIso8601String(),
+      if (exception?.suspendedUntil != null)
+        'suspendedUntil': exception!.suspendedUntil!.toIso8601String(),
+    };
+
+    try {
+      appRouter.go('/suspended', extra: extra);
+    } catch (_) {}
+  }
+
+  /// Restaure une session persistée au démarrage de l'app et effectue un contrôle serveur réel.
   Future<void> _restoreSession() async {
     final saved = await TokenStorage.load();
     if (saved.token != null) {
@@ -48,6 +96,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
         refreshToken: saved.refreshToken,
         user: saved.user,
       );
+
+      // Contrôle réel de validité et de suspension auprès du serveur
+      try {
+        final me = await BkoApi.get('/me', token: saved.token);
+        if (me is Map) {
+          state = AuthState(
+            isAuthenticated: true,
+            token: saved.token,
+            refreshToken: saved.refreshToken,
+            user: Map<String, dynamic>.from(me),
+          );
+        }
+      } on AccountSuspendedException catch (e) {
+        await handleAccountSuspended(e);
+      } catch (_) {
+        // En mode hors-ligne, ne pas bloquer l'accès aux contenus téléchargés
+      }
     }
   }
 
@@ -68,6 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String identifier,
     String password,
   ) async {
+    AuthNotifier.resetSuspensionHandled();
     state = AuthState(
       isLoading: true,
       token: state.token,
@@ -106,6 +172,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
       );
       return (ok: true, error: null, isNotVerified: false);
+    } on AccountSuspendedException catch (error) {
+      await handleAccountSuspended(error);
+      return (ok: false, error: error.message, isNotVerified: false);
     } on ApiException catch (error) {
       final isNotVerified = error.statusCode == 403 ||
           error.message.toLowerCase().contains('non vérifié') ||
@@ -223,6 +292,89 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
 
       return (ok: false, error: 'Réponse de vérification invalide. Réessayez.', onboardingCompleted: false);
+    } on AccountSuspendedException catch (error) {
+      await handleAccountSuspended(error);
+      return (ok: false, error: error.message, onboardingCompleted: false);
+    } on ApiException catch (error) {
+      return (ok: false, error: error.message, onboardingCompleted: false);
+    } catch (_) {
+      return (
+        ok: false,
+        error: 'Impossible de contacter le serveur. Vérifiez votre connexion.',
+        onboardingCompleted: false,
+      );
+    }
+  }
+
+  /// Demande d'un code OTP pour une connexion instantanée sans mot de passe
+  Future<({bool ok, String? error, String? message, String? otpCode})> requestOtpLogin({
+    required String identifier,
+  }) async {
+    try {
+      final data = await BkoApi.post('/auth/otp-login/send', {
+        'identifier': identifier.trim(),
+      });
+      final msg = data is Map && data['message'] is String
+          ? data['message'] as String
+          : 'Un code de connexion a été envoyé.';
+      final code = data is Map
+          ? (data['testOtpCode'] ?? data['otpCode'])?.toString()
+          : null;
+      return (ok: true, error: null, message: msg, otpCode: code);
+    } on AccountSuspendedException catch (error) {
+      await handleAccountSuspended(error);
+      return (ok: false, error: error.message, message: null, otpCode: null);
+    } on ApiException catch (error) {
+      return (ok: false, error: error.message, message: null, otpCode: null);
+    } catch (_) {
+      return (
+        ok: false,
+        error: 'Impossible de contacter le serveur. Vérifiez votre connexion.',
+        message: null,
+        otpCode: null,
+      );
+    }
+  }
+
+  /// Validation du code OTP pour connexion instantanée sans mot de passe
+  Future<({bool ok, String? error, bool onboardingCompleted})> verifyOtpLogin({
+    required String identifier,
+    required String otpCode,
+  }) async {
+    try {
+      final data = await BkoApi.post('/auth/otp-login/verify', {
+        'identifier': identifier.trim(),
+        'otpCode': otpCode.trim(),
+        'deviceType': 'MOBILE',
+        'deviceName': 'Application Flutter',
+      });
+
+      if (data is Map) {
+        final token = data['accessToken'] as String?;
+        final refreshToken = data['refreshToken'] as String?;
+        final user = data['user'] is Map
+            ? Map<String, dynamic>.from(data['user'] as Map)
+            : null;
+
+        if (token == null || token.isEmpty || user == null || user['id'] == null) {
+          return (ok: false, error: 'Connexion réussie mais session invalide.', onboardingCompleted: false);
+        }
+
+        await TokenStorage.save(token, user, refreshToken: refreshToken);
+        state = AuthState(
+          isAuthenticated: true,
+          token: token,
+          refreshToken: refreshToken,
+          user: user,
+        );
+
+        final onboardingDone = user['onboardingCompleted'] == true;
+        return (ok: true, error: null, onboardingCompleted: onboardingDone);
+      }
+      return (ok: false, error: 'Réponse inattendue du serveur.', onboardingCompleted: false);
+    } on AccountSuspendedException catch (error) {
+      await handleAccountSuspended(error);
+      return (ok: false, error: error.message, onboardingCompleted: false);
     } on ApiException catch (error) {
       return (ok: false, error: error.message, onboardingCompleted: false);
     } catch (_) {
@@ -324,6 +476,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = const AuthState(isAuthenticated: false, error: 'Échec de connexion Google');
       return (ok: false, error: 'Échec de connexion Google', onboardingCompleted: false);
+    } on AccountSuspendedException catch (error) {
+      await handleAccountSuspended(error);
+      return (ok: false, error: error.message, onboardingCompleted: false);
     } on ApiException catch (error) {
       state = AuthState(isAuthenticated: false, error: error.message);
       return (ok: false, error: error.message, onboardingCompleted: false);
@@ -384,4 +539,4 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier(ref: ref));

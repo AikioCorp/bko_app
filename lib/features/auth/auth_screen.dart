@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/capitalize_words_input_formatter.dart';
 import 'auth_controller.dart';
 import 'widgets/auth_legal_sheets.dart';
@@ -124,6 +126,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _loginIdentifier = TextEditingController();
   final _loginPassword = TextEditingController();
   bool _showLoginPassword = false;
+  bool _isOtpLoginMode = false;
+  bool _otpSent = false;
+  final _otpCodeController = TextEditingController();
 
   // Register form controllers
   final _registerName = TextEditingController();
@@ -361,6 +366,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   void dispose() {
     _loginIdentifier.dispose();
     _loginPassword.dispose();
+    _otpCodeController.dispose();
     _registerName.dispose();
     _registerEmail.dispose();
     _registerPhone.dispose();
@@ -439,6 +445,69 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     } else {
       setState(() {
         _localError = res.error ?? 'Identifiant ou mot de passe incorrect.';
+      });
+    }
+  }
+
+  Future<void> _handleRequestOtpLogin() async {
+    FocusScope.of(context).unfocus();
+    setState(() { _localError = null; _fieldErrors.clear(); });
+
+    final identifier = _loginIdentifier.text.trim();
+    if (identifier.isEmpty) {
+      setState(() {
+        _fieldErrors[_loginIdentifier] = 'Saisissez votre e-mail ou téléphone.';
+      });
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final res = await ref.read(authProvider.notifier).requestOtpLogin(identifier: identifier);
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res.ok) {
+      BkoHaptics.success();
+      setState(() {
+        _otpSent = true;
+      });
+    } else {
+      BkoHaptics.error();
+      setState(() {
+        _localError = res.error ?? 'Impossible d\'envoyer le code de connexion.';
+      });
+    }
+  }
+
+  Future<void> _handleVerifyOtpLogin() async {
+    FocusScope.of(context).unfocus();
+    setState(() { _localError = null; });
+
+    final identifier = _loginIdentifier.text.trim();
+    final code = _otpCodeController.text.trim();
+
+    if (code.length != 6) {
+      setState(() {
+        _localError = 'Veuillez saisir le code à 6 chiffres reçu.';
+      });
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    final res = await ref.read(authProvider.notifier).verifyOtpLogin(
+      identifier: identifier,
+      otpCode: code,
+    );
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res.ok) {
+      BkoHaptics.success();
+      _navigatePostLogin();
+    } else {
+      BkoHaptics.error();
+      setState(() {
+        _localError = res.error ?? 'Code de connexion incorrect ou expiré.';
       });
     }
   }
@@ -862,49 +931,397 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Identifiant
-          _buildInputLabel(
-            label: 'Identifiant',
-            subtitle: 'E-mail ou numéro',
+          // Switcher Mode : Mot de passe vs Code instantané par e-mail
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0E0E0E),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: BkoTheme.getBorderSubtle(context)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: BkoBounceable(
+                    onTap: () => setState(() {
+                      _isOtpLoginMode = false;
+                      _localError = null;
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_isOtpLoginMode ? const Color(0xFF242424) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Mot de passe',
+                          style: BkoTheme.fontPoppins(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: !_isOtpLoginMode ? Colors.white : const Color(0xFF888888),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: BkoBounceable(
+                    onTap: () => setState(() {
+                      _isOtpLoginMode = true;
+                      _localError = null;
+                    }),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _isOtpLoginMode ? const Color(0xFF242424) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Center(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              IconsaxPlusBold.magicpen,
+                              size: 14,
+                              color: _isOtpLoginMode ? BkoTheme.goldAccent : const Color(0xFF888888),
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Code par email',
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: _isOtpLoginMode ? BkoTheme.goldAccent : const Color(0xFF888888),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _loginIdentifier,
-            hint: 'nom@exemple.com ou +00 000 000 000',
-            icon: IconsaxPlusLinear.user,
-            keyboardType: TextInputType.emailAddress,
-            autofillHints: const [
-              AutofillHints.username,
-              AutofillHints.email,
-              AutofillHints.telephoneNumber,
-            ],
-            textInputAction: TextInputAction.next,
-          ),
-
           const SizedBox(height: 16),
 
-          // Mot de passe
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  'Mot de passe',
-                  style: BkoTheme.fontPoppins(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+          if (!_isOtpLoginMode) ...[
+            // Identifiant
+            _buildInputLabel(
+              label: 'Identifiant',
+              subtitle: 'E-mail ou numéro',
+            ),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _loginIdentifier,
+              hint: 'nom@exemple.com ou +00 000 000 000',
+              icon: IconsaxPlusLinear.user,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [
+                AutofillHints.username,
+                AutofillHints.email,
+                AutofillHints.telephoneNumber,
+              ],
+              textInputAction: TextInputAction.next,
+            ),
+
+            const SizedBox(height: 16),
+
+            // Mot de passe
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    'Mot de passe',
+                    style: BkoTheme.fontPoppins(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 8),
+                Semantics(
+                  button: true,
+                  child: InkWell(
+                    onTap: () => context.push('/forgot-password'),
+                    child: Text(
+                      'Mot de passe oublié ?',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: BkoTheme.goldAccent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            _buildTextField(
+              controller: _loginPassword,
+              hint: '••••••••••••',
+              icon: IconsaxPlusLinear.lock,
+              obscureText: !_showLoginPassword,
+              autofillHints: const [AutofillHints.password],
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _handleLogin(),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _showLoginPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
+                  color: const Color(0xFF757575),
+                  size: 20,
+                ),
+                onPressed: () {
+                  setState(() => _showLoginPassword = !_showLoginPassword);
+                },
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            // Lien de récupération du mot de passe direct et accessible
+            Align(
+              alignment: Alignment.centerRight,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => context.push('/forgot-password'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(IconsaxPlusLinear.key, size: 14, color: BkoTheme.goldAccent),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Mot de passe oublié ?',
+                        style: BkoTheme.fontPoppins(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: BkoTheme.goldAccent,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Semantics(
-                button: true,
-                child: InkWell(
-                  onTap: () => context.push('/forgot-password'),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Session Information Badge
+            Row(
+              children: [
+                const Icon(IconsaxPlusLinear.shield_tick, color: BkoTheme.goldAccent, size: 16),
+                const SizedBox(width: 8),
+                Expanded(
                   child: Text(
-                    'Mot de passe oublié ?',
+                    'Session chiffrée & sécurisée sur cet appareil',
+                    style: BkoTheme.fontPoppins(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFFB8B8B8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 22),
+
+            // Submit Button
+            SizedBox(
+              height: 52,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _handleLogin,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: BkoTheme.goldAccent,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  disabledBackgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.black),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Se connecter',
+                            style: BkoTheme.fontPoppins(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ] else ...[
+            // MODE OTP LOGIN SANS MOT DE PASSE
+            if (!_otpSent) ...[
+              _buildInputLabel(
+                label: 'Adresse e-mail',
+                subtitle: 'Sans mot de passe',
+              ),
+              const SizedBox(height: 6),
+              _buildTextField(
+                controller: _loginIdentifier,
+                hint: 'votre.email@exemple.com',
+                icon: IconsaxPlusLinear.sms,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _handleRequestOtpLogin(),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Un code sécurisé à 6 chiffres vous sera envoyé par e-mail pour vous connecter instantanément.',
+                style: BkoTheme.fontPoppins(
+                  fontSize: 11.5,
+                  color: const Color(0xFF757575),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 22),
+
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _handleRequestOtpLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BkoTheme.goldAccent,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    disabledBackgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(IconsaxPlusBold.magicpen, size: 18, color: Colors.black),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Recevoir mon code par e-mail',
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ] else ...[
+              // OTP Déjà expédié -> Saisie du code à 6 chiffres
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF238636).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF238636).withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(IconsaxPlusBold.tick_circle, color: Color(0xFF3FB950), size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Code envoyé à ${_loginIdentifier.text.trim()}',
+                        style: BkoTheme.fontPoppins(fontSize: 12, color: const Color(0xFF3FB950), fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => setState(() {
+                        _otpSent = false;
+                        _otpCodeController.clear();
+                        _localError = null;
+                      }),
+                      child: Text(
+                        'Modifier',
+                        style: BkoTheme.fontPoppins(fontSize: 11, color: BkoTheme.goldAccent, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              _buildInputLabel(
+                label: 'Code de sécurité',
+                subtitle: '6 chiffres',
+              ),
+              const SizedBox(height: 6),
+              _buildTextField(
+                controller: _otpCodeController,
+                hint: '123456',
+                icon: IconsaxPlusLinear.key,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _handleVerifyOtpLogin(),
+              ),
+
+              const SizedBox(height: 22),
+
+              SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _handleVerifyOtpLogin,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: BkoTheme.goldAccent,
+                    foregroundColor: Colors.black,
+                    elevation: 0,
+                    disabledBackgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.5),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.black),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Valider et me connecter',
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton(
+                  onPressed: _isSubmitting ? null : _handleRequestOtpLogin,
+                  child: Text(
+                    'Renvoyer un nouveau code',
                     style: BkoTheme.fontPoppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -914,114 +1331,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 6),
-          _buildTextField(
-            controller: _loginPassword,
-            hint: '••••••••••••',
-            icon: IconsaxPlusLinear.lock,
-            obscureText: !_showLoginPassword,
-            autofillHints: const [AutofillHints.password],
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => _handleLogin(),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _showLoginPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
-                color: const Color(0xFF757575),
-                size: 20,
-              ),
-              onPressed: () {
-                setState(() => _showLoginPassword = !_showLoginPassword);
-              },
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          // Lien de récupération du mot de passe direct et accessible
-          Align(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8),
-              onTap: () => context.push('/forgot-password'),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(IconsaxPlusLinear.key, size: 14, color: BkoTheme.goldAccent),
-                    const SizedBox(width: 5),
-                    Text(
-                      'Mot de passe oublié ?',
-                      style: BkoTheme.fontPoppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: BkoTheme.goldAccent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Session Information Badge
-          Row(
-            children: [
-              const Icon(IconsaxPlusLinear.shield_tick, color: BkoTheme.goldAccent, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Session chiffrée & sécurisée sur cet appareil',
-                  style: BkoTheme.fontPoppins(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w400,
-                    color: const Color(0xFFB8B8B8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 22),
-
-          // Submit Button
-          SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _isSubmitting ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BkoTheme.goldAccent,
-                foregroundColor: Colors.black,
-                elevation: 0,
-                disabledBackgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.5),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              child: _isSubmitting
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.black),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.arrow_forward_rounded, size: 18, color: Colors.black),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Se connecter',
-                          style: BkoTheme.fontPoppins(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
+          ],
 
           const SizedBox(height: 16),
 

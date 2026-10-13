@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
+import '../../../core/widgets/bko_download_toast.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
 import '../../downloads/download_manager.dart';
@@ -444,16 +445,19 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
               title: 'Télécharger l’épisode',
               subtitle: 'Disponible pour l’écoute hors connexion',
               onTap: () {
-                ref
-                    .read(downloadProvider.notifier)
-                    .startDownload(widget.episode);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Téléchargement lancé.'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                try {
+                  ref
+                      .read(downloadProvider.notifier)
+                      .startDownload(widget.episode);
+                  BkoDownloadToast.show(
+                    context,
+                    title: title,
+                    podcastName: podcastName,
+                  );
+                } on DownloadLimitException {
+                  DownloadLimitDialog.show(context);
+                }
               },
             ),
 

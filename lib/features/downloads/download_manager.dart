@@ -6,10 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../core/network/bko_api.dart';
 import '../auth/auth_controller.dart';
 import '../shell/shell_providers.dart';
+import 'widgets/download_limit_modal.dart';
 
 /// Exception levée lorsqu'un utilisateur non connecté tente de télécharger plus d'un épisode.
 class DownloadLimitException implements Exception {
@@ -439,6 +439,16 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     await _savePersistedTasks();
   }
 
+  /// Interrompt et annule immédiatement tous les transferts en cours lors d'une suspension de session.
+  void cancelAllActiveDownloads() {
+    for (final token in _cancelTokens.values) {
+      if (!token.isCancelled) {
+        token.cancel('Session suspendue');
+      }
+    }
+    _cancelTokens.clear();
+  }
+
   Future<void> retryDownload(String episodeId) async {
     final index = state.indexWhere((t) => t.episodeId == episodeId);
     if (index < 0) return;
@@ -635,46 +645,6 @@ final downloadProvider = StateNotifierProvider<DownloadNotifier, List<DownloadTa
 
 class DownloadLimitDialog {
   static void show(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF18181C),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
-          children: [
-            Icon(Icons.offline_bolt_rounded, color: Color(0xFFFFBF00), size: 24),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Limite hors-ligne',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Les auditeurs sans compte peuvent télécharger 1 épisode maximum pour tester. Créez un compte gratuit pour profiter de téléchargements illimités et écouter partout hors-ligne !',
-          style: TextStyle(fontSize: 13.5, color: Colors.white70, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Plus tard', style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ctx.push('/login');
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFFBF00),
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text('Créer un compte', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black)),
-          ),
-        ],
-      ),
-    );
+    DownloadLimitModal.show(context);
   }
 }

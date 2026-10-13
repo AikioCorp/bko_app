@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:bko_app/core/widgets/bko_download_toast.dart';
 import 'package:bko_app/features/downloads/download_manager.dart';
+import 'package:bko_app/features/downloads/widgets/download_limit_modal.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -81,6 +84,51 @@ void main() {
       expect(decoded.episodeId, equals('ep_guest_1'));
       expect(decoded.status, equals(DownloadStatus.completed));
       expect(decoded.fileSize, equals(15000000));
+    });
+
+    testWidgets('6. BkoDownloadToast renders sleek notification with episode title and action button', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  BkoDownloadToast.show(
+                    context,
+                    title: 'Épisode 42 - Innovation Digitale',
+                    podcastName: 'Bamako Tech',
+                  );
+                },
+                child: const Text('Lancer'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Lancer'));
+      await tester.pump();
+
+      expect(find.text('Téléchargement lancé'), findsOneWidget);
+      expect(find.text('Épisode 42 - Innovation Digitale'), findsOneWidget);
+      expect(find.text('Voir'), findsOneWidget);
+    });
+
+    testWidgets('7. DownloadLimitModal displays clear guest limit information and benefits', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: DownloadLimitModal(),
+          ),
+        ),
+      );
+
+      expect(find.text('Téléchargements illimités'), findsOneWidget);
+      expect(find.textContaining('épisode d\'essai hors-ligne'), findsOneWidget);
+      expect(find.text('Écoute hors-ligne illimitée'), findsOneWidget);
+      expect(find.text('Synchronisation automatique'), findsOneWidget);
+      expect(find.text('Se connecter ou créer un compte'), findsOneWidget);
+      expect(find.text('Gérer mes téléchargements'), findsOneWidget);
     });
   });
 }

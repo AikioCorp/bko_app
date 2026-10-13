@@ -73,7 +73,7 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
     }
   }
 
-  Future<void> _handleChangePassword() async {
+  Future<void> _handleChangePassword(bool hasPassword) async {
     if (!_passwordFormKey.currentState!.validate()) return;
     final token = ref.read(authProvider).token;
     if (token == null) return;
@@ -83,7 +83,7 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
       await BkoApi.post(
         '/me/change-password',
         {
-          'currentPassword': _currentPasswordController.text,
+          if (hasPassword) 'currentPassword': _currentPasswordController.text,
           'newPassword': _newPasswordController.text,
         },
         token: token,
@@ -97,14 +97,21 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
           _confirmPasswordController.clear();
         });
 
+        await ref.read(authProvider.notifier).updateUser({'hasPassword': true});
         BkoHaptics.success();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Mot de passe modifié avec succès !'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                hasPassword
+                    ? 'Mot de passe modifié avec succès !'
+                    : 'Mot de passe défini avec succès ! Vous pouvez vous connecter sans Google.',
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: BkoTheme.goldAccent,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -249,96 +256,148 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
           // Section Changement de mot de passe
-          Text(
-            'MOT DE PASSE',
-            style: BkoTheme.fontLato(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
-              color: BkoTheme.getTextMuted(context),
-            ),
-          ),
-          const SizedBox(height: 10),
+          Builder(
+            builder: (context) {
+              final authUser = ref.watch(authProvider).user;
+              final hasPassword = authUser?['hasPassword'] == true;
 
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: BkoTheme.getBgSurface(context),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: BkoTheme.getBorderSubtle(context)),
-            ),
-            child: Form(
-              key: _passwordFormKey,
-              child: Column(
+              return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildPasswordField(
-                    controller: _currentPasswordController,
-                    label: 'Mot de passe actuel',
-                    obscure: _obscureCurrent,
-                    onToggleObscure: () => setState(() => _obscureCurrent = !_obscureCurrent),
-                    validator: (v) => (v == null || v.isEmpty) ? 'Saisissez votre mot de passe actuel' : null,
-                  ),
-                  const SizedBox(height: 14),
-                  _buildPasswordField(
-                    controller: _newPasswordController,
-                    label: 'Nouveau mot de passe (min. 8 caractères)',
-                    obscure: _obscureNew,
-                    onToggleObscure: () => setState(() => _obscureNew = !_obscureNew),
-                    validator: (v) {
-                      if (v == null || v.length < 8) {
-                        return 'Le mot de passe doit comporter au moins 8 caractères';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  _buildPasswordField(
-                    controller: _confirmPasswordController,
-                    label: 'Confirmer le nouveau mot de passe',
-                    obscure: _obscureConfirm,
-                    onToggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
-                    validator: (v) {
-                      if (v != _newPasswordController.text) {
-                        return 'Les mots de passe ne correspondent pas';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  BkoBounceable(
-                    onTap: _isChangingPassword ? null : _handleChangePassword,
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: BkoTheme.goldAccent,
-                        borderRadius: BorderRadius.circular(10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        hasPassword ? 'MOT DE PASSE' : 'DÉFINIR UN MOT DE PASSE',
+                        style: BkoTheme.fontLato(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.1,
+                          color: BkoTheme.getTextMuted(context),
+                        ),
                       ),
-                      child: Center(
-                        child: _isChangingPassword
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(Colors.black),
-                              ),
-                            )
-                          : Text(
-                              'Mettre à jour le mot de passe',
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: hasPassword
+                              ? const Color(0xFF238636).withValues(alpha: 0.15)
+                              : BkoTheme.goldAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: hasPassword
+                                ? const Color(0xFF238636).withValues(alpha: 0.3)
+                                : BkoTheme.goldAccent.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          hasPassword ? 'Mot de passe actif' : 'Compte Google',
+                          style: BkoTheme.fontLato(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: hasPassword ? const Color(0xFF3FB950) : BkoTheme.goldAccent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: BkoTheme.getBgSurface(context),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: BkoTheme.getBorderSubtle(context)),
+                    ),
+                    child: Form(
+                      key: _passwordFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!hasPassword) ...[
+                            Text(
+                              'Vous êtes actuellement connecté avec Google. Définissez un mot de passe personnel pour pouvoir vous connecter directement avec votre e-mail sur tous vos appareils sans Google.',
                               style: BkoTheme.fontLato(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
+                                fontSize: 12,
+                                height: 1.4,
+                                color: BkoTheme.getTextSecondary(context),
                               ),
                             ),
+                            const SizedBox(height: 14),
+                          ],
+                          if (hasPassword) ...[
+                            _buildPasswordField(
+                              controller: _currentPasswordController,
+                              label: 'Mot de passe actuel',
+                              obscure: _obscureCurrent,
+                              onToggleObscure: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                              validator: (v) => (v == null || v.isEmpty) ? 'Saisissez votre mot de passe actuel' : null,
+                            ),
+                            const SizedBox(height: 14),
+                          ],
+                          _buildPasswordField(
+                            controller: _newPasswordController,
+                            label: hasPassword ? 'Nouveau mot de passe (min. 8 caractères)' : 'Créer un mot de passe (min. 8 caractères)',
+                            obscure: _obscureNew,
+                            onToggleObscure: () => setState(() => _obscureNew = !_obscureNew),
+                            validator: (v) {
+                              if (v == null || v.length < 8) {
+                                return 'Le mot de passe doit comporter au moins 8 caractères';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 14),
+                          _buildPasswordField(
+                            controller: _confirmPasswordController,
+                            label: 'Confirmer le nouveau mot de passe',
+                            obscure: _obscureConfirm,
+                            onToggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                            validator: (v) {
+                              if (v != _newPasswordController.text) {
+                                return 'Les mots de passe ne correspondent pas';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          BkoBounceable(
+                            onTap: _isChangingPassword ? null : () => _handleChangePassword(hasPassword),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: BkoTheme.goldAccent,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Center(
+                                child: _isChangingPassword
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation(Colors.black),
+                                        ),
+                                      )
+                                    : Text(
+                                        hasPassword ? 'Mettre à jour le mot de passe' : 'Enregistrer le mot de passe',
+                                        style: BkoTheme.fontLato(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ],
-              ),
-            ),
+              );
+            },
           ),
 
           const SizedBox(height: 28),

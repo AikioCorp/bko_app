@@ -7,6 +7,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
@@ -537,68 +538,78 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                                   s.isPlaying,
                             ),
                           );
-                      return ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: BkoTheme.goldAccent,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        icon: Icon(
-                            isFirstPlaying
-                                ? IconsaxPlusBold.pause
-                                : IconsaxPlusBold.play,
-                            color: Colors.black,
-                            size: 20),
-                        label: Text(
-                          isFirstPlaying ? 'PAUSE' : 'ÉCOUTER',
-                          style: BkoTheme.fontLato(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                        onPressed: () {
-                          BkoHaptics.light();
+                      return BkoBounceable(
+                        onTap: () {
                           if (_episodes.isNotEmpty) {
                             _playEpisode(_episodes.first);
                           }
                         },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: BkoTheme.goldAccent,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                isFirstPlaying
+                                    ? IconsaxPlusBold.pause
+                                    : IconsaxPlusBold.play,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                isFirstPlaying ? 'PAUSE' : 'ÉCOUTER',
+                                style: BkoTheme.fontLato(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.0,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       );
                     },
                   ),
                 ),
                 const SizedBox(width: 12),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
+                BkoBounceable(
+                  onTap: _toggleFollow,
+                  child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 14),
-                    side: BorderSide(color: borderSub),
-                    shape: RoundedRectangleBorder(
+                    decoration: BoxDecoration(
+                      color: BkoTheme.getBgSurface(context),
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderSub),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _isFollowing
+                              ? IconsaxPlusBold.tick_circle
+                              : IconsaxPlusLinear.add_circle,
+                          color: _isFollowing ? BkoTheme.goldAccent : textPri,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _isFollowing ? 'SUIVI' : 'SUIVRE',
+                          style: BkoTheme.fontLato(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: _isFollowing ? BkoTheme.goldAccent : textPri,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  icon: Icon(
-                    _isFollowing
-                        ? IconsaxPlusBold.tick_circle
-                        : IconsaxPlusLinear.add_circle,
-                    color: _isFollowing ? BkoTheme.goldAccent : textPri,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _isFollowing ? 'SUIVI' : 'SUIVRE',
-                    style: BkoTheme.fontLato(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: _isFollowing ? BkoTheme.goldAccent : textPri,
-                    ),
-                  ),
-                  onPressed: () {
-                    BkoHaptics.success();
-                    _toggleFollow();
-                  },
                 ),
               ],
             ),

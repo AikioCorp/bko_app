@@ -35,16 +35,17 @@ class _BkoBounceableState extends State<BkoBounceable>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 100),
-      reverseDuration: const Duration(milliseconds: 140),
+      duration: const Duration(milliseconds: 90),
+      reverseDuration: const Duration(milliseconds: 150),
     );
     _scaleAnimation = Tween<double>(
       begin: 1.0,
       end: widget.scaleFactor,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeOutQuad,
+      // Apple Fluid Interfaces spring curve: instantaneous reaction, critically damped recovery
+      curve: const Cubic(0.2, 0.9, 0.2, 1.0),
+      reverseCurve: const Cubic(0.2, 0.9, 0.2, 1.0),
     ));
   }
 
@@ -55,19 +56,23 @@ class _BkoBounceableState extends State<BkoBounceable>
   }
 
   void _onTapDown(TapDownDetails details) {
-    if (widget.onTap != null) {
+    if (widget.onTap != null || widget.onLongPress != null) {
       _controller.forward();
+      // Crucial for iOS Taptic Engine: feedback must couple into compressed fingertip on pointer-down
+      if (widget.enableHaptics) {
+        BkoHaptics.tapDown();
+      }
     }
   }
 
   void _onTapUp(TapUpDetails details) {
-    if (widget.onTap != null) {
+    if (widget.onTap != null || widget.onLongPress != null) {
       _controller.reverse();
     }
   }
 
   void _onTapCancel() {
-    if (widget.onTap != null) {
+    if (widget.onTap != null || widget.onLongPress != null) {
       _controller.reverse();
     }
   }
@@ -79,14 +84,7 @@ class _BkoBounceableState extends State<BkoBounceable>
       onTapDown: _onTapDown,
       onTapUp: _onTapUp,
       onTapCancel: _onTapCancel,
-      onTap: widget.onTap != null
-          ? () {
-              if (widget.enableHaptics) {
-                BkoHaptics.light();
-              }
-              widget.onTap!();
-            }
-          : null,
+      onTap: widget.onTap,
       onLongPress: widget.onLongPress != null
           ? () {
               if (widget.enableHaptics) {

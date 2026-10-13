@@ -56,7 +56,6 @@ void main() {
 
     test('4. appRouter configuration contains /forgot-password and /reset-password', () {
       final routes = appRouter.configuration.routes;
-      final routePaths = routes.map((r) => r.toString()).toList();
 
       final hasForgot = routes.any((r) => r.toString().contains('/forgot-password'));
       final hasReset = routes.any((r) => r.toString().contains('/reset-password'));

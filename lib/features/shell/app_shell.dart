@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 import '../library/library_screen.dart';
@@ -428,31 +429,28 @@ class _AppShellState extends ConsumerState<AppShell>
     final glassBorder =
         isDark ? const Color(0x33E6B009) : const Color(0x250F172A);
 
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: const BoxDecoration(),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(26),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(26),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: glassBg,
-                  borderRadius: BorderRadius.circular(26),
-                  border: Border.all(color: glassBorder, width: 1.2),
-                ),
-                child: Center(
-                  child: Icon(
-                    icon,
-                    color: BkoTheme.getActiveNavItemColor(context),
-                    size: 22,
-                  ),
+    return BkoBounceable(
+      onTap: onTap,
+      scaleFactor: 0.90,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: const BoxDecoration(),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: glassBg,
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: glassBorder, width: 1.2),
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  color: BkoTheme.getActiveNavItemColor(context),
+                  size: 22,
                 ),
               ),
             ),
@@ -500,14 +498,17 @@ class _ApplePodcastsNavItemState extends State<_ApplePodcastsNavItem> {
         : Colors.transparent;
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        BkoHaptics.select();
+      },
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       onTap: widget.onTap,
       behavior: HitTestBehavior.opaque,
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutQuad,
+        duration: const Duration(milliseconds: 100),
+        curve: const Cubic(0.2, 0.9, 0.2, 1.0),
         scale: _isPressed ? 0.92 : 1.0,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 280),
@@ -569,16 +570,16 @@ class _AppleSpringPlayButtonState extends State<_AppleSpringPlayButton> {
     final playBtnIconColor = BkoTheme.getBgObsidian(context);
 
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        BkoHaptics.tapDown();
+      },
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
-      onTap: () {
-        BkoHaptics.light();
-        widget.onTap();
-      },
+      onTap: widget.onTap,
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOutQuad,
+        duration: const Duration(milliseconds: 90),
+        curve: const Cubic(0.2, 0.9, 0.2, 1.0),
         scale: _isPressed ? 0.90 : 1.0,
         child: Container(
           width: 34,
@@ -624,13 +625,16 @@ class _AppleTactileIconButtonState extends State<_AppleTactileIconButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _isPressed = true),
+      onTapDown: (_) {
+        setState(() => _isPressed = true);
+        BkoHaptics.tapDown();
+      },
       onTapUp: (_) => setState(() => _isPressed = false),
       onTapCancel: () => setState(() => _isPressed = false),
       onTap: widget.onPressed,
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 100),
-        curve: Curves.easeOutCubic,
+        duration: const Duration(milliseconds: 90),
+        curve: const Cubic(0.2, 0.9, 0.2, 1.0),
         scale: _isPressed ? 0.85 : 1.0,
         child: SizedBox(
           width: 36,

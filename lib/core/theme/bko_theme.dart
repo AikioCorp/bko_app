@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -101,6 +102,8 @@ class BkoTheme {
     double? letterSpacing,
     double? height,
     Color? color,
+    TextDecoration? decoration,
+    Color? decorationColor,
   }) {
     return GoogleFonts.poppins(
       fontSize: fontSize,
@@ -108,6 +111,8 @@ class BkoTheme {
       letterSpacing: letterSpacing,
       height: height,
       color: color,
+      decoration: decoration,
+      decorationColor: decorationColor,
     );
   }
 
@@ -118,6 +123,8 @@ class BkoTheme {
     double? letterSpacing,
     double? height,
     Color? color,
+    TextDecoration? decoration,
+    Color? decorationColor,
   }) =>
       fontPoppins(
         fontSize: fontSize,
@@ -125,7 +132,19 @@ class BkoTheme {
         letterSpacing: letterSpacing,
         height: height,
         color: color,
+        decoration: decoration,
+        decorationColor: decorationColor,
       );
+
+  // Native iOS swipe-back gesture and parallax page transitions
+  static const PageTransitionsTheme _pageTransitionsTheme =
+      PageTransitionsTheme(
+    builders: {
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.android: ZoomPageTransitionsBuilder(),
+    },
+  );
 
   // Dark ThemeData Definition
   static ThemeData get darkTheme {
@@ -133,6 +152,7 @@ class BkoTheme {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: darkBgObsidian,
       primaryColor: goldAccent,
+      pageTransitionsTheme: _pageTransitionsTheme,
       colorScheme: const ColorScheme.dark(
         primary: goldAccent,
         secondary: goldAccentHover,
@@ -168,6 +188,7 @@ class BkoTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: lightBgObsidian,
       primaryColor: const Color(0xFF0F172A),
+      pageTransitionsTheme: _pageTransitionsTheme,
       colorScheme: const ColorScheme.light(
         primary: Color(0xFF0F172A),
         secondary: goldAccent,

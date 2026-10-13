@@ -6,6 +6,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_download_toast.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
@@ -634,10 +636,10 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                           ref
                               .read(downloadProvider.notifier)
                               .startDownload(_episode!);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Téléchargement lancé.'),
-                                behavior: SnackBarBehavior.floating),
+                          BkoDownloadToast.show(
+                            context,
+                            title: _episode?['title'] ?? 'Épisode',
+                            podcastName: _episode?['podcast']?['name'],
                           );
                         } on DownloadLimitException {
                           DownloadLimitDialog.show(context);
@@ -922,8 +924,8 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
     return Semantics(
       button: true,
       label: label,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+      child: BkoBounceable(
+        scaleFactor: 0.92,
         onTap: onTap,
         child: Container(
           constraints: const BoxConstraints(minWidth: 64, minHeight: 48),

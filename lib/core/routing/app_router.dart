@@ -35,10 +35,17 @@ import '../../features/settings/privacy_data_screen.dart';
 import '../../features/settings/help_support_screen.dart';
 import '../../features/settings/about_screen.dart';
 import '../../features/settings/become_creator_screen.dart';
+import '../../features/auth/suspended_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
   routes: [
+    GoRoute(
+      path: '/suspended',
+      builder: (context, state) => SuspendedScreen(
+        details: state.extra as Map<String, dynamic>?,
+      ),
+    ),
     GoRoute(
       path: '/splash',
       builder: (context, state) => const SplashScreen(),

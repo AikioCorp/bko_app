@@ -582,7 +582,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
               child: RefreshIndicator(
         color: BkoTheme.goldAccent,
-        onRefresh: () => ref.read(homeDataProvider.notifier).refresh(),
+        onRefresh: () async {
+          BkoHaptics.light();
+          await ref.read(homeDataProvider.notifier).refresh();
+          BkoHaptics.select();
+        },
         child: SingleChildScrollView(
           controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),

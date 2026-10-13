@@ -207,16 +207,16 @@ class _SpringMiniPlayButtonState extends State<_SpringMiniPlayButton> {
       button: true,
       label: widget.isPlaying ? 'Pause' : 'Lecture',
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) {
+          setState(() => _isPressed = true);
+          BkoHaptics.tapDown();
+        },
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
-        onTap: () {
-          BkoHaptics.light();
-          widget.onTap();
-        },
+        onTap: widget.onTap,
         child: AnimatedScale(
-          duration: const Duration(milliseconds: 120),
-          curve: Curves.easeOutQuad,
+          duration: const Duration(milliseconds: 90),
+          curve: const Cubic(0.2, 0.9, 0.2, 1.0),
           scale: _isPressed ? 0.90 : 1.0,
           child: Container(
             width: 36,
@@ -275,13 +275,16 @@ class _SpringIconButtonState extends State<_SpringIconButton> {
       button: true,
       label: widget.tooltip,
       child: GestureDetector(
-        onTapDown: (_) => setState(() => _isPressed = true),
+        onTapDown: (_) {
+          setState(() => _isPressed = true);
+          BkoHaptics.tapDown();
+        },
         onTapUp: (_) => setState(() => _isPressed = false),
         onTapCancel: () => setState(() => _isPressed = false),
         onTap: widget.onPressed,
         child: AnimatedScale(
-          duration: const Duration(milliseconds: 100),
-          curve: Curves.easeOutCubic,
+          duration: const Duration(milliseconds: 90),
+          curve: const Cubic(0.2, 0.9, 0.2, 1.0),
           scale: _isPressed ? 0.85 : 1.0,
           child: Container(
             constraints: const BoxConstraints(minWidth: 40, minHeight: 40),

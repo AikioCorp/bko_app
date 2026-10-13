@@ -560,6 +560,9 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     ),
                     child: Slider(
                       value: active.progress.clamp(0.0, 1.0),
+                      onChangeStart: (_) {
+                        BkoHaptics.light();
+                      },
                       onChanged: (val) {
                         final total = active.totalDuration;
                         if (total.inMilliseconds > 0) {
@@ -571,6 +574,9 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                               .read(activeEpisodeProvider.notifier)
                               .seek(newPos);
                         }
+                      },
+                      onChangeEnd: (_) {
+                        BkoHaptics.select();
                       },
                     ),
                   ),
@@ -596,21 +602,24 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      IconButton(
-                        iconSize: 34,
-                        icon: const Icon(IconsaxPlusLinear.backward_15_seconds,
-                            color: Colors.white, size: 30),
-                        onPressed: () {
-                          BkoHaptics.select();
+                      BkoBounceable(
+                        scaleFactor: 0.88,
+                        onTap: () {
                           ref
                               .read(activeEpisodeProvider.notifier)
                               .seekRelative(-15);
                         },
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: const Icon(IconsaxPlusLinear.backward_15_seconds,
+                              color: Colors.white, size: 30),
+                        ),
                       ),
                       BkoBounceable(
                         onTap: () {
                           if (active.isBuffering) return;
-                          BkoHaptics.light();
                           ref
                               .read(activeEpisodeProvider.notifier)
                               .togglePlayPause();
@@ -639,16 +648,20 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           ),
                         ),
                       ),
-                      IconButton(
-                        iconSize: 34,
-                        icon: const Icon(IconsaxPlusLinear.forward_15_seconds,
-                            color: Colors.white, size: 30),
-                        onPressed: () {
-                          BkoHaptics.select();
+                      BkoBounceable(
+                        scaleFactor: 0.88,
+                        onTap: () {
                           ref
                               .read(activeEpisodeProvider.notifier)
                               .seekRelative(30);
                         },
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: const Icon(IconsaxPlusLinear.forward_15_seconds,
+                              color: Colors.white, size: 30),
+                        ),
                       ),
                     ],
                   ),

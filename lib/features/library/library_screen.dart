@@ -71,6 +71,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final token = ref.read(authProvider).token;
     if (token == null) return;
 
+    if (silent) {
+      BkoHaptics.light();
+    }
+
     if (!silent) {
       setState(() {
         _loading = true;
@@ -94,6 +98,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           _playlists = (results[3] as List?) ?? [];
           _errorMessage = null;
         });
+        if (silent) {
+          BkoHaptics.select();
+        }
       }
     } on ApiException catch (e) {
       if (mounted && !silent) setState(() => _errorMessage = e.message);

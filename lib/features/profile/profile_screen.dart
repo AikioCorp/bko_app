@@ -267,7 +267,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       body: RefreshIndicator(
         color: BkoTheme.goldAccent,
         backgroundColor: BkoTheme.getBgSurface(context),
-        onRefresh: _loadDashboardData,
+        onRefresh: () async {
+          BkoHaptics.light();
+          await _loadDashboardData();
+          BkoHaptics.select();
+        },
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(

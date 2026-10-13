@@ -15,6 +15,23 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
+/// Exception levée lorsqu'un compte a été suspendu ou bloqué par l'administration.
+class AccountSuspendedException extends ApiException {
+  final String? reason;
+  final bool isPermanent;
+  final DateTime? suspendedAt;
+  final DateTime? suspendedUntil;
+
+  const AccountSuspendedException({
+    required String message,
+    this.reason,
+    this.isPermanent = true,
+    this.suspendedAt,
+    this.suspendedUntil,
+    int? statusCode = 403,
+  }) : super(message, statusCode: statusCode);
+}
+
 /// Client HTTP unique.
 class BkoApi {
   static const String _envBaseUrl = String.fromEnvironment('BKO_API_BASE_URL');
@@ -69,6 +86,9 @@ class BkoApi {
 
   /// Callback appelé lorsque la session est irrémédiablement révoquée ou expirée.
   static VoidCallback? onSessionExpired;
+
+  /// Callback appelé lorsqu'un compte suspendu ou bloqué est détecté.
+  static void Function(AccountSuspendedException exception)? onAccountSuspended;
 
   static void setBaseUrl(String url) {
     _baseUrl = url;
@@ -138,6 +158,24 @@ class BkoApi {
           ? error['message'] as String
           : 'Une erreur est survenue. Réessayez dans un instant.';
 
+      if (code == 'ACCOUNT_SUSPENDED') {
+        final details = error is Map ? error['details'] : null;
+        final reason = details is Map ? details['reason']?.toString() : null;
+        final isPermanent = details is Map ? (details['isPermanent'] ?? true) as bool : true;
+        final suspendedAtStr = details is Map ? details['suspendedAt']?.toString() : null;
+        final suspendedUntilStr = details is Map ? details['suspendedUntil']?.toString() : null;
+        final exc = AccountSuspendedException(
+          message: message,
+          reason: reason,
+          isPermanent: isPermanent,
+          suspendedAt: suspendedAtStr != null ? DateTime.tryParse(suspendedAtStr) : null,
+          suspendedUntil: suspendedUntilStr != null ? DateTime.tryParse(suspendedUntilStr) : null,
+          statusCode: response.statusCode ?? 403,
+        );
+        onAccountSuspended?.call(exc);
+        throw exc;
+      }
+
       if ((response.statusCode == 401 || code == 'SESSION_EXPIRED') &&
           !isRetry &&
           token != null &&
@@ -161,6 +199,26 @@ class BkoApi {
       final code = apiError is Map ? apiError['code']?.toString() : null;
       final statusCode = error.response?.statusCode;
       final isSessionExpired = statusCode == 401 || code == 'SESSION_EXPIRED';
+
+      if (code == 'ACCOUNT_SUSPENDED') {
+        final details = apiError is Map ? apiError['details'] : null;
+        final reason = details is Map ? details['reason']?.toString() : null;
+        final isPermanent = details is Map ? (details['isPermanent'] ?? true) as bool : true;
+        final suspendedAtStr = details is Map ? details['suspendedAt']?.toString() : null;
+        final suspendedUntilStr = details is Map ? details['suspendedUntil']?.toString() : null;
+        final exc = AccountSuspendedException(
+          message: (apiError is Map && apiError['message'] is String)
+              ? apiError['message'] as String
+              : 'Votre compte a été suspendu.',
+          reason: reason,
+          isPermanent: isPermanent,
+          suspendedAt: suspendedAtStr != null ? DateTime.tryParse(suspendedAtStr) : null,
+          suspendedUntil: suspendedUntilStr != null ? DateTime.tryParse(suspendedUntilStr) : null,
+          statusCode: statusCode ?? 403,
+        );
+        onAccountSuspended?.call(exc);
+        throw exc;
+      }
 
       if (isSessionExpired &&
           !isRetry &&
