@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 
+import '../../../core/routing/app_router.dart';
 import '../../../core/theme/bko_theme.dart';
 import '../../../core/widgets/bko_bounceable.dart';
 import '../../../core/widgets/bko_haptics.dart';
@@ -44,6 +45,7 @@ class BkoDrawer extends ConsumerWidget {
 
     final confirmed = await showDialog<bool>(
       context: context,
+      barrierDismissible: true,
       builder: (ctx) => AlertDialog(
         backgroundColor: surfaceElevated,
         shape: RoundedRectangleBorder(
@@ -70,14 +72,14 @@ class BkoDrawer extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               'Annuler',
               style: BkoTheme.fontLato(color: textSec, fontWeight: FontWeight.w700),
             ),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Colors.white,
@@ -94,7 +96,12 @@ class BkoDrawer extends ConsumerWidget {
     );
 
     if (confirmed == true) {
+      if (context.mounted) {
+        Navigator.of(context).maybePop();
+      }
+      BkoHaptics.medium();
       await ref.read(authProvider.notifier).logout();
+      appRouter.go('/');
     }
   }
 
@@ -119,15 +126,15 @@ class BkoDrawer extends ConsumerWidget {
           children: [
             // En-tête : Avatar, Nom affiché, et « Voir mon profil »
             Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+              padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
               decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: border)),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: surfaceElevated,
@@ -143,7 +150,7 @@ class BkoDrawer extends ConsumerWidget {
                           : _buildAvatarInitial(fullName),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,24 +172,28 @@ class BkoDrawer extends ConsumerWidget {
                             BkoHaptics.light();
                             context.go('/profile');
                           },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'Voir mon profil',
-                                style: BkoTheme.fontLato(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w700,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Voir mon profil',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: BkoTheme.goldAccent,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  IconsaxPlusLinear.arrow_right_3,
+                                  size: 12,
                                   color: BkoTheme.goldAccent,
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                IconsaxPlusLinear.arrow_right_3,
-                                size: 12,
-                                color: BkoTheme.goldAccent,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -284,10 +295,7 @@ class BkoDrawer extends ConsumerWidget {
                     icon: IconsaxPlusLinear.logout,
                     label: 'Se déconnecter',
                     accentColor: Theme.of(context).colorScheme.error,
-                    onTap: () async {
-                      Navigator.of(context).pop();
-                      await _confirmLogout(context, ref);
-                    },
+                    onTap: () => _confirmLogout(context, ref),
                   ),
                 ],
               ),

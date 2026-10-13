@@ -27,6 +27,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _tab = 0; // 0 = enregistrés, 1 = suivis, 2 = historique, 3 = playlists
   bool _loading = false;
   String? _errorMessage;
@@ -386,6 +387,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: BkoTheme.getBgObsidian(context),
       drawer: const BkoDrawer(),
       body: SafeArea(
@@ -403,7 +405,11 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   BkoBounceable(
                     onTap: () {
                       BkoHaptics.light();
-                      Scaffold.of(context).openDrawer();
+                      if (_scaffoldKey.currentState?.hasDrawer == true) {
+                        _scaffoldKey.currentState?.openDrawer();
+                      } else {
+                        Scaffold.maybeOf(context)?.openDrawer();
+                      }
                     },
                     child: Container(
                       width: 44,

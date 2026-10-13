@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import '../routing/app_router.dart';
 import '../theme/bko_theme.dart';
 import 'bko_bounceable.dart';
 import 'bko_haptics.dart';
@@ -24,6 +25,18 @@ class BkoDownloadToast {
     final textSec = BkoTheme.getTextSecondary(context);
     final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
 
+    void openDownloads() {
+      BkoHaptics.select();
+      scaffoldMessenger.hideCurrentSnackBar();
+      try {
+        appRouter.push('/downloads');
+      } catch (_) {
+        try {
+          context.push('/downloads');
+        } catch (_) {}
+      }
+    }
+
     scaffoldMessenger.showSnackBar(
       SnackBar(
         elevation: 0,
@@ -32,75 +45,69 @@ class BkoDownloadToast {
         duration: const Duration(seconds: 4),
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
         padding: EdgeInsets.zero,
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: surfaceElevated,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: BkoTheme.goldAccent.withValues(alpha: 0.35),
-              width: 1,
+        content: BkoBounceable(
+          onTap: openDownloads,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: surfaceElevated,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: BkoTheme.goldAccent.withValues(alpha: 0.35),
+                width: 1,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              // Badge icône Iconsax avec fond or subtil
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: BkoTheme.goldAccent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: Icon(
-                    IconsaxPlusBold.document_download,
-                    color: BkoTheme.goldAccent,
-                    size: 20,
+            child: Row(
+              children: [
+                // Badge icône Iconsax avec fond or subtil
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      IconsaxPlusBold.document_download,
+                      color: BkoTheme.goldAccent,
+                      size: 20,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
 
-              // Libellés titre et sous-titre
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Téléchargement lancé',
-                      style: BkoTheme.fontPoppins(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: textPri,
+                // Libellés titre et sous-titre
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Téléchargement lancé',
+                        style: BkoTheme.fontPoppins(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: textPri,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      title.isNotEmpty ? title : (podcastName ?? 'Disponible hors connexion'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: BkoTheme.fontLato(
-                        fontSize: 11.5,
-                        color: textSec,
+                      const SizedBox(height: 2),
+                      Text(
+                        title.isNotEmpty ? title : (podcastName ?? 'Disponible hors connexion'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: BkoTheme.fontLato(
+                          fontSize: 11.5,
+                          color: textSec,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 10),
 
-              // Bouton d'action direct vers les Téléchargements
-              BkoBounceable(
-                onTap: () {
-                  BkoHaptics.select();
-                  scaffoldMessenger.hideCurrentSnackBar();
-                  try {
-                    context.push('/downloads');
-                  } catch (_) {}
-                },
-                child: Container(
+                // Bouton d'action direct vers les Téléchargements
+                Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: BkoTheme.goldAccent.withValues(alpha: 0.15),
@@ -130,8 +137,8 @@ class BkoDownloadToast {
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

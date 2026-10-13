@@ -8,6 +8,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
+import '../home/widgets/bko_drawer.dart';
 import '../library/library_screen.dart';
 import '../player/full_audio_player_sheet.dart';
 import 'bko_mini_player.dart';
@@ -144,6 +145,7 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return Scaffold(
       extendBody: true,
+      drawer: const BkoDrawer(),
       body: widget.navigationShell ?? widget.child,
       bottomNavigationBar: AnimatedContainer(
         duration: animDuration,

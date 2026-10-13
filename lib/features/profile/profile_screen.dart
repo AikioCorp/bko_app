@@ -33,6 +33,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   int _followingCount = 0;
   int _savedCount = 0;
   int _playlistsCount = 0;
@@ -218,6 +219,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: BkoTheme.getBgObsidian(context),
       drawer: const BkoDrawer(),
       appBar: AppBar(
@@ -225,7 +227,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ? BkoBounceable(
                 onTap: () {
                   BkoHaptics.light();
-                  Scaffold.of(context).openDrawer();
+                  if (_scaffoldKey.currentState?.hasDrawer == true) {
+                    _scaffoldKey.currentState?.openDrawer();
+                  } else {
+                    Scaffold.maybeOf(context)?.openDrawer();
+                  }
                 },
                 child: Container(
                   width: 44,
@@ -1093,9 +1099,84 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             icon: IconsaxPlusLinear.setting_2,
             onTap: () => context.push('/settings/playback'),
           ),
+          const SizedBox(height: 12),
+          _buildFooterButton(
+            context,
+            title: 'Se déconnecter',
+            icon: IconsaxPlusLinear.logout,
+            accentColor: Theme.of(context).colorScheme.error,
+            onTap: () => _confirmLogout(context),
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _confirmLogout(BuildContext context) async {
+    final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceElevated,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: border),
+        ),
+        title: Row(
+          children: [
+            Icon(IconsaxPlusLinear.logout, color: Theme.of(context).colorScheme.error, size: 22),
+            const SizedBox(width: 10),
+            Text(
+              'Déconnexion',
+              style: BkoTheme.fontLato(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: textPri,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Êtes-vous sûr de vouloir vous déconnecter de votre compte ? Vos favoris et playlists synchronisés restent sauvegardés sur le serveur.',
+          style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(
+              'Annuler',
+              style: BkoTheme.fontLato(color: textSec, fontWeight: FontWeight.w700),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              'Se déconnecter',
+              style: BkoTheme.fontLato(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      BkoHaptics.medium();
+      await ref.read(authProvider.notifier).logout();
+      if (context.mounted) {
+        context.go('/');
+      }
+    }
   }
 
   Widget _buildFooterButton(
@@ -1103,7 +1184,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String title,
     required IconData icon,
     required VoidCallback onTap,
+    Color? accentColor,
   }) {
+    final color = accentColor ?? BkoTheme.getTextPrimary(context);
     return BkoBounceable(
       onTap: () {
         BkoHaptics.light();
@@ -1115,19 +1198,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         decoration: BoxDecoration(
           color: BkoTheme.getBgSurface(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: BkoTheme.getBorderSubtle(context)),
+          border: Border.all(
+            color: accentColor != null
+                ? accentColor.withValues(alpha: 0.35)
+                : BkoTheme.getBorderSubtle(context),
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: BkoTheme.getTextPrimary(context)),
+            Icon(icon, size: 18, color: color),
             const SizedBox(width: 8),
             Text(
               title,
               style: BkoTheme.fontLato(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
-                color: BkoTheme.getTextPrimary(context),
+                color: color,
               ),
             ),
           ],

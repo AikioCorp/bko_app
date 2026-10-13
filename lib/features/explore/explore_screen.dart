@@ -50,6 +50,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   late String _selectedDuration; // 'ALL', 'SHORT', 'MEDIUM', 'LONG'
   late String _sortOrder; // 'recent', 'oldest', 'popular'
   String _query = '';
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   bool _isLoading = true;
   bool _isLoadingMore = false;
@@ -338,6 +339,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         _query.isNotEmpty;
 
     return Scaffold(
+      key: _scaffoldKey,
       backgroundColor: BkoTheme.getBgObsidian(context),
       drawer: const BkoDrawer(),
       body: SafeArea(
@@ -380,7 +382,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                         BkoBounceable(
                           onTap: () {
                             BkoHaptics.light();
-                            Scaffold.of(context).openDrawer();
+                            if (_scaffoldKey.currentState?.hasDrawer == true) {
+                              _scaffoldKey.currentState?.openDrawer();
+                            } else {
+                              Scaffold.maybeOf(context)?.openDrawer();
+                            }
                           },
                           child: Container(
                             width: 44,

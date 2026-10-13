@@ -1,10 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import '../../core/network/bko_api.dart';
 import '../../core/services/media_upload_service.dart';
@@ -19,7 +21,7 @@ import '../auth/auth_controller.dart';
 /// Écran moderne et épuré de modification du profil utilisateur.
 /// Conçu selon les règles mobile-designer et les directives strictes de style :
 /// Iconsax uniquement, pays + numéro sur la même ligne (Mali par défaut),
-/// upload photo haute fiabilité, zéro dégradé, zéro ombre.
+/// upload photo haute fiabilité, zéro dégradé, zéro ombre, fermeture stricte du clavier.
 class ProfileEditScreen extends ConsumerStatefulWidget {
   const ProfileEditScreen({super.key});
 
@@ -41,6 +43,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   bool _isUploadingAvatar = false;
   String? _phoneError;
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    FocusScope.of(context).unfocus();
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -49,27 +57,49 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     _emailController = TextEditingController(text: user?['email'] ?? '');
     _avatarUrl = user?['avatar'] as String?;
 
-    // Initialisation du numéro et pays
+    // Initialisation intelligente et robuste du numéro et du pays
     final rawPhone = (user?['phoneNumber'] ?? '') as String;
     String initialDigits = '';
     if (rawPhone.isNotEmpty) {
-      if (rawPhone.startsWith('+223')) {
-        _phoneCountry = Country.parse('ML');
-        initialDigits = rawPhone.substring(4);
-      } else if (rawPhone.startsWith('+233')) {
-        _phoneCountry = Country.parse('GH');
-        initialDigits = rawPhone.substring(4);
-      } else if (rawPhone.startsWith('+225')) {
-        _phoneCountry = Country.parse('CI');
-        initialDigits = rawPhone.substring(4);
-      } else if (rawPhone.startsWith('+221')) {
-        _phoneCountry = Country.parse('SN');
-        initialDigits = rawPhone.substring(4);
-      } else if (rawPhone.startsWith('+33')) {
-        _phoneCountry = Country.parse('FR');
-        initialDigits = rawPhone.substring(3);
-      } else {
-        initialDigits = rawPhone.replaceAll(RegExp(r'\D'), '');
+      try {
+        final parsed = PhoneNumber.parse(rawPhone);
+        final country = Country.tryParse(parsed.isoCode.name.toUpperCase());
+        if (country != null) {
+          _phoneCountry = country;
+          initialDigits = parsed.nsn;
+        }
+      } catch (_) {}
+
+      // Fallback par préfixes connus d'Afrique de l'Ouest / Diaspora
+      if (initialDigits.isEmpty) {
+        final digitsOnly = rawPhone.replaceAll(RegExp(r'\D'), '');
+        const prefixes = [
+          ('223', 'ML'),
+          ('225', 'CI'),
+          ('221', 'SN'),
+          ('226', 'BF'),
+          ('227', 'NE'),
+          ('224', 'GN'),
+          ('233', 'GH'),
+          ('33', 'FR'),
+        ];
+        for (final item in prefixes) {
+          final code = item.$1;
+          final iso = item.$2;
+          if (rawPhone.startsWith('+$code') || digitsOnly.startsWith(code)) {
+            final country = Country.tryParse(iso);
+            if (country != null) {
+              _phoneCountry = country;
+              initialDigits = digitsOnly.startsWith(code)
+                  ? digitsOnly.substring(code.length)
+                  : digitsOnly;
+              break;
+            }
+          }
+        }
+        if (initialDigits.isEmpty) {
+          initialDigits = digitsOnly;
+        }
       }
     }
     _phoneController = TextEditingController(
@@ -102,7 +132,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   void _selectPhoneCountry() {
-    FocusScope.of(context).unfocus();
+    _dismissKeyboard();
     BkoHaptics.light();
     showCountryPicker(
       context: context,
@@ -140,7 +170,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         _phoneCountry = country;
         _phoneError = null;
         if (_phoneController.text.isNotEmpty) {
-          final rawDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+          final rawDigits = PhoneNumberTextInputFormatter.extractNationalDigits(
+            _phoneController.text,
+            _phoneCountry.countryCode,
+          );
           _phoneController.text = PhoneNumberTextInputFormatter.formatNumber(
             rawDigits,
             _phoneCountry.countryCode,
@@ -151,6 +184,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   Future<void> _pickAndUploadAvatar(ImageSource source) async {
+    _dismissKeyboard();
     final token = ref.read(authProvider).token;
     if (token == null) return;
 
@@ -188,6 +222,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           : (res is Map ? Map<String, dynamic>.from(res) : {'avatar': publicUrl});
 
       await ref.read(authProvider.notifier).updateUser(userMap);
+      await ref.read(authProvider.notifier).fetchMe();
 
       if (mounted) {
         setState(() {
@@ -225,6 +260,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   Future<void> _removeAvatar() async {
+    _dismissKeyboard();
     final token = ref.read(authProvider).token;
     if (token == null) return;
 
@@ -242,6 +278,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           : (res is Map ? Map<String, dynamic>.from(res) : {'avatar': null});
 
       await ref.read(authProvider.notifier).updateUser(userMap);
+      await ref.read(authProvider.notifier).fetchMe();
 
       if (mounted) {
         setState(() {
@@ -273,6 +310,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   void _showAvatarPickerModal() {
+    _dismissKeyboard();
     BkoHaptics.light();
     final surface = BkoTheme.getBgSurface(context);
     final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
@@ -333,6 +371,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ),
                 ),
                 onTap: () {
+                  _dismissKeyboard();
                   Navigator.pop(ctx);
                   _pickAndUploadAvatar(ImageSource.camera);
                 },
@@ -360,6 +399,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ),
                 ),
                 onTap: () {
+                  _dismissKeyboard();
                   Navigator.pop(ctx);
                   _pickAndUploadAvatar(ImageSource.gallery);
                 },
@@ -388,6 +428,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     ),
                   ),
                   onTap: () {
+                    _dismissKeyboard();
                     Navigator.pop(ctx);
                     _removeAvatar();
                   },
@@ -401,6 +442,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   Future<void> _save() async {
+    _dismissKeyboard();
     if (!_formKey.currentState!.validate()) return;
 
     final token = ref.read(authProvider).token;
@@ -409,16 +451,38 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     final phone = _phoneController.text.trim();
     String? normalizedPhone;
     if (phone.isNotEmpty) {
-      final rawDigits = phone.replaceAll(RegExp(r'\D'), '');
+      var rawDigits = PhoneNumberTextInputFormatter.extractNationalDigits(
+        phone,
+        _phoneCountry.countryCode,
+      );
       final cc = _phoneCountry.countryCode.toUpperCase();
-      if (cc == 'ML') {
+      final pCode = _phoneCountry.phoneCode;
+
+      if (cc == 'ML' || cc == 'BF' || cc == 'NE') {
         if (rawDigits.length != 8) {
+          final countryName = _phoneCountry.name;
           setState(() {
-            _phoneError = 'Le numéro malien doit comporter 8 chiffres (ex. 70 00 00 90).';
+            _phoneError = 'Le numéro ($countryName) doit comporter 8 chiffres (ex. 70 00 00 90).';
           });
           return;
         }
-        normalizedPhone = '+223$rawDigits';
+        normalizedPhone = '+$pCode$rawDigits';
+      } else if (cc == 'CI') {
+        if (rawDigits.length != 10) {
+          setState(() {
+            _phoneError = 'Le numéro en Côte d\'Ivoire doit comporter 10 chiffres (ex. 07 00 00 00 00).';
+          });
+          return;
+        }
+        normalizedPhone = '+$pCode$rawDigits';
+      } else if (cc == 'SN' || cc == 'GN') {
+        if (rawDigits.length != 9) {
+          setState(() {
+            _phoneError = 'Le numéro doit comporter 9 chiffres (ex. 77 123 45 67).';
+          });
+          return;
+        }
+        normalizedPhone = '+$pCode$rawDigits';
       } else if (cc == 'GH') {
         if (rawDigits.length < 9 || rawDigits.length > 10) {
           setState(() {
@@ -428,8 +492,23 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         }
         final nsn = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
         normalizedPhone = '+233$nsn';
+      } else if (cc == 'FR') {
+        if (rawDigits.length != 10 && rawDigits.length != 9) {
+          setState(() {
+            _phoneError = 'Le numéro français doit comporter 9 ou 10 chiffres (ex. 06 12 34 56 78).';
+          });
+          return;
+        }
+        final nsn = rawDigits.length == 10 && rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+        normalizedPhone = '+33$nsn';
       } else {
-        normalizedPhone = '+${_phoneCountry.phoneCode}$rawDigits';
+        if (rawDigits.length < 6 || rawDigits.length > 15) {
+          setState(() {
+            _phoneError = 'Numéro de téléphone invalide.';
+          });
+          return;
+        }
+        normalizedPhone = '+$pCode$rawDigits';
       }
     }
 
@@ -441,7 +520,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     try {
       final payload = <String, dynamic>{
         'fullName': _nameController.text.trim(),
-        if (normalizedPhone != null) 'phoneNumber': normalizedPhone,
+        'phoneNumber': normalizedPhone,
         if (_bioController.text.trim().isNotEmpty) 'bio': _bioController.text.trim(),
       };
 
@@ -456,7 +535,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             ? Map<String, dynamic>.from(res['data'] as Map)
             : (res is Map ? Map<String, dynamic>.from(res) : payload);
 
+        userMap['phoneNumber'] = normalizedPhone;
+        userMap['fullName'] = _nameController.text.trim();
+
         await ref.read(authProvider.notifier).updateUser(userMap);
+        await ref.read(authProvider.notifier).fetchMe();
 
         if (!mounted) return;
 
@@ -473,9 +556,14 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     } catch (e) {
       if (mounted) {
         BkoHaptics.error();
+        final message = e is ApiException
+            ? e.message
+            : (e.toString().contains('DioException')
+                ? 'Erreur de connexion au serveur.'
+                : 'Erreur lors de la mise à jour : $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors de la mise à jour : $e'),
+            content: Text(message),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
@@ -508,21 +596,29 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       ),
       backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Avatar Center Picker
-                Center(
-                  child: Column(
-                    children: [
-                      BkoBounceable(
-                        onTap: _isUploadingAvatar ? null : _showAvatarPickerModal,
-                        child: Stack(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _dismissKeyboard,
+          child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Avatar Center Picker
+                  Center(
+                    child: Column(
+                      children: [
+                        BkoBounceable(
+                          onTap: _isUploadingAvatar
+                              ? null
+                              : () {
+                                  _dismissKeyboard();
+                                  _showAvatarPickerModal();
+                                },
+                          child: Stack(
                           alignment: Alignment.center,
                           children: [
                             Container(
@@ -612,7 +708,12 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       ),
                       const SizedBox(height: 10),
                       BkoBounceable(
-                        onTap: _isUploadingAvatar ? null : _showAvatarPickerModal,
+                        onTap: _isUploadingAvatar
+                            ? null
+                            : () {
+                                _dismissKeyboard();
+                                _showAvatarPickerModal();
+                              },
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           child: Text(
@@ -770,8 +871,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFieldLabel(String label, Color color, {String? badge}) {
     return Row(
@@ -856,8 +958,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             child: TextField(
               controller: _phoneController,
               keyboardType: TextInputType.phone,
-              textInputAction: TextInputAction.next,
+              textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.telephoneNumber],
+              onTapOutside: (_) => _dismissKeyboard(),
+              onSubmitted: (_) => _dismissKeyboard(),
               inputFormatters: [
                 PhoneNumberTextInputFormatter(_phoneCountry.countryCode),
               ],

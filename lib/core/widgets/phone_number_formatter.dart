@@ -1,3 +1,4 @@
+import 'package:country_picker/country_picker.dart';
 import 'package:flutter/services.dart';
 
 /// Formateur de numéro de téléphone national selon le pays d'Afrique de l'Ouest / Diaspora.
@@ -11,13 +12,29 @@ class PhoneNumberTextInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    final rawDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final rawDigits = extractNationalDigits(newValue.text, countryCode);
     final formatted = formatNumber(rawDigits, countryCode);
 
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
     );
+  }
+
+  /// Extrait les chiffres nationaux en retirant le préfixe pays s'il a été collé ou saisi.
+  static String extractNationalDigits(String rawText, String countryCode) {
+    var digits = rawText.replaceAll(RegExp(r'\D'), '');
+    final cc = countryCode.toUpperCase();
+    final country = Country.tryParse(cc);
+    final phoneCode = country?.phoneCode;
+    if (phoneCode != null && digits.startsWith(phoneCode)) {
+      final remainder = digits.substring(phoneCode.length);
+      // Ne retire l'indicatif que s'il reste au moins 6 chiffres (numéro national complet)
+      if (remainder.length >= 6) {
+        digits = remainder;
+      }
+    }
+    return digits;
   }
 
   static String formatNumber(String digits, String countryCode) {

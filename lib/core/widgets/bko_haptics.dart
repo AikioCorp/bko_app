@@ -53,6 +53,13 @@ class BkoHaptics {
     }
   }
 
+  /// Medium impact for successful completion or important confirmation.
+  static void medium() {
+    if (_canVibrate()) {
+      HapticFeedback.mediumImpact();
+    }
+  }
+
   /// Medium impact for successful completion (checkout, download finished).
   static void success() {
     if (_canVibrate()) {
