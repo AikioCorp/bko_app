@@ -133,11 +133,14 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
           ),
           child: SafeArea(
             bottom: false,
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 4, 16, lerpDouble(8.0, 6.0, t)!),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            child: ClipRect(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 4, 16, lerpDouble(8.0, 6.0, t)!),
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   // -------------------------------------------------------------
                   // 1. TOP BAR ROW (48px fixed height)
                   // -------------------------------------------------------------
@@ -451,11 +454,13 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                     ),
                   ),
                 ),
-                ],
-              ),
+              ],
             ),
           ),
-        );
+        ),
+      ),
+    ),
+  );
       },
     );
   }

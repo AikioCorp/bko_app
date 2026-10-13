@@ -63,6 +63,13 @@ class BkoApi {
   static Dio get dio => _dio;
   static Dio createConfiguredDio() => _createDio();
 
+  /// Callback appelé lorsqu'une requête authentifiée expire (401 / SESSION_EXPIRED).
+  /// Retourne le nouveau token d'accès après refresh ou `null` si le refresh a échoué.
+  static Future<String?> Function()? tokenRefreshHandler;
+
+  /// Callback appelé lorsque la session est irrémédiablement révoquée ou expirée.
+  static VoidCallback? onSessionExpired;
+
   static void setBaseUrl(String url) {
     _baseUrl = url;
     _dio.options.baseUrl = url;
@@ -94,14 +101,19 @@ class BkoApi {
   }) =>
       _request('PATCH', path, body: body, token: token);
 
-  static Future<dynamic> delete(String path, {String? token}) =>
-      _request('DELETE', path, token: token);
+  static Future<dynamic> delete(
+    String path, {
+    Map<String, dynamic>? body,
+    String? token,
+  }) =>
+      _request('DELETE', path, body: body, token: token);
 
   static Future<dynamic> _request(
     String method,
     String path, {
     Map<String, dynamic>? body,
     String? token,
+    bool isRetry = false,
   }) async {
     final fullUrl = _buildUrl(path);
     try {
@@ -121,18 +133,56 @@ class BkoApi {
         return payload['data'];
       }
       final error = payload is Map ? payload['error'] : null;
+      final code = error is Map ? error['code']?.toString() : null;
       final message = error is Map && error['message'] is String
           ? error['message'] as String
           : 'Une erreur est survenue. Réessayez dans un instant.';
+
+      if ((response.statusCode == 401 || code == 'SESSION_EXPIRED') &&
+          !isRetry &&
+          token != null &&
+          token.isNotEmpty &&
+          tokenRefreshHandler != null &&
+          !path.contains('/auth/')) {
+        try {
+          final newToken = await tokenRefreshHandler!();
+          if (newToken != null && newToken.isNotEmpty) {
+            return _request(method, path, body: body, token: newToken, isRetry: true);
+          }
+        } catch (_) {}
+        onSessionExpired?.call();
+      }
+
       throw ApiException(message, statusCode: response.statusCode);
     } on DioException catch (error) {
       debugPrint('[BkoApi ERROR] $method $fullUrl -> ${error.type} ${error.message} (status: ${error.response?.statusCode})');
       final payload = error.response?.data;
       final apiError = payload is Map ? payload['error'] : null;
+      final code = apiError is Map ? apiError['code']?.toString() : null;
+      final statusCode = error.response?.statusCode;
+      final isSessionExpired = statusCode == 401 || code == 'SESSION_EXPIRED';
+
+      if (isSessionExpired &&
+          !isRetry &&
+          token != null &&
+          token.isNotEmpty &&
+          tokenRefreshHandler != null &&
+          !path.contains('/auth/')) {
+        try {
+          final newToken = await tokenRefreshHandler!();
+          if (newToken != null && newToken.isNotEmpty) {
+            return _request(method, path, body: body, token: newToken, isRetry: true);
+          }
+        } catch (_) {}
+        onSessionExpired?.call();
+      } else if (isSessionExpired && !path.contains('/auth/')) {
+        onSessionExpired?.call();
+      }
+
       final message = apiError is Map && apiError['message'] is String
           ? apiError['message'] as String
           : 'Impossible de joindre Bamako Podcast pour le moment.';
-      throw ApiException(message, statusCode: error.response?.statusCode);
+      throw ApiException(message, statusCode: statusCode);
     }
   }
 

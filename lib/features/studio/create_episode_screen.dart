@@ -11,10 +11,12 @@ import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 
 class CreateEpisodeScreen extends ConsumerStatefulWidget {
-  const CreateEpisodeScreen({super.key});
+  final String? initialPodcastId;
+  const CreateEpisodeScreen({super.key, this.initialPodcastId});
 
   @override
-  ConsumerState<CreateEpisodeScreen> createState() => _CreateEpisodeScreenState();
+  ConsumerState<CreateEpisodeScreen> createState() =>
+      _CreateEpisodeScreenState();
 }
 
 class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
@@ -60,7 +62,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
       setState(() {
         _podcasts = (list as List?) ?? [];
         if (_podcasts.isNotEmpty) {
-          _selectedPodcastId = '${_podcasts.first['id']}';
+          _selectedPodcastId =
+              _podcasts.any((p) => '${p['id']}' == widget.initialPodcastId)
+                  ? widget.initialPodcastId
+                  : '${_podcasts.first['id']}';
         }
         _loadingPodcasts = false;
       });
@@ -90,13 +95,19 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
       final body = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
-        if (_coverUrlController.text.trim().isNotEmpty) 'cover': _coverUrlController.text.trim(),
+        if (_coverUrlController.text.trim().isNotEmpty)
+          'cover': _coverUrlController.text.trim(),
         if (_episodeNumController.text.trim().isNotEmpty)
           'episodeNumber': int.tryParse(_episodeNumController.text.trim()),
       };
 
-      final episodeRes = await BkoApi.post('/creator/podcasts/$_selectedPodcastId/episodes', body, token: auth.token);
-      final episodeId = episodeRes is Map ? (episodeRes['id'] ?? (episodeRes['data'] is Map ? episodeRes['data']['id'] : null)) : null;
+      final episodeRes = await BkoApi.post(
+          '/creator/podcasts/$_selectedPodcastId/episodes', body,
+          token: auth.token);
+      final episodeId = episodeRes is Map
+          ? (episodeRes['id'] ??
+              (episodeRes['data'] is Map ? episodeRes['data']['id'] : null))
+          : null;
 
       if (episodeId != null) {
         // Associer la source audio
@@ -135,10 +146,17 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
         String message = 'Épisode enregistré en brouillon.';
         if (!isDraft) {
           try {
-            await BkoApi.post('/creator/episodes/$episodeId/publish', {}, token: auth.token);
-            message = 'Épisode publié avec succès !';
+            final published = await BkoApi.post(
+                '/creator/episodes/$episodeId/publish', {},
+                token: auth.token);
+            message =
+                published is Map && published['status'] == 'PENDING_REVIEW'
+                    ? 'Épisode envoyé pour validation.'
+                    : 'Épisode publié avec succès !';
           } catch (e) {
-            message = 'Brouillon enregistré. Ajoutez un média valide avant de publier.';
+            message = e is ApiException
+                ? 'Brouillon conservé. ${e.message}'
+                : 'Brouillon conservé. Publication non confirmée : vérifiez votre Studio.';
           }
         }
 
@@ -157,7 +175,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isDraft ? 'Épisode enregistré en brouillon.' : 'Épisode créé.'),
+          content: Text(
+              isDraft ? 'Épisode enregistré en brouillon.' : 'Épisode créé.'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: BkoTheme.goldAccent,
         ),
@@ -202,7 +221,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
         leading: const AppBackButton(),
         title: Text(
           'Nouvel Épisode',
-          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
+          style: BkoTheme.fontLato(
+              fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
       ),
       body: _loadingPodcasts
@@ -235,11 +255,14 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                         decoration: BoxDecoration(
                           color: BkoTheme.goldAccent.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                          border: Border.all(
+                              color:
+                                  BkoTheme.goldAccent.withValues(alpha: 0.3)),
                         ),
                         child: Text(
                           'Aucune émission disponible. Créez d\'abord une émission.',
-                          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.goldAccent),
+                          style: BkoTheme.fontLato(
+                              fontSize: 13, color: BkoTheme.goldAccent),
                         ),
                       )
                     else
@@ -252,10 +275,12 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                           final map = p as Map;
                           return DropdownMenuItem<String>(
                             value: '${map['id']}',
-                            child: Text('${map['name']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                            child: Text('${map['name']}',
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
                           );
                         }).toList(),
-                        onChanged: (val) => setState(() => _selectedPodcastId = val),
+                        onChanged: (val) =>
+                            setState(() => _selectedPodcastId = val),
                       ),
 
                     const SizedBox(height: 20),
@@ -273,9 +298,11 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        _mediaTypeOption('AUDIO', 'Audio (MP3/AAC)', IconsaxPlusLinear.headphone),
+                        _mediaTypeOption('AUDIO', 'Audio (MP3/AAC)',
+                            IconsaxPlusLinear.headphone),
                         const SizedBox(width: 12),
-                        _mediaTypeOption('VIDEO', 'Vidéo (YouTube/MP4)', IconsaxPlusLinear.video),
+                        _mediaTypeOption('VIDEO', 'Vidéo (YouTube/MP4)',
+                            IconsaxPlusLinear.video),
                       ],
                     ),
 
@@ -295,8 +322,13 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     TextFormField(
                       controller: _titleController,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('Ex: Épisode #12 - Entretien Exclusif', borderSub, bgElevated),
-                      validator: (val) => val == null || val.trim().isEmpty ? 'Le titre est obligatoire.' : null,
+                      decoration: _inputDecoration(
+                          'Ex: Épisode #12 - Entretien Exclusif',
+                          borderSub,
+                          bgElevated),
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? 'Le titre est obligatoire.'
+                          : null,
                     ),
 
                     const SizedBox(height: 20),
@@ -316,7 +348,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                       controller: _descriptionController,
                       maxLines: 4,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('Résumez le sujet abordé dans cet épisode...', borderSub, bgElevated),
+                      decoration: _inputDecoration(
+                          'Résumez le sujet abordé dans cet épisode...',
+                          borderSub,
+                          bgElevated),
                     ),
 
                     const SizedBox(height: 20),
@@ -335,7 +370,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     TextFormField(
                       controller: _audioUrlController,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('https://mon-storage.com/media.mp3', borderSub, bgElevated),
+                      decoration: _inputDecoration(
+                          'https://mon-storage.com/media.mp3',
+                          borderSub,
+                          bgElevated),
                     ),
                     const SizedBox(height: 20),
 
@@ -353,7 +391,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     TextFormField(
                       controller: _videoUrlController,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('https://www.youtube.com/watch?v=...', borderSub, bgElevated),
+                      decoration: _inputDecoration(
+                          'https://www.youtube.com/watch?v=...',
+                          borderSub,
+                          bgElevated),
                     ),
                     const SizedBox(height: 20),
 
@@ -371,7 +412,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     TextFormField(
                       controller: _coverUrlController,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('https://exemple.com/episode-cover.jpg', borderSub, bgElevated),
+                      decoration: _inputDecoration(
+                          'https://exemple.com/episode-cover.jpg',
+                          borderSub,
+                          bgElevated),
                     ),
 
                     const SizedBox(height: 20),
@@ -396,8 +440,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                               TextFormField(
                                 controller: _seasonController,
                                 keyboardType: TextInputType.number,
-                                style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                                decoration: _inputDecoration('Ex: 1', borderSub, bgElevated),
+                                style: BkoTheme.fontLato(
+                                    fontSize: 14, color: textPri),
+                                decoration: _inputDecoration(
+                                    'Ex: 1', borderSub, bgElevated),
                               ),
                             ],
                           ),
@@ -420,8 +466,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                               TextFormField(
                                 controller: _episodeNumController,
                                 keyboardType: TextInputType.number,
-                                style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                                decoration: _inputDecoration('Ex: 5', borderSub, bgElevated),
+                                style: BkoTheme.fontLato(
+                                    fontSize: 14, color: textPri),
+                                decoration: _inputDecoration(
+                                    'Ex: 5', borderSub, bgElevated),
                               ),
                             ],
                           ),
@@ -435,7 +483,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     if (_submitting)
                       const Center(
                         child: CircularProgressIndicator.adaptive(
-                          valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                          valueColor:
+                              AlwaysStoppedAnimation(BkoTheme.goldAccent),
                         ),
                       )
                     else
@@ -448,7 +497,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                                 _submit(isDraft: true);
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: bgElevated,
@@ -475,7 +525,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                                 _submit(isDraft: false);
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: BkoTheme.goldAccent,
@@ -517,7 +568,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? BkoTheme.goldAccent.withValues(alpha: 0.15) : bgElevated,
+            color: selected
+                ? BkoTheme.goldAccent.withValues(alpha: 0.15)
+                : bgElevated,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected ? BkoTheme.goldAccent : borderSub,
@@ -529,7 +582,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
             children: [
               Icon(
                 icon,
-                color: selected ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context),
+                color: selected
+                    ? BkoTheme.goldAccent
+                    : BkoTheme.getTextSecondary(context),
                 size: 18,
               ),
               const SizedBox(width: 8),
@@ -538,7 +593,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                 style: BkoTheme.fontLato(
                   fontSize: 12,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? BkoTheme.goldAccent : BkoTheme.getTextPrimary(context),
+                  color: selected
+                      ? BkoTheme.goldAccent
+                      : BkoTheme.getTextPrimary(context),
                 ),
               ),
             ],
@@ -551,7 +608,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
   InputDecoration _inputDecoration(String hint, Color border, Color bg) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextMuted(context)),
+      hintStyle: BkoTheme.fontLato(
+          fontSize: 13, color: BkoTheme.getTextMuted(context)),
       filled: true,
       fillColor: bg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

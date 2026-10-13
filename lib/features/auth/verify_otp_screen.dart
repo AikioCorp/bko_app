@@ -8,6 +8,7 @@ import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/equalizer_loader.dart';
+import '../../core/widgets/notification_permission_primer.dart';
 import 'auth_controller.dart';
 
 class VerifyOtpScreen extends ConsumerStatefulWidget {
@@ -112,12 +113,15 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
               : '';
           context.go('/taste-onboarding$queryRedirect');
         } else {
-          final target = (widget.redirect != null &&
-                  widget.redirect!.isNotEmpty &&
-                  widget.redirect != '/login')
-              ? widget.redirect!
-              : '/';
-          context.go(target);
+          NotificationPermissionPrimer.show(context).then((_) {
+            if (!mounted) return;
+            final target = (widget.redirect != null &&
+                    widget.redirect!.isNotEmpty &&
+                    widget.redirect != '/login')
+                ? widget.redirect!
+                : '/';
+            context.go(target);
+          });
         }
       });
     } else {

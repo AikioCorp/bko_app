@@ -436,8 +436,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
         drawer: const BkoDrawer(),
-        appBar: const BkoAppHeader(),
-        body: const BkoHomeSkeleton(),
+        body: const Column(
+          children: [
+            BkoAppHeader(),
+            Expanded(child: BkoHomeSkeleton()),
+          ],
+        ),
       );
     }
 
@@ -445,50 +449,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
         drawer: const BkoDrawer(),
-        appBar: const BkoAppHeader(),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(IconsaxPlusLinear.wifi_square, size: 52, color: BkoTheme.goldAccent),
-                const SizedBox(height: 16),
-                Text(
-                  'Impossible de charger les données',
-                  textAlign: TextAlign.center,
-                  style: BkoTheme.fontPoppins(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: textPri,
+        body: Column(
+          children: [
+            const BkoAppHeader(),
+            Expanded(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(IconsaxPlusLinear.wifi_square, size: 52, color: BkoTheme.goldAccent),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Impossible de charger les données',
+                        textAlign: TextAlign.center,
+                        style: BkoTheme.fontPoppins(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: textPri,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        homeState.error ?? 'Veuillez vérifier votre connexion internet.',
+                        textAlign: TextAlign.center,
+                        style: BkoTheme.fontLato(
+                          fontSize: 13,
+                          color: textSec,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => ref.read(homeDataProvider.notifier).refresh(),
+                        icon: const Icon(IconsaxPlusLinear.refresh_2, size: 16),
+                        label: const Text('Réessayer'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BkoTheme.goldAccent,
+                          foregroundColor: BkoTheme.darkBgObsidian,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  homeState.error ?? 'Veuillez vérifier votre connexion internet.',
-                  textAlign: TextAlign.center,
-                  style: BkoTheme.fontLato(
-                    fontSize: 13,
-                    color: textSec,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => ref.read(homeDataProvider.notifier).refresh(),
-                  icon: const Icon(IconsaxPlusLinear.refresh_2, size: 16),
-                  label: const Text('Réessayer'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BkoTheme.goldAccent,
-                    foregroundColor: BkoTheme.darkBgObsidian,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       );
     }

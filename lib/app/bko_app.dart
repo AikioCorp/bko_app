@@ -14,14 +14,19 @@ class BkoPodcastApp extends ConsumerWidget {
     final ThemeMode mode = switch (themeSetting) {
       AppThemeSetting.system => ThemeMode.system,
       AppThemeSetting.dark => ThemeMode.dark,
+      AppThemeSetting.amoled => ThemeMode.dark,
       AppThemeSetting.light => ThemeMode.light,
     };
+
+    final ThemeData darkTheme = themeSetting == AppThemeSetting.amoled
+        ? BkoTheme.amoledTheme
+        : BkoTheme.darkTheme;
 
     return MaterialApp.router(
       title: 'Bamako Podcast',
       debugShowCheckedModeBanner: false,
       theme: BkoTheme.lightTheme,
-      darkTheme: BkoTheme.darkTheme,
+      darkTheme: darkTheme,
       themeMode: mode,
       routerConfig: appRouter,
     );

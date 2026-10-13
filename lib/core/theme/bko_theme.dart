@@ -188,12 +188,27 @@ class BkoTheme {
       ),
       cardTheme: CardThemeData(
         color: lightBgSurface,
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.04),
+        elevation: 0,
+        shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: lightBorderSubtle, width: 1),
         ),
+      ),
+    );
+  }
+
+  // Noir AMOLED ThemeData Definition
+  static ThemeData get amoledTheme {
+    return darkTheme.copyWith(
+      scaffoldBackgroundColor: const Color(0xFF000000),
+      colorScheme: darkTheme.colorScheme.copyWith(
+        surface: const Color(0xFF0A0A0A),
+      ),
+      cardTheme: darkTheme.cardTheme.copyWith(
+        color: const Color(0xFF0A0A0A),
+        elevation: 0,
+        shadowColor: Colors.transparent,
       ),
     );
   }

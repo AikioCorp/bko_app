@@ -463,6 +463,9 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       videoUrl: active.videoUrl,
                       autoPlay: active.isPlaying,
                       startPosition: active.currentPosition,
+                      onPlaybackError: () => ref
+                          .read(activeEpisodeProvider.notifier)
+                          .pauseVideo(),
                     )
                   else
                     Container(

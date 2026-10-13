@@ -7,6 +7,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/equalizer_loader.dart';
+import '../../core/widgets/notification_permission_primer.dart';
 import '../auth/auth_controller.dart';
 
 class UserTasteOnboardingScreen extends ConsumerStatefulWidget {
@@ -211,6 +212,8 @@ class _UserTasteOnboardingScreenState
         );
         context.pop();
       } else {
+        await NotificationPermissionPrimer.show(context);
+        if (!mounted) return;
         final target = (widget.redirect != null &&
                 widget.redirect!.isNotEmpty &&
                 widget.redirect != '/login')

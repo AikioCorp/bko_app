@@ -25,6 +25,9 @@ class BkoHaptics {
     }
   }
 
+  /// Alias for select()
+  static void selection() => select();
+
   /// Light impact for toggle, like, play/pause, button press.
   static void light() {
     if (_canVibrate()) {

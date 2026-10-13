@@ -29,6 +29,8 @@ dependencies:
   phone_numbers_parser: ^9.0.28
   image_picker: ^1.2.4
   google_sign_in: ^7.2.0
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 
 dev_dependencies:

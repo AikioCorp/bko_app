@@ -6,11 +6,12 @@ import '../../core/storage/token_storage.dart';
 
 /// État d'authentification.
 ///
-/// Le token est persisté de manière chiffrée via [TokenStorage] (FlutterSecureStorage) :
-/// restauré au démarrage (`_restoreSession`), sauvegardé au login, effacé au logout.
+/// Le token d'accès et le refresh token sont persistés de manière chiffrée via [TokenStorage] (FlutterSecureStorage) :
+/// restaurés au démarrage (`_restoreSession`), sauvegardés au login, effacés au logout.
 class AuthState {
   final bool isAuthenticated;
   final String? token;
+  final String? refreshToken;
   final Map<String, dynamic>? user;
   final bool isLoading;
   final String? error;
@@ -18,6 +19,7 @@ class AuthState {
   const AuthState({
     this.isAuthenticated = false,
     this.token,
+    this.refreshToken,
     this.user,
     this.isLoading = false,
     this.error,
@@ -26,6 +28,13 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   AuthNotifier() : super(const AuthState()) {
+    BkoApi.tokenRefreshHandler = () async {
+      final success = await refreshSession();
+      return success ? state.token : null;
+    };
+    BkoApi.onSessionExpired = () {
+      handleSessionExpired();
+    };
     _restoreSession();
   }
 
@@ -36,6 +45,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         isAuthenticated: true,
         token: saved.token,
+        refreshToken: saved.refreshToken,
         user: saved.user,
       );
     }
@@ -46,6 +56,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         isAuthenticated: state.isAuthenticated,
         token: state.token,
+        refreshToken: state.refreshToken,
         user: state.user,
         isLoading: state.isLoading,
         error: null,
@@ -57,7 +68,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     String identifier,
     String password,
   ) async {
-    state = AuthState(isLoading: true, token: state.token, user: state.user);
+    state = AuthState(
+      isLoading: true,
+      token: state.token,
+      refreshToken: state.refreshToken,
+      user: state.user,
+    );
 
     try {
       final data = await BkoApi.post('/auth/login', {
@@ -75,14 +91,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
           ? Map<String, dynamic>.from(data['user'] as Map)
           : null;
       final token = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
       if (token == null || token.isEmpty) {
         const err = 'Connexion incomplète. Réessayez.';
         state = const AuthState(error: err);
         return (ok: false, error: err, isNotVerified: false);
       }
-      await TokenStorage.save(token, user);
+      await TokenStorage.save(token, user, refreshToken: refreshToken);
       await BkoTelemetryService().onUserSwitched(user?['id']?.toString());
-      state = AuthState(isAuthenticated: true, token: token, user: user);
+      state = AuthState(
+        isAuthenticated: true,
+        token: token,
+        refreshToken: refreshToken,
+        user: user,
+      );
       return (ok: true, error: null, isNotVerified: false);
     } on ApiException catch (error) {
       final isNotVerified = error.statusCode == 403 ||
@@ -177,6 +199,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (data is Map) {
         final token = data['accessToken'] as String?;
+        final refreshToken = data['refreshToken'] as String?;
         final user = data['user'] is Map
             ? Map<String, dynamic>.from(data['user'] as Map)
             : null;
@@ -185,9 +208,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return (ok: false, error: 'Compte vérifié, mais session non reçue. Connectez-vous pour continuer.', onboardingCompleted: false);
         }
         if (token.isNotEmpty) {
-          await TokenStorage.save(token, user);
+          await TokenStorage.save(token, user, refreshToken: refreshToken);
           await BkoTelemetryService().onUserSwitched(user['id']?.toString());
-          state = AuthState(isAuthenticated: true, token: token, user: user);
+          state = AuthState(
+            isAuthenticated: true,
+            token: token,
+            refreshToken: refreshToken,
+            user: user,
+          );
         }
 
         final onboardingDone = user['onboardingCompleted'] == true;
@@ -212,17 +240,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
         if (state.user != null) ...state.user!,
         ...newUser,
       };
-      await TokenStorage.save(state.token!, merged);
+      await TokenStorage.save(state.token!, merged, refreshToken: state.refreshToken);
       state = AuthState(
         isAuthenticated: true,
         token: state.token,
+        refreshToken: state.refreshToken,
         user: merged,
       );
     }
   }
 
+  Future<void> fetchMe() async {
+    if (state.token != null) {
+      try {
+        final res = await BkoApi.get('/me', token: state.token);
+        final user = res is Map && res['data'] is Map
+            ? Map<String, dynamic>.from(res['data'] as Map)
+            : (res is Map ? Map<String, dynamic>.from(res) : null);
+        if (user != null) {
+          await updateUser(user);
+        }
+      } catch (_) {}
+    }
+  }
+
   Future<({bool ok, String? error, bool onboardingCompleted})> loginWithGoogle() async {
-    state = AuthState(isLoading: true, token: state.token, user: state.user);
+    state = AuthState(
+      isLoading: true,
+      token: state.token,
+      refreshToken: state.refreshToken,
+      user: state.user,
+    );
     try {
       final googleSignIn = GoogleSignIn.instance;
       await googleSignIn.initialize(
@@ -233,7 +281,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final String? idToken = account.authentication.idToken;
 
       if (idToken == null || idToken.isEmpty) {
-        state = AuthState(isAuthenticated: state.isAuthenticated, token: state.token, user: state.user, isLoading: false);
+        state = AuthState(
+          isAuthenticated: state.isAuthenticated,
+          token: state.token,
+          refreshToken: state.refreshToken,
+          user: state.user,
+          isLoading: false,
+        );
         return (ok: false, error: 'Jeton Google introuvable', onboardingCompleted: false);
       }
 
@@ -245,6 +299,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (data is Map) {
         final token = data['accessToken'] as String?;
+        final refreshToken = data['refreshToken'] as String?;
         final user = data['user'] is Map
             ? Map<String, dynamic>.from(data['user'] as Map)
             : null;
@@ -254,9 +309,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
           return (ok: false, error: 'Réponse serveur invalide', onboardingCompleted: false);
         }
 
-        await TokenStorage.save(token, user);
+        await TokenStorage.save(token, user, refreshToken: refreshToken);
         await BkoTelemetryService().onUserSwitched(user['id']?.toString());
-        state = AuthState(isAuthenticated: true, token: token, user: user);
+        state = AuthState(
+          isAuthenticated: true,
+          token: token,
+          refreshToken: refreshToken,
+          user: user,
+        );
 
         final onboardingDone = user['onboardingCompleted'] == true;
         return (ok: true, error: null, onboardingCompleted: onboardingDone);
@@ -270,6 +330,49 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = const AuthState(isAuthenticated: false, error: 'Erreur lors de la connexion Google');
       return (ok: false, error: 'Erreur lors de la connexion Google : $e', onboardingCompleted: false);
+    }
+  }
+
+  /// Renouvelle le jeton d'accès de manière transparente via le refresh token.
+  Future<bool> refreshSession() async {
+    final curRefresh = state.refreshToken;
+    if (curRefresh == null || curRefresh.isEmpty) {
+      return false;
+    }
+
+    try {
+      final data = await BkoApi.post('/auth/refresh', {
+        'refreshToken': curRefresh,
+      });
+
+      if (data is Map) {
+        final newAccessToken = data['accessToken'] as String?;
+        final newRefreshToken = (data['refreshToken'] as String?) ?? curRefresh;
+        if (newAccessToken != null && newAccessToken.isNotEmpty) {
+          await TokenStorage.save(
+            newAccessToken,
+            state.user,
+            refreshToken: newRefreshToken,
+          );
+          state = AuthState(
+            isAuthenticated: true,
+            token: newAccessToken,
+            refreshToken: newRefreshToken,
+            user: state.user,
+          );
+          return true;
+        }
+      }
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Réinitialise la session locale en cas de session expirée ou révoquée.
+  Future<void> handleSessionExpired() async {
+    if (state.isAuthenticated || state.token != null) {
+      await logout();
     }
   }
 

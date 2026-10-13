@@ -4,6 +4,7 @@ import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
+import '../library_screen.dart';
 
 class PlaylistPickerSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic> episode;
@@ -99,6 +100,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
       );
 
       if (!mounted) return;
+      ref.read(libraryUpdateSignalProvider.notifier).state++;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -235,6 +237,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
           // Immediately add current episode to the newly created playlist
           await _addToPlaylist(Map<String, dynamic>.from(newPlaylist));
         } else {
+          ref.read(libraryUpdateSignalProvider.notifier).state++;
           _fetchPlaylists();
         }
       } catch (_) {

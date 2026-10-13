@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:country_picker/country_picker.dart';
 
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
@@ -14,7 +15,8 @@ class CreatePodcastScreen extends ConsumerStatefulWidget {
   const CreatePodcastScreen({super.key});
 
   @override
-  ConsumerState<CreatePodcastScreen> createState() => _CreatePodcastScreenState();
+  ConsumerState<CreatePodcastScreen> createState() =>
+      _CreatePodcastScreenState();
 }
 
 class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
@@ -26,6 +28,7 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
   String _format = 'AUDIO_AND_VIDEO'; // AUDIO, VIDEO, AUDIO_AND_VIDEO
   String _language = 'fr';
   bool _submitting = false;
+  Country? _country;
 
   @override
   void dispose() {
@@ -37,6 +40,11 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
 
   Future<void> _submit({bool isDraft = false}) async {
     if (!_formKey.currentState!.validate()) return;
+    if (_country == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Choisissez le pays de votre émission.')));
+      return;
+    }
     final auth = ref.read(authProvider);
     if (!auth.isAuthenticated || auth.token == null) return;
 
@@ -48,19 +56,20 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
         'description': _descriptionController.text.trim(),
         'format': _format,
         'primaryLanguageCode': _language,
-        'countryId': 'ML',
+        'countryId': _country!.countryCode,
         'cover': _coverUrlController.text.trim().isNotEmpty
             ? _coverUrlController.text.trim()
-            : 'https://d3t3ozftmdmh3i.cloudfront.net/staging/podcast_uploaded_nologo/placeholder.jpg',
-        'status': isDraft ? 'DRAFT' : 'PUBLISHED',
+            : '',
+        'status': 'DRAFT',
       };
 
       await BkoApi.post('/creator/podcasts', body, token: auth.token);
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isDraft ? 'Brouillon enregistré avec succès.' : 'Émission créée et publiée avec succès !'),
+        const SnackBar(
+          content: Text(
+              'Émission enregistrée en brouillon. Ajoutez votre premier épisode.'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: BkoTheme.goldAccent,
         ),
@@ -105,7 +114,8 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
         leading: const AppBackButton(),
         title: Text(
           'Nouvelle Émission',
-          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
+          style: BkoTheme.fontLato(
+              fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
       ),
       body: SingleChildScrollView(
@@ -115,6 +125,15 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              OutlinedButton.icon(
+                icon: const Icon(IconsaxPlusLinear.global),
+                label: Text(_country?.name ?? 'Choisir le pays de l’émission'),
+                onPressed: () => showCountryPicker(
+                    context: context,
+                    showPhoneCode: false,
+                    onSelect: (country) => setState(() => _country = country)),
+              ),
+              const SizedBox(height: 16),
               // Format Selection
               Text(
                 'FORMAT DE L\'ÉMISSION',
@@ -128,11 +147,14 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  _formatOption('AUDIO', 'Audio seul', IconsaxPlusLinear.headphone),
+                  _formatOption(
+                      'AUDIO', 'Audio seul', IconsaxPlusLinear.headphone),
                   const SizedBox(width: 8),
-                  _formatOption('VIDEO', 'Vidéo seule', IconsaxPlusLinear.video),
+                  _formatOption(
+                      'VIDEO', 'Vidéo seule', IconsaxPlusLinear.video),
                   const SizedBox(width: 8),
-                  _formatOption('AUDIO_AND_VIDEO', 'Audio & Vidéo', IconsaxPlusLinear.radio),
+                  _formatOption('AUDIO_AND_VIDEO', 'Audio & Vidéo',
+                      IconsaxPlusLinear.radio),
                 ],
               ),
 
@@ -152,8 +174,11 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
               TextFormField(
                 controller: _nameController,
                 style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                decoration: _inputDecoration('Ex: Les Voix du Mali', borderSub, bgElevated),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Le nom est obligatoire.' : null,
+                decoration: _inputDecoration(
+                    'Ex: Les Voix du Mali', borderSub, bgElevated),
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'Le nom est obligatoire.'
+                    : null,
               ),
 
               const SizedBox(height: 20),
@@ -173,8 +198,13 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
                 controller: _descriptionController,
                 maxLines: 4,
                 style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                decoration: _inputDecoration('Présentez votre émission aux auditeurs...', borderSub, bgElevated),
-                validator: (val) => val == null || val.trim().isEmpty ? 'La description est obligatoire.' : null,
+                decoration: _inputDecoration(
+                    'Présentez votre émission aux auditeurs...',
+                    borderSub,
+                    bgElevated),
+                validator: (val) => val == null || val.trim().isEmpty
+                    ? 'La description est obligatoire.'
+                    : null,
               ),
 
               const SizedBox(height: 20),
@@ -193,7 +223,8 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
               TextFormField(
                 controller: _coverUrlController,
                 style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                decoration: _inputDecoration('https://exemple.com/pochette.jpg', borderSub, bgElevated),
+                decoration: _inputDecoration(
+                    'https://exemple.com/pochette.jpg', borderSub, bgElevated),
               ),
 
               const SizedBox(height: 20),
@@ -216,8 +247,10 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
                 decoration: _inputDecoration('', borderSub, bgElevated),
                 items: const [
                   DropdownMenuItem(value: 'fr', child: Text('Français')),
-                  DropdownMenuItem(value: 'bm', child: Text('Bambara (Bamanankan)')),
-                  DropdownMenuItem(value: 'ff', child: Text('Foulfouldé (Peul)')),
+                  DropdownMenuItem(
+                      value: 'bm', child: Text('Bambara (Bamanankan)')),
+                  DropdownMenuItem(
+                      value: 'ff', child: Text('Foulfouldé (Peul)')),
                   DropdownMenuItem(value: 'en', child: Text('Anglais')),
                 ],
                 onChanged: (val) => setState(() => _language = val ?? 'fr'),
@@ -276,7 +309,7 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
-                            'PUBLIER',
+                            'CRÉER LE BROUILLON',
                             style: BkoTheme.fontLato(
                               fontSize: 12,
                               fontWeight: FontWeight.w900,
@@ -311,7 +344,9 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? BkoTheme.goldAccent.withValues(alpha: 0.15) : bgElevated,
+            color: selected
+                ? BkoTheme.goldAccent.withValues(alpha: 0.15)
+                : bgElevated,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected ? BkoTheme.goldAccent : borderSub,
@@ -322,7 +357,9 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
             children: [
               Icon(
                 icon,
-                color: selected ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context),
+                color: selected
+                    ? BkoTheme.goldAccent
+                    : BkoTheme.getTextSecondary(context),
                 size: 20,
               ),
               const SizedBox(height: 4),
@@ -331,7 +368,9 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
                 style: BkoTheme.fontLato(
                   fontSize: 11,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? BkoTheme.goldAccent : BkoTheme.getTextPrimary(context),
+                  color: selected
+                      ? BkoTheme.goldAccent
+                      : BkoTheme.getTextPrimary(context),
                 ),
               ),
             ],
@@ -344,7 +383,8 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
   InputDecoration _inputDecoration(String hint, Color border, Color bg) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextMuted(context)),
+      hintStyle: BkoTheme.fontLato(
+          fontSize: 13, color: BkoTheme.getTextMuted(context)),
       filled: true,
       fillColor: bg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

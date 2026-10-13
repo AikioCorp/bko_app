@@ -1,3 +1,4 @@
+import 'section_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,217 +137,103 @@ class _SectionDiscoveryScreenState
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     if (maxScroll - currentScroll <= 300) {
-      if (!_isLoading && !_isLoadingMore && _hasMore) {
+      if (!_loadingFirstPage && !_isLoadingMore && _hasMore && _loadMoreError == null) {
         _fetchMore();
       }
     }
   }
 
+  int _requestGeneration = 0;
+  bool _loadingFirstPage = false;
+  String? _loadMoreError;
+  bool _serverPageLoaded = false;
+
+  String _itemKey(Map<String, dynamic> item) =>
+      '${item['targetType']}:${item['episode']?['id'] ?? item['podcast']?['id'] ?? item['collection']?['id'] ?? item['id']}';
+
+  Future<SectionPage> _requestPage(int offset) async {
+    final parameters = <String, String>{'offset': '$offset', 'limit': '$_limit'};
+    if (widget.category != null && widget.category != 'all') parameters['category'] = widget.category!;
+    if (widget.batchId != null) parameters['batchId'] = widget.batchId!;
+    final token = ref.read(authProvider).token;
+    final slug = widget.initialSlug ?? widget.sectionId;
+    Future<dynamic> request(String id) => BkoApi.get(
+      Uri(path: '/home/sections/$id', queryParameters: parameters).toString(), token: token);
+    dynamic payload;
+    try {
+      payload = await request(slug);
+    } on ApiException catch (error) {
+      if (error.statusCode != 404 || slug == widget.sectionId) rethrow;
+      payload = await request(widget.sectionId);
+    }
+    return SectionPage.parse(payload);
+  }
+
   Future<void> _fetchSection({bool isRefresh = false}) async {
-    if (!mounted) return;
+    if (!mounted || _loadingFirstPage) return;
+    final generation = ++_requestGeneration;
     setState(() {
-      if (isRefresh && _items.isEmpty) {
-        _isLoading = true;
-      }
+      _loadingFirstPage = true;
+      _isLoading = _items.isEmpty;
+      _isLoadingMore = false;
       _hasError = false;
+      _loadMoreError = null;
       _errorMessage = '';
     });
-
     try {
-      final queryParams = <String, String>{
-        'offset': '0',
-        'limit': '$_limit',
-      };
-      if (widget.category != null && widget.category!.isNotEmpty && widget.category != 'all') {
-        queryParams['category'] = widget.category!;
-      }
-      if (widget.batchId != null && widget.batchId!.isNotEmpty) {
-        queryParams['batchId'] = widget.batchId!;
-      }
-
-      final slugOrId = widget.initialSlug ?? widget.sectionId;
-      final uri = Uri(
-        path: '/home/sections/$slugOrId',
-        queryParameters: queryParams,
-      );
-
-      final token = ref.read(authProvider).token;
-      dynamic res;
-      try {
-        res = await BkoApi.get(uri.toString(), token: token);
-      } catch (_) {
-        if (widget.initialSlug != null && widget.initialSlug != widget.sectionId) {
-          try {
-            final fallbackUri = Uri(
-              path: '/home/sections/${widget.sectionId}',
-              queryParameters: queryParams,
-            );
-            res = await BkoApi.get(fallbackUri.toString(), token: token);
-          } catch (_) {}
-        }
-      }
-
-      if (!mounted) return;
-
-      if (res is Map && res['success'] == true && res['data'] is Map) {
-        final data = Map<String, dynamic>.from(res['data']);
-        final sec = data['section'] is Map ? Map<String, dynamic>.from(data['section']) : <String, dynamic>{};
-        final rawItems = data['items'] is List ? List<dynamic>.from(data['items']) : [];
-        final pagination = data['pagination'] is Map ? Map<String, dynamic>.from(data['pagination']) : {};
-
-        final parsedItems = rawItems
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-
-        setState(() {
-          _sectionMeta = {
-            ..._sectionMeta,
-            ...sec,
-          };
-          _items.clear();
-          _items.addAll(parsedItems);
-          _offset = parsedItems.length;
-          _total = (pagination['total'] as num?)?.toInt() ?? parsedItems.length;
-          _hasMore = pagination['hasMore'] == true;
-          _isLoading = false;
-          _hasError = false;
-        });
-        return;
-      }
-
-      // Fallback gracieux si l'API distante n'a pas encore le nouvel endpoint déployé
-      if (_items.isNotEmpty) {
-        setState(() {
-          _isLoading = false;
-          _hasError = false;
-        });
-        return;
-      }
-
-      // Si le cache était vide et que l'endpoint dédié n'a pas répondu, interroger le catalogue public
-      final isPodcast = (_sectionMeta['type']?.toString().toUpperCase().contains('PODCAST') ?? false);
-      if (isPodcast) {
-        final catParam = (widget.category != null && widget.category != 'all') ? '?category=${widget.category}' : '';
-        final fallbackRes = await BkoApi.get('/podcasts$catParam');
-        if (!mounted) return;
-        final list = (fallbackRes is List ? fallbackRes : (fallbackRes is Map && fallbackRes['data'] is List ? fallbackRes['data'] as List : []))
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-        if (list.isNotEmpty) {
-          setState(() {
-            _items.clear();
-            _items.addAll(list);
-            _offset = list.length;
-            _total = list.length;
-            _hasMore = false;
-            _isLoading = false;
-            _hasError = false;
-          });
-          return;
-        }
-      } else {
-        final fallbackRes = await BkoApi.get('/episodes/recent');
-        if (!mounted) return;
-        final list = (fallbackRes is List ? fallbackRes : (fallbackRes is Map && fallbackRes['data'] is List ? fallbackRes['data'] as List : []))
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-        if (list.isNotEmpty) {
-          setState(() {
-            _items.clear();
-            _items.addAll(list);
-            _offset = list.length;
-            _total = list.length;
-            _hasMore = false;
-            _isLoading = false;
-            _hasError = false;
-          });
-          return;
-        }
-      }
-
+      final page = await _requestPage(0);
+      if (!mounted || generation != _requestGeneration) return;
+      final seen = <String>{};
       setState(() {
-        _isLoading = false;
-        _hasError = true;
-        _errorMessage = 'Section introuvable.';
+        _sectionMeta = {..._sectionMeta, ...page.section};
+        _items.clear();
+        _items.addAll(page.items.where((item) => seen.add(_itemKey(item))));
+        _offset = page.nextOffset;
+        _total = page.total;
+        _hasMore = page.hasMore;
+        _serverPageLoaded = true;
       });
-    } catch (e) {
-      if (!mounted) return;
-      if (_items.isNotEmpty) {
-        setState(() {
-          _isLoading = false;
-          _hasError = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-          _hasError = true;
-          _errorMessage = 'Connexion impossible. Réessayez dans un instant.';
-        });
+    } catch (error) {
+      if (!mounted || generation != _requestGeneration) return;
+      setState(() {
+        _hasError = true;
+        _errorMessage = error is ApiException ? error.message
+            : 'Impossible de charger cette sélection. Réessayez.';
+      });
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() { _isLoading = false; _loadingFirstPage = false; });
       }
     }
   }
 
   Future<void> _fetchMore() async {
-    if (_isLoadingMore || !_hasMore) return;
-    setState(() => _isLoadingMore = true);
-
+    if (_isLoadingMore || _loadingFirstPage || !_hasMore) return;
+    final generation = _requestGeneration;
+    setState(() { _isLoadingMore = true; _loadMoreError = null; });
     try {
-      final queryParams = <String, String>{
-        'offset': '$_offset',
-        'limit': '$_limit',
-      };
-      if (widget.category != null && widget.category!.isNotEmpty && widget.category != 'all') {
-        queryParams['category'] = widget.category!;
+      final page = await _requestPage(_offset);
+      if (!mounted || generation != _requestGeneration) return;
+      if (page.nextOffset <= _offset && page.hasMore) {
+        throw const FormatException('Pagination sans progression');
       }
-      if (widget.batchId != null && widget.batchId!.isNotEmpty) {
-        queryParams['batchId'] = widget.batchId!;
-      }
-
-      final slugOrId = widget.initialSlug ?? widget.sectionId;
-      final uri = Uri(
-        path: '/home/sections/$slugOrId',
-        queryParameters: queryParams,
-      );
-
-      final token = ref.read(authProvider).token;
-      dynamic res;
-      try {
-        res = await BkoApi.get(uri.toString(), token: token);
-      } catch (_) {}
-
-      if (!mounted) return;
-
-      if (res is Map && res['success'] == true && res['data'] is Map) {
-        final data = Map<String, dynamic>.from(res['data']);
-        final rawItems = data['items'] is List ? List<dynamic>.from(data['items']) : [];
-        final pagination = data['pagination'] is Map ? Map<String, dynamic>.from(data['pagination']) : {};
-
-        final parsedItems = rawItems
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
-
-        setState(() {
-          _items.addAll(parsedItems);
-          _offset += parsedItems.length;
-          _total = (pagination['total'] as num?)?.toInt() ?? _total;
-          _hasMore = pagination['hasMore'] == true;
-          _isLoadingMore = false;
-        });
-      } else {
-        setState(() {
-          _hasMore = false;
-          _isLoadingMore = false;
-        });
-      }
+      final seen = _items.map(_itemKey).toSet();
+      setState(() {
+        _items.addAll(page.items.where((item) => seen.add(_itemKey(item))));
+        _offset = page.nextOffset;
+        _total = page.total;
+        _hasMore = page.hasMore;
+      });
     } catch (_) {
-      if (mounted) setState(() => _isLoadingMore = false);
+      if (mounted && generation == _requestGeneration) {
+        setState(() => _loadMoreError = 'Impossible de charger la suite. Réessayez.');
+      }
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() => _isLoadingMore = false);
+      }
     }
   }
-
   void _triggerPlayEpisode(Map<String, dynamic> ep, {Map<String, dynamic>? attribution}) {
     if (ep.isEmpty) return;
     final podcastName = ep['podcast']?['name'] ??
@@ -463,6 +350,16 @@ class _SectionDiscoveryScreenState
                                   ),
 
                                   // Format Filter Chips (Episodes only)
+                                  if (_loadingFirstPage || _hasError)
+                                    SliverToBoxAdapter(child: Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      child: _loadingFirstPage
+                                          ? const Center(child: EqualizerLoader(size: 20))
+                                          : Column(children: [
+                                              Text(_errorMessage, style: BkoTheme.fontPoppins(fontSize: 13, color: textSec)),
+                                              TextButton(onPressed: () => _fetchSection(isRefresh: true), child: const Text('Réessayer')),
+                                            ]),
+                                    )),
                                   if (!isPodcastRow)
                                     SliverToBoxAdapter(
                                       child: Padding(
@@ -533,7 +430,16 @@ class _SectionDiscoveryScreenState
                                     ),
 
                                   // End of list confirmation
-                                  if (!_hasMore && _items.isNotEmpty)
+                                  if (_hasMore && !_isLoadingMore && !_loadingFirstPage)
+                                    SliverToBoxAdapter(child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(children: [
+                                        if (_loadMoreError != null) Text(_loadMoreError!, style: BkoTheme.fontPoppins(fontSize: 13, color: textSec)),
+                                        TextButton(onPressed: _fetchMore,
+                                          child: Text(_loadMoreError == null ? 'Charger davantage' : 'Réessayer')),
+                                      ]),
+                                    )),
+                                  if (_serverPageLoaded && !_hasMore && _items.isNotEmpty)
                                     SliverToBoxAdapter(
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(vertical: 32),

@@ -8,6 +8,7 @@ import '../../../core/theme/bko_theme.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
 import '../../downloads/download_manager.dart';
+import '../../library/library_screen.dart';
 import '../../library/widgets/playlist_picker_sheet.dart';
 import '../../shell/shell_providers.dart';
 
@@ -139,6 +140,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
         _isSaved = !currentSaved;
         _isSaving = false;
       });
+      ref.read(libraryUpdateSignalProvider.notifier).state++;
       widget.onSavedStateChanged?.call();
 
       if (!mounted) return;

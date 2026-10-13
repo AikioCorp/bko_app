@@ -11,6 +11,7 @@ import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
 import '../downloads/download_manager.dart';
+import '../library/library_screen.dart';
 import '../library/widgets/playlist_picker_sheet.dart';
 import '../player/widgets/bko_play_button.dart';
 import '../player/youtube_player_widget.dart';
@@ -248,6 +249,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
         await BkoApi.post('/episodes/$episodeId/save', {}, token: auth.token);
       }
       if (mounted) {
+        ref.read(libraryUpdateSignalProvider.notifier).state++;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(!wasSaved
@@ -447,6 +449,12 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                 ? BkoYoutubePlayerWidget(
                     coverUrl: cover,
                     videoUrl: videoUrl,
+                    onPlaybackError: () {
+                      final active = ref.read(activeEpisodeProvider);
+                      if (active.episodeId == _episode?['id']) {
+                        ref.read(activeEpisodeProvider.notifier).pauseVideo();
+                      }
+                    },
                   )
                 : ClipRRect(
                     borderRadius: BorderRadius.circular(20),

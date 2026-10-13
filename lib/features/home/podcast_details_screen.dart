@@ -15,6 +15,7 @@ import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
 import '../player/full_audio_player_sheet.dart';
 import '../player/widgets/bko_play_button.dart';
+import '../library/library_screen.dart';
 import 'widgets/episode_actions_sheet.dart';
 import 'widgets/episode_list_item.dart';
 
@@ -288,7 +289,10 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
       } else {
         await BkoApi.post('/podcasts/$podcastId/follow', {}, token: auth.token);
       }
-      if (mounted) setState(() => _isFollowing = !_isFollowing);
+      if (mounted) {
+        setState(() => _isFollowing = !_isFollowing);
+        ref.read(libraryUpdateSignalProvider.notifier).state++;
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

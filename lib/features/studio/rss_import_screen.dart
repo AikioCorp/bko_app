@@ -11,7 +11,8 @@ import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 
 class RssImportScreen extends ConsumerStatefulWidget {
-  const RssImportScreen({super.key});
+  final String? initialPodcastId;
+  const RssImportScreen({super.key, this.initialPodcastId});
 
   @override
   ConsumerState<RssImportScreen> createState() => _RssImportScreenState();
@@ -19,7 +20,8 @@ class RssImportScreen extends ConsumerStatefulWidget {
 
 class _RssImportScreenState extends ConsumerState<RssImportScreen> {
   final _urlController = TextEditingController();
-  int _step = 1; // 1: URL input & podcast select, 2: Preview & mapping, 3: Confirm & sync
+  int _step =
+      1; // 1: URL input & podcast select, 2: Preview & mapping, 3: Confirm & sync
   bool _analyzing = false;
   bool _importing = false;
   String? _errorMessage;
@@ -51,30 +53,42 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
     }
     try {
       final res = await BkoApi.get('/creator/podcasts', token: auth.token);
-      final list = (res is List ? res : (res is Map && res['data'] is List ? res['data'] : [])) as List;
+      final list = (res is List
+          ? res
+          : (res is Map && res['data'] is List ? res['data'] : [])) as List;
       if (mounted) {
         setState(() {
           _podcasts = list;
           if (_podcasts.isNotEmpty) {
-            _selectedPodcastId = '${_podcasts.first['id']}';
+            _selectedPodcastId =
+                _podcasts.any((p) => '${p['id']}' == widget.initialPodcastId)
+                    ? widget.initialPodcastId
+                    : '${_podcasts.first['id']}';
           }
           _loadingPodcasts = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _loadingPodcasts = false);
+      if (mounted) {
+        setState(() {
+          _loadingPodcasts = false;
+          _errorMessage = 'Impossible de charger vos émissions. Réessayez.';
+        });
+      }
     }
   }
 
   Future<void> _analyzeRssFeed() async {
     final url = _urlController.text.trim();
     if (url.isEmpty || !url.startsWith('http')) {
-      setState(() => _errorMessage = 'Veuillez saisir une adresse HTTP(S) de flux RSS valide.');
+      setState(() => _errorMessage =
+          'Veuillez saisir une adresse HTTP(S) de flux RSS valide.');
       return;
     }
 
     if (_selectedPodcastId == null) {
-      setState(() => _errorMessage = 'Veuillez sélectionner une émission pour y lier ce flux RSS.');
+      setState(() => _errorMessage =
+          'Veuillez sélectionner une émission pour y lier ce flux RSS.');
       return;
     }
 
@@ -120,7 +134,11 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
 
   Future<void> _confirmImport() async {
     final auth = ref.read(authProvider);
-    if (!auth.isAuthenticated || auth.token == null || _selectedPodcastId == null) return;
+    if (!auth.isAuthenticated ||
+        auth.token == null ||
+        _selectedPodcastId == null) {
+      return;
+    }
 
     setState(() {
       _importing = true;
@@ -173,7 +191,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
         leading: const AppBackButton(),
         title: Text(
           'Importation RSS',
-          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
+          style: BkoTheme.fontLato(
+              fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
       ),
       body: _loadingPodcasts
@@ -187,6 +206,14 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_podcasts.isEmpty)
+                    TextButton(
+                        onPressed: () async {
+                          await context.push('/studio/podcasts/new');
+                          if (mounted) _loadCreatorPodcasts();
+                        },
+                        child: const Text(
+                            'Créer d’abord une émission pour accueillir le flux RSS')),
                   // Step Indicator
                   Row(
                     children: [
@@ -212,17 +239,22 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         ),
                         child: Column(
                           children: [
-                            const Icon(IconsaxPlusLinear.radio, size: 48, color: BkoTheme.goldAccent),
+                            const Icon(IconsaxPlusLinear.radio,
+                                size: 48, color: BkoTheme.goldAccent),
                             const SizedBox(height: 12),
                             Text(
                               'Aucune émission trouvée',
-                              style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800, color: textPri),
+                              style: BkoTheme.fontLato(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPri),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               'Vous devez d\'abord créer une émission dans votre studio avant de pouvoir y associer un flux RSS.',
                               textAlign: TextAlign.center,
-                              style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
+                              style: BkoTheme.fontLato(
+                                  fontSize: 13, color: textSec, height: 1.4),
                             ),
                             const SizedBox(height: 20),
                             BkoBounceable(
@@ -231,7 +263,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                                 context.push('/studio/podcasts/new');
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: BkoTheme.goldAccent,
                                   borderRadius: BorderRadius.circular(12),
@@ -267,27 +300,29 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: bgElevated,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(color: borderSub),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: BkoTheme.goldAccent),
+                            borderSide:
+                                const BorderSide(color: BkoTheme.goldAccent),
                           ),
                         ),
                         items: _podcasts.map<DropdownMenuItem<String>>((p) {
                           return DropdownMenuItem<String>(
                             value: '${p['id']}',
-                            child: Text(p['name'] ?? 'Émission', overflow: TextOverflow.ellipsis),
+                            child: Text(p['name'] ?? 'Émission',
+                                overflow: TextOverflow.ellipsis),
                           );
                         }).toList(),
-                        onChanged: (val) => setState(() => _selectedPodcastId = val),
+                        onChanged: (val) =>
+                            setState(() => _selectedPodcastId = val),
                       ),
-
                       const SizedBox(height: 20),
-
                       Text(
                         'ADRESSE DU FLUX RSS',
                         style: BkoTheme.fontLato(
@@ -303,35 +338,45 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         style: BkoTheme.fontLato(fontSize: 14, color: textPri),
                         decoration: InputDecoration(
                           hintText: 'https://anchor.fm/s/12345/podcast/rss',
-                          hintStyle: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextMuted(context)),
+                          hintStyle: BkoTheme.fontLato(
+                              fontSize: 13,
+                              color: BkoTheme.getTextMuted(context)),
                           filled: true,
                           fillColor: bgElevated,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 14),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
                             borderSide: BorderSide(color: borderSub),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(14),
-                            borderSide: const BorderSide(color: BkoTheme.goldAccent),
+                            borderSide:
+                                const BorderSide(color: BkoTheme.goldAccent),
                           ),
                         ),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Compatible avec Anchor, Spotify for Podcasters, Acast, Buzzsprout, Libsyn, Apple Podcasts et tout flux RSS 2.0 standard.',
-                        style: BkoTheme.fontLato(fontSize: 11.5, color: textSec, height: 1.4),
+                        style: BkoTheme.fontLato(
+                            fontSize: 11.5, color: textSec, height: 1.4),
                       ),
-
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .error
+                                .withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .error
+                                  .withValues(alpha: 0.3),
                             ),
                           ),
                           child: Text(
@@ -343,13 +388,12 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                           ),
                         ),
                       ],
-
                       const SizedBox(height: 32),
-
                       if (_analyzing)
                         const Center(
                           child: CircularProgressIndicator.adaptive(
-                            valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                            valueColor:
+                                AlwaysStoppedAnimation(BkoTheme.goldAccent),
                           ),
                         )
                       else
@@ -414,56 +458,71 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         children: [
                           Text(
                             '${_previewData!['title'] ?? 'Émission RSS'}',
-                            style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800, color: textPri),
+                            style: BkoTheme.fontLato(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: textPri),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             '${_previewData!['description'] ?? 'Aucune description'}',
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: BkoTheme.fontLato(fontSize: 12.5, color: textSec, height: 1.4),
+                            style: BkoTheme.fontLato(
+                                fontSize: 12.5, color: textSec, height: 1.4),
                           ),
                           const SizedBox(height: 14),
                           Row(
                             children: [
-                              const Icon(IconsaxPlusLinear.radio, size: 16, color: BkoTheme.goldAccent),
+                              const Icon(IconsaxPlusLinear.radio,
+                                  size: 16, color: BkoTheme.goldAccent),
                               const SizedBox(width: 6),
                               Text(
                                 '${_previewData!['itemCount'] ?? _previewData!['episodesCount'] ?? 0} épisodes détectés',
-                                style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: textPri),
+                                style: BkoTheme.fontLato(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: textPri),
                               ),
                             ],
                           ),
                         ],
                       ),
                     ),
-
                     const SizedBox(height: 20),
-
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       value: _autoSync,
                       activeThumbColor: BkoTheme.goldAccent,
                       title: Text(
                         'Synchronisation automatique',
-                        style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w800, color: textPri),
+                        style: BkoTheme.fontLato(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w800,
+                            color: textPri),
                       ),
                       subtitle: Text(
                         'Importer automatiquement les nouveaux épisodes publiés sur le flux RSS.',
-                        style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                        style:
+                            BkoTheme.fontLato(fontSize: 11.5, color: textSec),
                       ),
                       onChanged: (val) => setState(() => _autoSync = val),
                     ),
-
                     if (_errorMessage != null) ...[
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .error
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .error
+                                .withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
@@ -475,13 +534,12 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 28),
-
                     if (_importing)
                       const Center(
                         child: CircularProgressIndicator.adaptive(
-                          valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                          valueColor:
+                              AlwaysStoppedAnimation(BkoTheme.goldAccent),
                         ),
                       )
                     else
@@ -494,7 +552,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                                 setState(() => _step = 1);
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: bgElevated,
@@ -521,7 +580,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                                 _confirmImport();
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: BkoTheme.goldAccent,
@@ -557,7 +617,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                                color:
+                                    BkoTheme.goldAccent.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(
@@ -569,13 +630,17 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                             const SizedBox(height: 20),
                             Text(
                               'Flux RSS Connecté !',
-                              style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w800, color: textPri),
+                              style: BkoTheme.fontLato(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPri),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               'L\'émission et ses épisodes sont en cours de synchronisation avec Bamako Podcast.',
                               textAlign: TextAlign.center,
-                              style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
+                              style: BkoTheme.fontLato(
+                                  fontSize: 13, color: textSec, height: 1.4),
                             ),
                             const SizedBox(height: 28),
                             BkoBounceable(
@@ -584,7 +649,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                                 context.go('/studio');
                               },
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 32, vertical: 14),
                                 decoration: BoxDecoration(
                                   color: BkoTheme.goldAccent,
                                   borderRadius: BorderRadius.circular(14),
@@ -619,10 +685,14 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
           height: 32,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: active ? BkoTheme.goldAccent : BkoTheme.getBgSurfaceElevated(context),
+            color: active
+                ? BkoTheme.goldAccent
+                : BkoTheme.getBgSurfaceElevated(context),
             shape: BoxShape.circle,
             border: Border.all(
-              color: active ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
+              color: active
+                  ? BkoTheme.goldAccent
+                  : BkoTheme.getBorderSubtle(context),
             ),
           ),
           child: Text(
@@ -630,7 +700,9 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
             style: BkoTheme.fontLato(
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: active ? BkoTheme.darkBgObsidian : BkoTheme.getTextSecondary(context),
+              color: active
+                  ? BkoTheme.darkBgObsidian
+                  : BkoTheme.getTextSecondary(context),
             ),
           ),
         ),
@@ -639,7 +711,9 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
           label,
           style: BkoTheme.fontLato(
             fontSize: 10,
-            color: active ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context),
+            color: active
+                ? BkoTheme.goldAccent
+                : BkoTheme.getTextSecondary(context),
           ),
         ),
       ],

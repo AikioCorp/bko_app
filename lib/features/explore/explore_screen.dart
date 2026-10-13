@@ -10,6 +10,8 @@ import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
+import '../auth/auth_controller.dart';
+import '../home/widgets/bko_drawer.dart';
 import '../home/widgets/episode_list_item.dart';
 import '../shell/shell_providers.dart';
 
@@ -327,6 +329,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
     final surface = BkoTheme.getBgSurface(context);
     final border = BkoTheme.getBorderSubtle(context);
     final canPop = widget.isStandalone || Navigator.canPop(context);
+    final auth = ref.watch(authProvider);
 
     final hasActiveFilters = (_selectedCategory != null && _selectedCategory!.isNotEmpty) ||
         (_selectedLang != null && _selectedLang!.isNotEmpty) ||
@@ -336,6 +339,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
 
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
+      drawer: const BkoDrawer(),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,6 +373,24 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 size: 18,
                                 color: Colors.white,
                               ),
+                            ),
+                          ),
+                        ),
+                      ] else if (auth.isAuthenticated) ...[
+                        BkoBounceable(
+                          onTap: () {
+                            BkoHaptics.light();
+                            Scaffold.of(context).openDrawer();
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
+                            margin: const EdgeInsets.only(right: 6),
+                            child: Icon(
+                              IconsaxPlusLinear.menu_1,
+                              size: 22,
+                              color: textPri,
                             ),
                           ),
                         ),

@@ -478,6 +478,37 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
 
   Future<void> deleteTask(String episodeId) => deleteDownload(episodeId);
 
+  Future<void> clearAllDownloads() async {
+    for (final task in state) {
+      if (task.localPath != null) {
+        final file = File(task.localPath!);
+        if (await file.exists()) {
+          try {
+            await file.delete();
+          } catch (_) {}
+        }
+      }
+    }
+    state = [];
+    await _savePersistedTasks();
+  }
+
+  Future<void> deleteCompletedDownloads() async {
+    final completed = state.where((t) => t.status == DownloadStatus.completed).toList();
+    for (final task in completed) {
+      if (task.localPath != null) {
+        final file = File(task.localPath!);
+        if (await file.exists()) {
+          try {
+            await file.delete();
+          } catch (_) {}
+        }
+      }
+    }
+    state = state.where((t) => t.status != DownloadStatus.completed).toList();
+    await _savePersistedTasks();
+  }
+
   bool isDownloaded(String episodeId) {
     return state.any((t) => t.episodeId == episodeId && t.status == DownloadStatus.completed);
   }

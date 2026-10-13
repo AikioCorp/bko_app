@@ -7,6 +7,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
+import '../library/library_screen.dart';
 import '../player/full_audio_player_sheet.dart';
 import 'bko_mini_player.dart';
 import 'shell_providers.dart';
@@ -23,6 +24,7 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell>
     with SingleTickerProviderStateMixin {
   DateTime? _lastHistorySync;
+  String? _lastTrackedEpisodeId;
 
   int _calculateSelectedIndex(BuildContext context) {
     if (widget.navigationShell != null) {
@@ -36,28 +38,40 @@ class _AppShellState extends ConsumerState<AppShell>
   }
 
   Future<void> _syncHistory(ActiveEpisodeState episode) async {
-    if (!episode.hasActiveEpisode ||
-        episode.episodeId.isEmpty ||
-        episode.currentPosition.inSeconds < 5) {
+    if (!episode.hasActiveEpisode || episode.episodeId.isEmpty) {
       return;
     }
+    final isNewEpisode = _lastTrackedEpisodeId != episode.episodeId;
     final now = DateTime.now();
-    if (_lastHistorySync != null &&
-        now.difference(_lastHistorySync!) < const Duration(seconds: 20)) {
-      return;
+
+    // Pour un nouvel épisode, on enregistre immédiatement dès le début d'écoute.
+    // Pour le même épisode, on cadence à une mise à jour toutes les 15 secondes.
+    if (!isNewEpisode) {
+      if (_lastHistorySync != null &&
+          now.difference(_lastHistorySync!) < const Duration(seconds: 15)) {
+        return;
+      }
     }
+
     final token = ref.read(authProvider).token;
     if (token == null || token.isEmpty) return;
+
     _lastHistorySync = now;
+    _lastTrackedEpisodeId = episode.episodeId;
+
     try {
       await BkoApi.post(
-          '/me/history',
-          {
-            'episodeId': episode.episodeId,
-            'positionSeconds': episode.currentPosition.inSeconds,
-            'durationSeconds': episode.totalDuration.inSeconds,
-          },
-          token: token);
+        '/me/history',
+        {
+          'episodeId': episode.episodeId,
+          'positionSeconds': episode.currentPosition.inSeconds,
+          'durationSeconds': episode.totalDuration.inSeconds,
+        },
+        token: token,
+      );
+      if (mounted) {
+        ref.read(libraryUpdateSignalProvider.notifier).state++;
+      }
     } catch (_) {
       _lastHistorySync = null;
     }

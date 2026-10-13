@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1059047643869",
+    "project_id": "bkopodcast-e4c86",
+    "storage_bucket": "bkopodcast-e4c86.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1059047643869:android:1101a9c030cf691c5dd934",
+        "android_client_info": {
+          "package_name": "studio.bamakopodcast.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHSYNgvlBlF39woRO-_H0imrcsTydXEco"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

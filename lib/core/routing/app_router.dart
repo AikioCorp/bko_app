@@ -1,3 +1,6 @@
+import '../../features/studio/studio_podcast_screen.dart';
+import '../../features/studio/studio_access_gate.dart';
+import '../../features/studio/claim_podcast_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
@@ -23,6 +26,15 @@ import '../../features/library/playlist_details_screen.dart';
 import '../../features/downloads/downloads_screen.dart';
 import '../../features/shell/subpage_audio_shell.dart';
 import '../../features/discovery/section_discovery_screen.dart';
+import '../../features/settings/playback_preferences_screen.dart';
+import '../../features/settings/appearance_settings_screen.dart';
+import '../../features/settings/storage_settings_screen.dart';
+import '../../features/settings/notification_preferences_screen.dart';
+import '../../features/settings/security_settings_screen.dart';
+import '../../features/settings/privacy_data_screen.dart';
+import '../../features/settings/help_support_screen.dart';
+import '../../features/settings/about_screen.dart';
+import '../../features/settings/become_creator_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -100,7 +112,10 @@ final appRouter = GoRouter(
           routes: [
             GoRoute(
               path: '/library',
-              builder: (context, state) => const LibraryScreen(),
+              builder: (context, state) => LibraryScreen(
+                  initialTab:
+                      int.tryParse(state.uri.queryParameters['tab'] ?? '') ??
+                          0),
             ),
           ],
         ),
@@ -173,23 +188,42 @@ final appRouter = GoRouter(
         ),
         GoRoute(
           path: '/favorites',
-          builder: (context, state) => const LibraryScreen(),
+          builder: (context, state) => LibraryScreen(
+              initialTab:
+                  int.tryParse(state.uri.queryParameters['tab'] ?? '') ?? 0),
         ),
         GoRoute(
           path: '/studio',
-          builder: (context, state) => const StudioScreen(),
+          builder: (context, state) =>
+              const StudioAccessGate(child: StudioScreen()),
         ),
         GoRoute(
           path: '/studio/podcasts/new',
-          builder: (context, state) => const CreatePodcastScreen(),
+          builder: (context, state) => const StudioAccessGate(
+              requireProfile: true, child: CreatePodcastScreen()),
         ),
         GoRoute(
           path: '/studio/episodes/new',
-          builder: (context, state) => const CreateEpisodeScreen(),
+          builder: (context, state) => StudioAccessGate(
+              child: CreateEpisodeScreen(
+                  initialPodcastId: state.uri.queryParameters['podcastId'])),
         ),
         GoRoute(
           path: '/studio/import-rss',
-          builder: (context, state) => const RssImportScreen(),
+          builder: (context, state) => StudioAccessGate(
+              child: RssImportScreen(
+                  initialPodcastId: state.uri.queryParameters['podcastId'])),
+        ),
+        GoRoute(
+          path: '/studio/podcasts/:id',
+          builder: (context, state) => StudioAccessGate(
+              child:
+                  StudioPodcastScreen(podcastId: state.pathParameters['id']!)),
+        ),
+        GoRoute(
+          path: '/studio/claims',
+          builder: (context, state) =>
+              const StudioAccessGate(child: ClaimPodcastScreen()),
         ),
         GoRoute(
           path: '/podcasts/:slug',
@@ -203,7 +237,8 @@ final appRouter = GoRouter(
           builder: (context, state) {
             final slug = state.pathParameters['slug'] ?? '';
             final episodeSlug = state.pathParameters['episodeSlug'] ?? '';
-            return EpisodeDetailsScreen(podcastSlug: slug, episodeSlug: episodeSlug);
+            return EpisodeDetailsScreen(
+                podcastSlug: slug, episodeSlug: episodeSlug);
           },
         ),
         GoRoute(
@@ -212,6 +247,46 @@ final appRouter = GoRouter(
             final id = state.pathParameters['id'] ?? '';
             return PlaylistDetailsScreen(playlistId: id);
           },
+        ),
+        GoRoute(
+          path: '/settings/playback',
+          builder: (context, state) => const PlaybackPreferencesScreen(),
+        ),
+        GoRoute(
+          path: '/settings/appearance',
+          builder: (context, state) => const AppearanceSettingsScreen(),
+        ),
+        GoRoute(
+          path: '/settings/downloads',
+          builder: (context, state) => const StorageSettingsScreen(),
+        ),
+        GoRoute(
+          path: '/settings/notifications',
+          builder: (context, state) => const NotificationPreferencesScreen(),
+        ),
+        GoRoute(
+          path: '/settings/security',
+          builder: (context, state) => const SecuritySettingsScreen(),
+        ),
+        GoRoute(
+          path: '/settings/privacy',
+          builder: (context, state) => const PrivacyDataScreen(),
+        ),
+        GoRoute(
+          path: '/settings/help',
+          builder: (context, state) => const HelpSupportScreen(),
+        ),
+        GoRoute(
+          path: '/settings/about',
+          builder: (context, state) => const AboutScreen(),
+        ),
+        GoRoute(
+          path: '/become-creator',
+          builder: (context, state) => const BecomeCreatorScreen(),
+        ),
+        GoRoute(
+          path: '/account',
+          builder: (context, state) => const ProfileEditScreen(),
         ),
       ],
     ),

@@ -208,9 +208,14 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
       if (mounted) {
         setState(() => _isUploadingAvatar = false);
         BkoHaptics.error();
+        final message = e is ApiException
+            ? e.message
+            : (e.toString().contains('DioException')
+                ? 'Erreur de connexion au serveur de stockage.'
+                : 'Erreur lors du téléversement : $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erreur lors du téléversement : $e'),
+            content: Text(message),
             behavior: SnackBarBehavior.floating,
             backgroundColor: Theme.of(context).colorScheme.error,
           ),

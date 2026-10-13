@@ -75,23 +75,38 @@ class MediaUploadService {
       }
     }
 
-    // 2. Envoi direct des octets vers l'URL avec le client réseau configuré (contournement DNS mobile)
-    final client = BkoApi.createConfiguredDio();
-    final response = await client.put<dynamic>(
-      uploadUrl,
-      data: bytes,
-      options: Options(
-        headers: {
-          'Content-Type': mimeType,
-          'Content-Length': bytes.length,
-        },
+    // 2. Envoi direct des octets vers l'URL pré-signée (Cloudflare R2 / S3)
+    final uploadClient = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(minutes: 5),
+        receiveTimeout: const Duration(seconds: 30),
       ),
     );
 
-    if (response.statusCode != null &&
-        (response.statusCode! < 200 || response.statusCode! >= 300)) {
+    try {
+      final response = await uploadClient.put<dynamic>(
+        uploadUrl,
+        data: bytes,
+        options: Options(
+          headers: {
+            'Content-Type': mimeType,
+            'Content-Length': bytes.length,
+          },
+        ),
+      );
+
+      if (response.statusCode != null &&
+          (response.statusCode! < 200 || response.statusCode! >= 300)) {
+        throw ApiException(
+          'Échec du téléversement vers le serveur de médias (${response.statusCode}).',
+        );
+      }
+    } on DioException catch (dioErr) {
+      debugPrint('[MediaUploadService] Direct storage upload failed: $dioErr');
+      final code = dioErr.response?.statusCode;
       throw ApiException(
-        'Échec du téléversement vers le serveur de médias (${response.statusCode}).',
+        'Impossible de transférer l\'image vers le serveur de stockage (${code ?? dioErr.type.name}).',
       );
     }
 
