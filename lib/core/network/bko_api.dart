@@ -60,6 +60,8 @@ class BkoApi {
   }
 
   static String get baseUrl => _baseUrl;
+  static Dio get dio => _dio;
+  static Dio createConfiguredDio() => _createDio();
 
   static void setBaseUrl(String url) {
     _baseUrl = url;

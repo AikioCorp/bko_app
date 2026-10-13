@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -58,6 +59,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+    final roles = auth.user?['roles'] as List?;
+    final isCreator = (roles != null &&
+            (roles.any((r) => r.toString().toUpperCase().contains('CREATOR')) ||
+             roles.any((r) => r.toString().toUpperCase().contains('ADMIN')))) ||
+        auth.user?['isCreator'] == true ||
+        auth.user?['creatorProfile'] != null;
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
     final surface = BkoTheme.getBgSurface(context);
@@ -68,7 +75,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: surface,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 140),
           child: auth.isAuthenticated
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,16 +92,69 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              CircleAvatar(
-                                radius: 32,
-                                backgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.15),
-                                child: Text(
-                                  _initial(auth.user),
-                                  style: BkoTheme.fontLato(
-                                    fontSize: 26,
-                                    fontWeight: FontWeight.w800,
-                                    color: BkoTheme.goldAccent,
-                                  ),
+                              BkoBounceable(
+                                onTap: () {
+                                  BkoHaptics.light();
+                                  context.push('/profile/edit');
+                                },
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Container(
+                                      width: 64,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                                        border: Border.all(color: border),
+                                      ),
+                                      clipBehavior: Clip.antiAlias,
+                                      child: (auth.user?['avatar'] != null &&
+                                              (auth.user!['avatar'] as String).trim().isNotEmpty)
+                                          ? CachedNetworkImage(
+                                              imageUrl: auth.user!['avatar'] as String,
+                                              memCacheWidth: 150,
+                                              fit: BoxFit.cover,
+                                              errorWidget: (_, __, ___) => Center(
+                                                child: Text(
+                                                  _initial(auth.user),
+                                                  style: BkoTheme.fontLato(
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: BkoTheme.goldAccent,
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          : Center(
+                                              child: Text(
+                                                _initial(auth.user),
+                                                style: BkoTheme.fontLato(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: BkoTheme.goldAccent,
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                    Positioned(
+                                      bottom: -2,
+                                      right: -2,
+                                      child: Container(
+                                        width: 22,
+                                        height: 22,
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: BkoTheme.goldAccent,
+                                        ),
+                                        child: const Icon(
+                                          IconsaxPlusLinear.camera,
+                                          size: 12,
+                                          color: BkoTheme.darkBgObsidian,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -119,22 +179,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       overflow: TextOverflow.ellipsis,
                                       style: BkoTheme.fontLato(fontSize: 12, color: textSec),
                                     ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: BkoTheme.goldAccent.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        _userRoleBadge(auth.user),
-                                        style: BkoTheme.fontLato(
-                                          fontSize: 10.5,
-                                          fontWeight: FontWeight.w800,
-                                          color: BkoTheme.goldAccent,
+                                    if (_userRoleBadge(auth.user) != null) ...[
+                                      const SizedBox(height: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: BkoTheme.goldAccent.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          _userRoleBadge(auth.user)!,
+                                          style: BkoTheme.fontLato(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: BkoTheme.goldAccent,
+                                          ),
                                         ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -207,81 +269,83 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 24),
+                    if (isCreator) ...[
+                      const SizedBox(height: 24),
 
-                    // Creator Studio Highlight Card (Direct Access to Creator Dashboard)
-                    BkoBounceable(
-                      onTap: () {
-                        BkoHaptics.light();
-                        context.push('/studio');
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: surfaceElevated,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: BkoTheme.goldAccent.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
+                      // Creator Studio Highlight Card (Direct Access to Creator Dashboard)
+                      BkoBounceable(
+                        onTap: () {
+                          BkoHaptics.light();
+                          context.push('/studio');
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: surfaceElevated,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  IconsaxPlusLinear.microphone_2,
+                                  color: BkoTheme.goldAccent,
+                                  size: 22,
+                                ),
                               ),
-                              child: const Icon(
-                                IconsaxPlusLinear.microphone_2,
-                                color: BkoTheme.goldAccent,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Espace Studio Créateur',
-                                        style: BkoTheme.fontLato(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w800,
-                                          color: textPri,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: BkoTheme.goldAccent,
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Text(
-                                          'STUDIO',
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Espace Studio Créateur',
                                           style: BkoTheme.fontLato(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w900,
-                                            color: BkoTheme.darkBgObsidian,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: textPri,
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Gérez vos émissions, publiez et suivez vos écoutes',
-                                    style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
-                                  ),
-                                ],
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: BkoTheme.goldAccent,
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'STUDIO',
+                                            style: BkoTheme.fontLato(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                              color: BkoTheme.darkBgObsidian,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Gérez vos émissions, publiez et suivez vos écoutes',
+                                      style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Icon(IconsaxPlusLinear.arrow_right_3, color: textSec, size: 18),
-                          ],
+                              Icon(IconsaxPlusLinear.arrow_right_3, color: textSec, size: 18),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
 
                     const SizedBox(height: 24),
 
@@ -429,7 +493,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  String _userRoleBadge(Map<String, dynamic>? user) {
+  String? _userRoleBadge(Map<String, dynamic>? user) {
     final roles = user?['roles'] as List?;
     if (roles != null && roles.any((r) => r.toString().toUpperCase().contains('ADMIN'))) {
       return 'ADMINISTRATEUR';
@@ -437,7 +501,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     if (roles != null && roles.any((r) => r.toString().toUpperCase().contains('CREATOR'))) {
       return 'CRÉATEUR VÉRIFIÉ';
     }
-    return 'MEMBRE AUDITEUR';
+    if (user?['isCreator'] == true || user?['creatorProfile'] != null) {
+      return 'CRÉATEUR VÉRIFIÉ';
+    }
+    return null;
   }
 
   String _initial(Map<String, dynamic>? user) {
@@ -553,79 +620,84 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     showModalBottomSheet(
       context: context,
+      useRootNavigator: true,
+      isScrollControlled: true,
       backgroundColor: surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: border,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (ctx) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Personnalisation & Recommandations',
-              style: BkoTheme.fontLato(fontSize: 17, fontWeight: FontWeight.w800, color: textPri),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Gérez vos signaux d\'écoute et réinitialisez votre profil d\'affinité si souhaité.',
-              style: BkoTheme.fontLato(fontSize: 12.5, color: textSec),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(IconsaxPlusLinear.refresh_2, color: BkoTheme.goldAccent, size: 22),
-              title: Text(
-                'Réinitialiser mon profil de goûts',
-                style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPri),
+              const SizedBox(height: 16),
+              Text(
+                'Personnalisation & Recommandations',
+                style: BkoTheme.fontLato(fontSize: 17, fontWeight: FontWeight.w800, color: textPri),
               ),
-              subtitle: Text(
-                'Efface l\'historique d\'affinité pour recalculer les suggestions d\'accueil',
-                style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+              const SizedBox(height: 6),
+              Text(
+                'Gérez vos signaux d\'écoute et réinitialisez votre profil d\'affinité si souhaité.',
+                style: BkoTheme.fontLato(fontSize: 12.5, color: textSec),
               ),
-              onTap: () async {
-                Navigator.pop(ctx);
-                if (auth.token != null) {
-                  try {
-                    await BkoApi.post('/recommendations/reset-profile', {}, token: auth.token);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Profil réinitialisé avec succès.')),
-                    );
-                  } catch (_) {}
-                }
-              },
-            ),
-            Divider(color: border, height: 20),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(IconsaxPlusLinear.setting_4, color: BkoTheme.goldAccent, size: 22),
-              title: Text(
-                'Modifier mes centres d\'intérêt',
-                style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPri),
+              const SizedBox(height: 20),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(IconsaxPlusLinear.refresh_2, color: BkoTheme.goldAccent, size: 22),
+                title: Text(
+                  'Réinitialiser mon profil de goûts',
+                  style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPri),
+                ),
+                subtitle: Text(
+                  'Efface l\'historique d\'affinité pour recalculer les suggestions d\'accueil',
+                  style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  if (auth.token != null) {
+                    try {
+                      await BkoApi.post('/recommendations/reset-profile', {}, token: auth.token);
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Profil réinitialisé avec succès.')),
+                      );
+                    } catch (_) {}
+                  }
+                },
               ),
-              subtitle: Text(
-                'Mettre à jour vos thématiques favorites',
-                style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+              Divider(color: border, height: 20),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(IconsaxPlusLinear.setting_4, color: BkoTheme.goldAccent, size: 22),
+                title: Text(
+                  'Modifier mes centres d\'intérêt',
+                  style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w700, color: textPri),
+                ),
+                subtitle: Text(
+                  'Mettre à jour vos thématiques favorites',
+                  style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/taste-onboarding?mode=edit');
+                },
               ),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/onboarding');
-              },
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

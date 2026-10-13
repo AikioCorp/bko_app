@@ -8,6 +8,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../shell/shell_providers.dart';
 import '../auth/auth_controller.dart';
@@ -732,7 +733,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [                        if (_loadingMoreEpisodes) const Padding(
-              padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()),
+              padding: EdgeInsets.all(16),
+              child: Center(
+                child: EqualizerLoader(
+                  bars: 4,
+                  size: 22,
+                  color: BkoTheme.goldAccent,
+                ),
+              ),
             ),
             if (_hasMoreEpisodes && !_loadingMoreEpisodes) TextButton(
               onPressed: _loadMoreEpisodes,

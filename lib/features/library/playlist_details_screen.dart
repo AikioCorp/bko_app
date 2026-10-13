@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import '../home/widgets/episode_actions_sheet.dart';
 import '../player/widgets/bko_play_button.dart';
@@ -303,8 +304,16 @@ class _PlaylistDetailsScreenState
         ],
       ),
       body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+          ? ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              children: List.generate(
+                5,
+                (_) => const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: BkoEpisodeRowSkeleton(),
+                ),
+              ),
+            )
           : _errorMessage != null
               ? Center(
                   child: Column(

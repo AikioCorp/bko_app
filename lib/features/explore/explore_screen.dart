@@ -8,6 +8,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../home/widgets/episode_list_item.dart';
 import '../shell/shell_providers.dart';
@@ -732,10 +733,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: BkoTheme.goldAccent),
+                child: EqualizerLoader(
+                  bars: 4,
+                  size: 22,
+                  color: BkoTheme.goldAccent,
                 ),
               ),
             );
@@ -769,10 +770,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         itemBuilder: (context, index) {
           if (index == _podcasts.length) {
             return const Center(
-              child: SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2, color: BkoTheme.goldAccent),
+              child: EqualizerLoader(
+                bars: 4,
+                size: 22,
+                color: BkoTheme.goldAccent,
               ),
             );
           }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/network/bko_telemetry.dart';
 import '../../core/storage/token_storage.dart';
@@ -207,12 +208,68 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> updateUser(Map<String, dynamic> newUser) async {
     if (state.token != null) {
-      await TokenStorage.save(state.token!, newUser);
+      final merged = {
+        if (state.user != null) ...state.user!,
+        ...newUser,
+      };
+      await TokenStorage.save(state.token!, merged);
       state = AuthState(
         isAuthenticated: true,
         token: state.token,
-        user: newUser,
+        user: merged,
       );
+    }
+  }
+
+  Future<({bool ok, String? error, bool onboardingCompleted})> loginWithGoogle() async {
+    state = AuthState(isLoading: true, token: state.token, user: state.user);
+    try {
+      final googleSignIn = GoogleSignIn.instance;
+      await googleSignIn.initialize(
+        serverClientId: '336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com',
+      );
+
+      final GoogleSignInAccount account = await googleSignIn.authenticate();
+      final String? idToken = account.authentication.idToken;
+
+      if (idToken == null || idToken.isEmpty) {
+        state = AuthState(isAuthenticated: state.isAuthenticated, token: state.token, user: state.user, isLoading: false);
+        return (ok: false, error: 'Jeton Google introuvable', onboardingCompleted: false);
+      }
+
+      final data = await BkoApi.post('/auth/google', {
+        'idToken': idToken,
+        'deviceType': 'ANDROID',
+        'deviceName': 'Application Android',
+      });
+
+      if (data is Map) {
+        final token = data['accessToken'] as String?;
+        final user = data['user'] is Map
+            ? Map<String, dynamic>.from(data['user'] as Map)
+            : null;
+
+        if (token == null || token.isEmpty || user == null || user['id'] == null) {
+          state = const AuthState(isAuthenticated: false, error: 'Réponse serveur invalide');
+          return (ok: false, error: 'Réponse serveur invalide', onboardingCompleted: false);
+        }
+
+        await TokenStorage.save(token, user);
+        await BkoTelemetryService().onUserSwitched(user['id']?.toString());
+        state = AuthState(isAuthenticated: true, token: token, user: user);
+
+        final onboardingDone = user['onboardingCompleted'] == true;
+        return (ok: true, error: null, onboardingCompleted: onboardingDone);
+      }
+
+      state = const AuthState(isAuthenticated: false, error: 'Échec de connexion Google');
+      return (ok: false, error: 'Échec de connexion Google', onboardingCompleted: false);
+    } on ApiException catch (error) {
+      state = AuthState(isAuthenticated: false, error: error.message);
+      return (ok: false, error: error.message, onboardingCompleted: false);
+    } catch (e) {
+      state = const AuthState(isAuthenticated: false, error: 'Erreur lors de la connexion Google');
+      return (ok: false, error: 'Erreur lors de la connexion Google : $e', onboardingCompleted: false);
     }
   }
 

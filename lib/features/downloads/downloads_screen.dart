@@ -47,9 +47,29 @@ class DownloadsScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sync_rounded, color: Colors.white, size: 20),
+            tooltip: 'Synchroniser avec le compte',
+            onPressed: () async {
+              await notifier.syncRemoteQueue();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Synchronisation des téléchargements effectuée.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.tune_rounded, color: BkoTheme.goldAccent, size: 20),
+            tooltip: 'Téléchargements intelligents',
+            onPressed: () => _openSmartSettingsSheet(context, ref, notifier),
+          ),
           if (completedTasks.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.only(right: 12),
               child: Center(
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -71,50 +91,135 @@ class DownloadsScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-        children: [
-          // Information Banner
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFF141414),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFF262626)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.offline_bolt_rounded, color: BkoTheme.goldAccent, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Écoute hors connexion',
-                        style: BkoTheme.fontPoppins(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: textPri,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Les épisodes audio enregistrés localement restent disponibles sans réseau internet. Les contenus vidéo externes ne peuvent pas être téléchargés.',
-                        style: BkoTheme.fontLato(
-                          fontSize: 11.5,
-                          color: textSec,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
+      body: RefreshIndicator(
+        color: BkoTheme.goldAccent,
+        backgroundColor: const Color(0xFF1E1E1E),
+        onRefresh: () => notifier.syncRemoteQueue(),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+          children: [
+            // Smart Downloads Status Banner
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF16161A),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: notifier.smartSettings.smartDownloadsEnabled
+                      ? BkoTheme.goldAccent.withValues(alpha: 0.35)
+                      : const Color(0xFF262626),
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.auto_awesome, color: BkoTheme.goldAccent, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              'Smart Downloads',
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: textPri,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: notifier.smartSettings.smartDownloadsEnabled
+                                    ? Colors.green.withValues(alpha: 0.15)
+                                    : Colors.grey.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                notifier.smartSettings.smartDownloadsEnabled ? 'ACTIF' : 'INACTIF',
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: notifier.smartSettings.smartDownloadsEnabled
+                                      ? Colors.greenAccent
+                                      : textSec,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Stockage utilisé : ${notifier.formattedTotalStorage}',
+                          style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _openSmartSettingsSheet(context, ref, notifier),
+                    style: TextButton.styleFrom(
+                      foregroundColor: BkoTheme.goldAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                    child: const Text('Gérer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
+            // Information Banner
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFF141414),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF262626)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.offline_bolt_rounded, color: BkoTheme.goldAccent, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Écoute hors connexion',
+                          style: BkoTheme.fontPoppins(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: textPri,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          'Les épisodes audio enregistrés localement restent disponibles sans réseau internet. Les contenus vidéo externes ne peuvent pas être téléchargés.',
+                          style: BkoTheme.fontLato(
+                            fontSize: 11.5,
+                            color: textSec,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
 
           // In Progress Section
           if (inProgressTasks.isNotEmpty) ...[
@@ -182,8 +287,9 @@ class DownloadsScreen extends ConsumerWidget {
           ],
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildEmptyState(BuildContext context, Color textPri, Color textSec) {
     return Container(
@@ -395,7 +501,15 @@ class DownloadsScreen extends ConsumerWidget {
             IconButton(
               icon: const Icon(Icons.refresh_rounded, size: 20, color: BkoTheme.goldAccent),
               tooltip: 'Réessayer',
-              onPressed: () => notifier.retryDownload(task.episodeId),
+              onPressed: () async {
+                try {
+                  await notifier.retryDownload(task.episodeId);
+                } on DownloadLimitException {
+                  if (context.mounted) {
+                    DownloadLimitDialog.show(context);
+                  }
+                }
+              },
             ),
           IconButton(
             icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.grey),
@@ -578,6 +692,180 @@ class DownloadsScreen extends ConsumerWidget {
                 size: 22,
               ),
       ),
+    );
+  }
+
+  void _openSmartSettingsSheet(
+    BuildContext context,
+    WidgetRef ref,
+    DownloadNotifier notifier,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final settings = notifier.smartSettings;
+            final textPri = BkoTheme.getTextPrimary(ctx);
+            final textSec = BkoTheme.getTextSecondary(ctx);
+            const surface = Color(0xFF16161A);
+            const border = Color(0xFF262626);
+
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: Border.all(color: border),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.auto_awesome, color: BkoTheme.goldAccent, size: 22),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Smart Downloads',
+                        style: BkoTheme.fontPoppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: textPri,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Gestion automatisée du stockage inspirée de Netflix et Apple Podcasts.',
+                    style: BkoTheme.fontLato(fontSize: 12.5, color: textSec),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // 1. Activer Smart Downloads
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: BkoTheme.goldAccent,
+                    title: Text(
+                      'Activer les téléchargements intelligents',
+                      style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.bold, color: textPri),
+                    ),
+                    subtitle: Text(
+                      'Automatise le téléchargement et la suppression pour optimiser votre espace.',
+                      style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                    ),
+                    value: settings.smartDownloadsEnabled,
+                    onChanged: (val) async {
+                      await notifier.updateSmartSettings(smartDownloadsEnabled: val);
+                      setSheetState(() {});
+                    },
+                  ),
+                  const Divider(color: Color(0xFF262626)),
+
+                  // 2. Télécharger l\'épisode suivant
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: BkoTheme.goldAccent,
+                    title: Text(
+                      'Télécharger l\'épisode suivant',
+                      style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.bold, color: textPri),
+                    ),
+                    subtitle: Text(
+                      'Télécharge automatiquement le prochain épisode dès que vous finissez une écoute.',
+                      style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                    ),
+                    value: settings.autoDownloadNext,
+                    onChanged: settings.smartDownloadsEnabled
+                        ? (val) async {
+                            await notifier.updateSmartSettings(autoDownloadNext: val);
+                            setSheetState(() {});
+                          }
+                        : null,
+                  ),
+                  const Divider(color: Color(0xFF262626)),
+
+                  // 3. Supprimer après écoute
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: BkoTheme.goldAccent,
+                    title: Text(
+                      'Supprimer après écoute complète',
+                      style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.bold, color: textPri),
+                    ),
+                    subtitle: Text(
+                      'Libère instantanément le stockage de votre téléphone une fois l\'épisode terminé.',
+                      style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                    ),
+                    value: settings.autoDeleteCompleted,
+                    onChanged: settings.smartDownloadsEnabled
+                        ? (val) async {
+                            await notifier.updateSmartSettings(autoDeleteCompleted: val);
+                            setSheetState(() {});
+                          }
+                        : null,
+                  ),
+                  const Divider(color: Color(0xFF262626)),
+
+                  // 4. Télécharger uniquement en Wi-Fi
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    activeThumbColor: BkoTheme.goldAccent,
+                    title: Text(
+                      'Télécharger uniquement en Wi-Fi',
+                      style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.bold, color: textPri),
+                    ),
+                    subtitle: Text(
+                      'Préserve vos données mobiles lors des téléchargements.',
+                      style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                    ),
+                    value: settings.wifiOnly,
+                    onChanged: (val) async {
+                      await notifier.updateSmartSettings(wifiOnly: val);
+                      setSheetState(() {});
+                    },
+                  ),
+
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111113),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: border),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Espace utilisé :', style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+                        Text(
+                          notifier.formattedTotalStorage,
+                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.bold, color: BkoTheme.goldAccent),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

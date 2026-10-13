@@ -84,5 +84,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Bamako Podcast a besoin d\'accéder à vos photos pour modifier votre photo de profil.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Bamako Podcast a besoin d\'accéder à votre appareil photo pour capturer une photo de profil.</string>
 </dict>
 </plist>

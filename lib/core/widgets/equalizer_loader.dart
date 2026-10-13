@@ -14,9 +14,10 @@ class EqualizerLoader extends StatefulWidget {
     super.key,
     this.size = 24,
     this.color,
-    this.barCount = 4,
+    int barCount = 4,
+    int? bars,
     this.isPlaying = true,
-  });
+  }) : barCount = bars ?? barCount;
 
   @override
   State<EqualizerLoader> createState() => _EqualizerLoaderState();

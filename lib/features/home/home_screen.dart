@@ -15,10 +15,11 @@ import 'widgets/hero_banner_slider.dart';
 import 'widgets/bko_app_header.dart';
 import 'widgets/bko_drawer.dart';
 import 'widgets/episode_list_item.dart';
-import 'widgets/tracked_visibility_card.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/equalizer_loader.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../discovery/widgets/discovery_promotion_modal.dart';
 import 'home_providers.dart';
 
@@ -434,7 +435,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (homeState.isLoading && !homeState.hasData) {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
-        body: const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent)),
+        drawer: const BkoDrawer(),
+        appBar: const BkoAppHeader(),
+        body: const BkoHomeSkeleton(),
       );
     }
 
@@ -1374,10 +1377,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: BkoTheme.goldAccent),
+                    child: EqualizerLoader(
+                      bars: 4,
+                      size: 22,
+                      color: BkoTheme.goldAccent,
                     ),
                   ),
                 ),
@@ -1557,5 +1560,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Wrapper to safely handle impression tracking on recommendation items.
+class TrackedVisibilityCard extends StatefulWidget {
+  final String batchId;
+  final String sectionId;
+  final String sectionSlug;
+  final String targetType;
+  final String targetId;
+  final int position;
+  final String? reason;
+  final String? token;
+  final Widget child;
+
+  const TrackedVisibilityCard({
+    super.key,
+    required this.batchId,
+    required this.sectionId,
+    required this.sectionSlug,
+    required this.targetType,
+    required this.targetId,
+    required this.position,
+    this.reason,
+    this.token,
+    required this.child,
+  });
+
+  @override
+  State<TrackedVisibilityCard> createState() => _TrackedVisibilityCardState();
+}
+
+class _TrackedVisibilityCardState extends State<TrackedVisibilityCard> {
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

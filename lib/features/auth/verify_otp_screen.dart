@@ -34,6 +34,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   String? _error;
   String? _infoMessage;
   String? _devCode;
+  String? _lastAttemptedCode;
 
   int _resendCooldown = 60;
   Timer? _cooldownTimer;
@@ -73,11 +74,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   }
 
   Future<void> _submit() async {
-    FocusScope.of(context).unfocus();
-    setState(() {
-      _error = null;
-      _infoMessage = null;
-    });
+    if (_loading || _success) return;
 
     final code = _codeController.text.trim();
     if (code.length != 6) {
@@ -85,7 +82,14 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
       return;
     }
 
-    setState(() => _loading = true);
+    _lastAttemptedCode = code;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _error = null;
+      _infoMessage = null;
+      _loading = true;
+    });
+
     final res = await ref.read(authProvider.notifier).verifyOtp(
           email: widget.email,
           otpCode: code,
@@ -94,6 +98,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
     setState(() => _loading = false);
 
     if (res.ok) {
+      BkoHaptics.success();
       setState(() => _success = true);
 
       Future.delayed(const Duration(milliseconds: 900), () {
@@ -116,6 +121,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
         }
       });
     } else {
+      BkoHaptics.error();
       setState(() => _error = res.error ?? 'Code invalide ou expiré.');
     }
   }
@@ -285,46 +291,57 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         const SizedBox(height: 16),
                       ],
 
-                      // Petit badge discret avec le code de test en haut
+                      // Petit badge discret avec le code de test en haut (cliquable pour pré-remplir et valider directement)
                       if (_devCode != null && _devCode!.isNotEmpty) ...[
                         Center(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF19160E),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.35)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(IconsaxPlusBold.shield_security, color: BkoTheme.goldAccent, size: 12),
-                                const SizedBox(width: 6),
-                                Text(
-                                  'Code de test : ',
-                                  style: BkoTheme.fontPoppins(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: const Color(0xFFB8B8B8),
+                          child: BkoBounceable(
+                            onTap: () {
+                              if (_devCode != null && _devCode!.isNotEmpty && !_loading && !_success) {
+                                BkoHaptics.light();
+                                _codeController.text = _devCode!;
+                                _submit();
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF19160E),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.35)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(IconsaxPlusBold.shield_security, color: BkoTheme.goldAccent, size: 12),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Code de test : ',
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFFB8B8B8),
+                                    ),
                                   ),
-                                ),
-                                SelectableText(
-                                  _devCode!,
-                                  style: BkoTheme.fontPoppins(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 2.0,
-                                    color: BkoTheme.goldAccent,
+                                  Text(
+                                    _devCode!,
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 2.0,
+                                      color: BkoTheme.goldAccent,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  const Icon(IconsaxPlusLinear.arrow_circle_right, color: BkoTheme.goldAccent, size: 12),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
                       ],
 
-                      // Code Input Field
+                      // Code Input Field avec autovalidation dès 6 chiffres
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF0E0E0E),
@@ -336,6 +353,21 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                           keyboardType: TextInputType.number,
                           maxLength: 6,
                           textAlign: TextAlign.center,
+                          autofocus: true,
+                          onChanged: (val) {
+                            final digits = val.replaceAll(RegExp(r'\D'), '');
+                            if (digits != val) {
+                              _codeController.value = TextEditingValue(
+                                text: digits,
+                                selection: TextSelection.collapsed(offset: digits.length),
+                              );
+                            }
+                            // Autovalidation instantanée dès que les 6 chiffres sont saisis
+                            if (digits.length == 6 && digits != _lastAttemptedCode && !_loading && !_success) {
+                              BkoHaptics.light();
+                              _submit();
+                            }
+                          },
                           style: BkoTheme.fontPoppins(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,

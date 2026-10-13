@@ -622,14 +622,18 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                               behavior: SnackBarBehavior.floating),
                         );
                       } else {
-                        ref
-                            .read(downloadProvider.notifier)
-                            .startDownload(_episode!);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Téléchargement lancé.'),
-                              behavior: SnackBarBehavior.floating),
-                        );
+                        try {
+                          ref
+                              .read(downloadProvider.notifier)
+                              .startDownload(_episode!);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Téléchargement lancé.'),
+                                behavior: SnackBarBehavior.floating),
+                          );
+                        } on DownloadLimitException {
+                          DownloadLimitDialog.show(context);
+                        }
                       }
                     },
                   ),

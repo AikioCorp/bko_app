@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/capitalize_words_input_formatter.dart';
 import 'auth_controller.dart';
 import 'widgets/auth_legal_sheets.dart';
 
@@ -442,11 +443,27 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
+  Future<void> _handleGoogleLogin() async {
+    FocusScope.of(context).unfocus();
+    setState(() { _localError = null; _isSubmitting = true; });
+
+    final res = await ref.read(authProvider.notifier).loginWithGoogle();
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (res.ok) {
+      _navigatePostLogin();
+    } else if (res.error != null) {
+      setState(() => _localError = res.error);
+    }
+  }
+
   Future<void> _handleRegister() async {
     FocusScope.of(context).unfocus();
     setState(() { _localError = null; _fieldErrors.clear(); _termsError = null; });
 
-    final fullName = _registerName.text.trim();
+    final fullName =
+        CapitalizeWordsInputFormatter.capitalize(_registerName.text.trim());
     final email = _registerEmail.text.trim();
     final phone = _registerPhone.text.trim();
     final password = _registerPassword.text;
@@ -976,6 +993,32 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Divider "OU"
+          Row(
+            children: [
+              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'OU',
+                  style: BkoTheme.fontPoppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF757575),
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Bouton Google
+          _buildGoogleButton(),
         ],
       ),
     );
@@ -999,6 +1042,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             controller: _registerName,
             hint: 'ex. Awa Traoré',
             icon: IconsaxPlusLinear.user,
+            keyboardType: TextInputType.name,
+            textCapitalization: TextCapitalization.words,
+            inputFormatters: const [
+              CapitalizeWordsInputFormatter(),
+            ],
             autofillHints: const [AutofillHints.name],
             textInputAction: TextInputAction.next,
           ),
@@ -1246,7 +1294,83 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
           ),
+
+          const SizedBox(height: 16),
+
+          // Divider "OU"
+          Row(
+            children: [
+              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'OU',
+                  style: BkoTheme.fontPoppins(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF757575),
+                  ),
+                ),
+              ),
+              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          // Bouton Google
+          _buildGoogleButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildGoogleButton() {
+    return SizedBox(
+      height: 52,
+      child: OutlinedButton(
+        onPressed: _isSubmitting ? null : _handleGoogleLogin,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: const Color(0xFF141414),
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFF2E2E2E), width: 1.2),
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // G Google Icon
+            Container(
+              width: 24,
+              height: 24,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text(
+                  'G',
+                  style: TextStyle(
+                    color: Color(0xFF4285F4),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    fontFamily: 'Roboto',
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Continuer avec Google',
+              style: BkoTheme.fontPoppins(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1303,6 +1427,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     required IconData icon,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
+    TextCapitalization textCapitalization = TextCapitalization.none,
+    List<TextInputFormatter>? inputFormatters,
     List<String>? autofillHints,
     TextInputAction textInputAction = TextInputAction.next,
     ValueChanged<String>? onChanged,
@@ -1327,6 +1453,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             controller: controller,
             obscureText: obscureText,
             keyboardType: keyboardType,
+            textCapitalization: textCapitalization,
+            inputFormatters: inputFormatters,
             autofillHints: autofillHints,
             textInputAction: textInputAction,
             onChanged: (value) {

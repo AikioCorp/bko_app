@@ -69,7 +69,7 @@ class BkoMiniPlayer extends ConsumerWidget {
                                     height: 42,
                                     color: BkoTheme.getBgSurfaceElevated(context),
                                     child: const Icon(
-                                      Icons.graphic_eq_rounded,
+                                      IconsaxPlusLinear.music,
                                       color: BkoTheme.goldAccent,
                                       size: 20,
                                     ),
@@ -141,6 +141,19 @@ class BkoMiniPlayer extends ConsumerWidget {
                           },
                         ),
                       ],
+
+                      const SizedBox(width: 2),
+                      // 4. Close / Dismiss Mini-Player
+                      _SpringIconButton(
+                        icon: IconsaxPlusLinear.close_circle,
+                        color: BkoTheme.getTextSecondary(context),
+                        size: 20,
+                        tooltip: 'Fermer le lecteur',
+                        onPressed: () {
+                          BkoHaptics.light();
+                          ref.read(activeEpisodeProvider.notifier).stop();
+                        },
+                      ),
                     ],
                   ),
                 ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import 'notification_providers.dart';
 
@@ -191,7 +192,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               ),
             )
           : _loading
-              ? const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+              ? const BkoNotificationListSkeleton(count: 6)
               : _error != null
                   ? Center(
                       child: Column(

@@ -1,68 +1,99 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+
 import '../../../core/theme/bko_theme.dart';
 import '../../../core/theme/theme_provider.dart';
+import '../../../core/widgets/bko_bounceable.dart';
+import '../../../core/widgets/bko_haptics.dart';
 import '../../auth/auth_controller.dart';
 
+/// Tiroir de navigation latéral (Drawer) pour Bamako Podcast.
+/// Conçu selon les règles mobile-designer : Iconsax uniquement, cibles tactiles >= 48px,
+/// zéro ombre, couleurs dynamiques BkoTheme, badges réservés aux créateurs/admins.
 class BkoDrawer extends ConsumerWidget {
   const BkoDrawer({super.key});
 
   void _showPreferencesSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+    final surface = BkoTheme.getBgSurface(context);
+    final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    showModalBottomSheet<void>(
       context: context,
       useRootNavigator: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) {
         final currentSetting = ref.watch(themeSettingProvider);
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Color(0xFF161616),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            border: Border(top: BorderSide(color: Color(0xFF262626))),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Préférences d\'affichage',
-                    style: BkoTheme.fontPoppins(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: border,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded, color: Colors.grey),
-                    onPressed: () => Navigator.pop(ctx),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildThemeOptionTile(
-                ctx,
-                ref,
-                icon: Icons.dark_mode_rounded,
-                title: 'Mode Sombre (Obsidienne)',
-                setting: AppThemeSetting.dark,
-                currentSetting: currentSetting,
-              ),
-              const SizedBox(height: 8),
-              _buildThemeOptionTile(
-                ctx,
-                ref,
-                icon: Icons.brightness_auto_rounded,
-                title: 'Thème Système',
-                setting: AppThemeSetting.system,
-                currentSetting: currentSetting,
-              ),
-            ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Préférences d\'affichage',
+                      style: BkoTheme.fontLato(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: textPri,
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(IconsaxPlusLinear.close_circle, color: textSec, size: 20),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildThemeOptionTile(
+                  ctx,
+                  ref,
+                  icon: IconsaxPlusLinear.moon,
+                  title: 'Mode Sombre (Obsidienne)',
+                  setting: AppThemeSetting.dark,
+                  currentSetting: currentSetting,
+                  surface: surface,
+                  border: border,
+                  textPri: textPri,
+                ),
+                const SizedBox(height: 10),
+                _buildThemeOptionTile(
+                  ctx,
+                  ref,
+                  icon: IconsaxPlusLinear.sun_1,
+                  title: 'Thème Système',
+                  setting: AppThemeSetting.system,
+                  currentSetting: currentSetting,
+                  surface: surface,
+                  border: border,
+                  textPri: textPri,
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -76,173 +107,360 @@ class BkoDrawer extends ConsumerWidget {
     required String title,
     required AppThemeSetting setting,
     required AppThemeSetting currentSetting,
+    required Color surface,
+    required Color border,
+    required Color textPri,
   }) {
     final isSelected = currentSetting == setting;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
+    return BkoBounceable(
       onTap: () {
+        BkoHaptics.select();
         ref.read(themeSettingProvider.notifier).setThemeSetting(setting);
         Navigator.pop(ctx);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        constraints: const BoxConstraints(minHeight: 50),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF222222) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          color: isSelected ? BkoTheme.goldAccent.withValues(alpha: 0.12) : surface,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? BkoTheme.goldAccent.withValues(alpha: 0.5) : const Color(0xFF262626),
+            color: isSelected ? BkoTheme.goldAccent.withValues(alpha: 0.5) : border,
           ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? BkoTheme.goldAccent : Colors.grey, size: 20),
+            Icon(
+              icon,
+              color: isSelected ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(ctx),
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 title,
                 style: BkoTheme.fontLato(
-                  color: Colors.white,
+                  fontSize: 14,
+                  color: isSelected ? BkoTheme.goldAccent : textPri,
                   fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_rounded, color: BkoTheme.goldAccent, size: 20),
+              const Icon(IconsaxPlusLinear.tick_circle, color: BkoTheme.goldAccent, size: 20),
           ],
         ),
       ),
     );
   }
 
-  void _showSecurityDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _showSecuritySheet(BuildContext context) {
+    final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
+    final surface = BkoTheme.getBgSurface(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF262626)),
-        ),
-        title: Text(
-          'Sécurité & Appareils',
-          style: BkoTheme.fontPoppins(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-        content: Text(
-          'Vous êtes connecté sur cet appareil mobile en session sécurisée.\n\nPour réinitialiser votre mot de passe, vous pouvez utiliser la fonction "Mot de passe oublié" ou modifier vos identifiants depuis votre profil.',
-          style: BkoTheme.fontLato(fontSize: 13, color: const Color(0xFFAAAAAA), height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Fermer',
-              style: BkoTheme.fontPoppins(
-                fontWeight: FontWeight.w600,
-                color: BkoTheme.goldAccent,
+      useRootNavigator: true,
+      backgroundColor: surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Sécurité & Session',
+                    style: BkoTheme.fontLato(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: textPri,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(IconsaxPlusLinear.close_circle, color: textSec, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(IconsaxPlusLinear.shield_tick, color: BkoTheme.goldAccent, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Session mobile sécurisée',
+                            style: BkoTheme.fontLato(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: textPri,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Chiffrement JWT actif et jeton vérifié par l\'API Bamako Podcast.',
+                            style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              BkoBounceable(
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push('/profile/edit');
+                },
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: border),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(IconsaxPlusLinear.user_edit, size: 18, color: textPri),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Modifier mes informations personnelles',
+                        style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w700, color: textPri),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  void _showHelpDialog(BuildContext context) {
-    showDialog(
+  void _showHelpSheet(BuildContext context) {
+    final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
+    final surface = BkoTheme.getBgSurface(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    showModalBottomSheet<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF262626)),
-        ),
-        title: Text(
-          'Aide & Support',
-          style: BkoTheme.fontPoppins(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
+      useRootNavigator: true,
+      backgroundColor: surfaceElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Aide & Support Bamako Podcast',
+                    style: BkoTheme.fontLato(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: textPri,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(IconsaxPlusLinear.close_circle, color: textSec, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Plateforme audio de référence pour découvrir, écouter et publier des podcasts au Mali et dans toute la diaspora.',
+                style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: border),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(IconsaxPlusLinear.sms, color: BkoTheme.goldAccent, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: SelectableText(
+                            'contact@bamakopodcast.studio',
+                            style: BkoTheme.fontLato(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textPri,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(IconsaxPlusLinear.global, color: BkoTheme.goldAccent, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: SelectableText(
+                            'bamakopodcast.studio',
+                            style: BkoTheme.fontLato(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textPri,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              BkoBounceable(
+                onTap: () {
+                  Clipboard.setData(const ClipboardData(text: 'contact@bamakopodcast.studio'));
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('E-mail de support copié dans le presse-papiers.'),
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: BkoTheme.goldAccent,
+                    ),
+                  );
+                },
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 48),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: BkoTheme.goldAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'COPIER L\'E-MAIL DE SUPPORT',
+                    style: BkoTheme.fontLato(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                      color: BkoTheme.darkBgObsidian,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Bamako Podcast est la plateforme de référence pour découvrir et publier des podcasts au Mali et dans toute la diaspora.',
-              style: BkoTheme.fontLato(fontSize: 13, color: const Color(0xFFAAAAAA), height: 1.4),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'Contact : contact@bamakopodcast.studio\nSite web : bamakopodcast.studio',
-              style: BkoTheme.fontLato(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: BkoTheme.goldAccent,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Compris',
-              style: BkoTheme.fontPoppins(
-                fontWeight: FontWeight.w600,
-                color: BkoTheme.goldAccent,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
 
   Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
+        backgroundColor: surfaceElevated,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF262626)),
+          side: BorderSide(color: border),
         ),
-        title: Text(
-          'Déconnexion',
-          style: BkoTheme.fontPoppins(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
+        title: Row(
+          children: [
+            Icon(IconsaxPlusLinear.logout, color: Theme.of(context).colorScheme.error, size: 22),
+            const SizedBox(width: 10),
+            Text(
+              'Déconnexion',
+              style: BkoTheme.fontLato(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: textPri,
+              ),
+            ),
+          ],
         ),
         content: Text(
           'Êtes-vous sûr de vouloir vous déconnecter de votre compte ? Vos favoris et historiques synchronisés seront fermés sur cet appareil.',
-          style: BkoTheme.fontLato(fontSize: 13, color: const Color(0xFFAAAAAA), height: 1.4),
+          style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Annuler',
-              style: BkoTheme.fontPoppins(color: Colors.grey, fontWeight: FontWeight.w600),
+              style: BkoTheme.fontLato(color: textSec, fontWeight: FontWeight.w700),
             ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
+              backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             child: Text(
               'Se déconnecter',
-              style: BkoTheme.fontPoppins(fontWeight: FontWeight.w700),
+              style: BkoTheme.fontLato(fontWeight: FontWeight.w800),
             ),
           ),
         ],
@@ -261,14 +479,25 @@ class BkoDrawer extends ConsumerWidget {
     final fullName = user['fullName'] ?? user['name'] ?? 'Utilisateur';
     final email = user['email'] ?? '';
     final avatarUrl = user['avatar'] ?? user['profileImage'] ?? '';
-    final role = user['role']?.toString().toUpperCase() ?? 'USER';
-    final isCreator = user['isCreator'] == true || role == 'CREATOR' || role == 'ADMIN';
+    final roles = user['roles'] as List?;
+    final isAdmin = roles != null && roles.any((r) => r.toString().toUpperCase().contains('ADMIN'));
+    final isCreator = user['isCreator'] == true ||
+        (roles != null && roles.any((r) => r.toString().toUpperCase().contains('CREATOR'))) ||
+        user['creatorProfile'] != null;
+
+    final String? roleBadgeText = isAdmin
+        ? 'ADMINISTRATEUR'
+        : isCreator
+            ? 'CRÉATEUR STUDIO'
+            : null;
 
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
+    final surfaceElevated = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
 
     return Drawer(
-      backgroundColor: const Color(0xFF0E0E0E),
+      backgroundColor: BkoTheme.getBgObsidian(context),
       elevation: 0,
       child: SafeArea(
         child: Column(
@@ -276,8 +505,8 @@ class BkoDrawer extends ConsumerWidget {
             // User Header
             Container(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFF1E1E1E))),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: border)),
               ),
               child: Row(
                 children: [
@@ -286,8 +515,8 @@ class BkoDrawer extends ConsumerWidget {
                     height: 52,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFF1E1E1E),
-                      border: Border.all(color: const Color(0xFF2E2E2E), width: 1.5),
+                      color: surfaceElevated,
+                      border: Border.all(color: border, width: 1.5),
                     ),
                     child: ClipOval(
                       child: avatarUrl.isNotEmpty
@@ -308,9 +537,9 @@ class BkoDrawer extends ConsumerWidget {
                           fullName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: BkoTheme.fontPoppins(
+                          style: BkoTheme.fontLato(
                             fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: FontWeight.w800,
                             color: textPri,
                           ),
                         ),
@@ -326,24 +555,24 @@ class BkoDrawer extends ConsumerWidget {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isCreator
-                                ? BkoTheme.goldAccent.withValues(alpha: 0.15)
-                                : const Color(0xFF222222),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            isCreator ? 'Créateur Studio' : 'Auditeur',
-                            style: BkoTheme.fontPoppins(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: isCreator ? BkoTheme.goldAccent : Colors.grey,
+                        if (roleBadgeText != null) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: BkoTheme.goldAccent.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              roleBadgeText,
+                              style: BkoTheme.fontLato(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w900,
+                                color: BkoTheme.goldAccent,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -351,15 +580,15 @@ class BkoDrawer extends ConsumerWidget {
               ),
             ),
 
-            // Navigation Entries
+            // Navigation Entries (Spacious, min 48px height)
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                 children: [
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.person_outline_rounded,
-                    label: 'Mon compte',
+                    icon: IconsaxPlusLinear.user,
+                    label: 'Mon profil & compte',
                     onTap: () {
                       Navigator.pop(context);
                       context.push('/profile');
@@ -369,8 +598,8 @@ class BkoDrawer extends ConsumerWidget {
                   if (isCreator)
                     _buildDrawerItem(
                       context: context,
-                      icon: Icons.mic_none_rounded,
-                      label: 'Mon studio',
+                      icon: IconsaxPlusLinear.microphone_2,
+                      label: 'Mon studio créateur',
                       accentColor: BkoTheme.goldAccent,
                       onTap: () {
                         Navigator.pop(context);
@@ -380,8 +609,8 @@ class BkoDrawer extends ConsumerWidget {
 
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.tune_rounded,
-                    label: 'Préférences',
+                    icon: IconsaxPlusLinear.setting_2,
+                    label: 'Préférences d\'affichage',
                     onTap: () {
                       Navigator.pop(context);
                       _showPreferencesSheet(context, ref);
@@ -390,21 +619,21 @@ class BkoDrawer extends ConsumerWidget {
 
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.shield_outlined,
-                    label: 'Sécurité et appareils',
+                    icon: IconsaxPlusLinear.shield_security,
+                    label: 'Sécurité et session',
                     onTap: () {
                       Navigator.pop(context);
-                      _showSecurityDialog(context, ref);
+                      _showSecuritySheet(context);
                     },
                   ),
 
                   _buildDrawerItem(
                     context: context,
-                    icon: Icons.help_outline_rounded,
+                    icon: IconsaxPlusLinear.info_circle,
                     label: 'Aide & Support',
                     onTap: () {
                       Navigator.pop(context);
-                      _showHelpDialog(context);
+                      _showHelpSheet(context);
                     },
                   ),
                 ],
@@ -414,14 +643,14 @@ class BkoDrawer extends ConsumerWidget {
             // Bottom Logout Entry
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: Color(0xFF1E1E1E))),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: border)),
               ),
               child: _buildDrawerItem(
                 context: context,
-                icon: Icons.logout_rounded,
-                label: 'Déconnexion',
-                accentColor: Colors.red.shade400,
+                icon: IconsaxPlusLinear.logout,
+                label: 'Se déconnecter',
+                accentColor: Theme.of(context).colorScheme.error,
                 onTap: () async {
                   Navigator.pop(context);
                   await _confirmLogout(context, ref);
@@ -439,9 +668,9 @@ class BkoDrawer extends ConsumerWidget {
     return Center(
       child: Text(
         initial,
-        style: BkoTheme.fontPoppins(
+        style: BkoTheme.fontLato(
           fontSize: 20,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: BkoTheme.goldAccent,
         ),
       ),
@@ -455,22 +684,43 @@ class BkoDrawer extends ConsumerWidget {
     required VoidCallback onTap,
     Color? accentColor,
   }) {
-    final color = accentColor ?? Colors.white;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(icon, color: color, size: 22),
-        title: Text(
-          label,
-          style: BkoTheme.fontPoppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: color,
+    final color = accentColor ?? BkoTheme.getTextPrimary(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () {
+            BkoHaptics.light();
+            onTap();
+          },
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Row(
+              children: [
+                Icon(icon, color: color, size: 21),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: BkoTheme.fontLato(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: color,
+                    ),
+                  ),
+                ),
+                Icon(
+                  IconsaxPlusLinear.arrow_right_3,
+                  size: 15,
+                  color: color.withValues(alpha: 0.35),
+                ),
+              ],
+            ),
           ),
         ),
-        onTap: onTap,
-        dense: true,
       ),
     );
   }

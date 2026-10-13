@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
 import '../player/bko_audio_handler.dart';
 import '../../core/network/bko_telemetry.dart';
+import '../downloads/download_manager.dart';
 
 class QueueItem {
   final String episodeId;
@@ -214,6 +215,7 @@ final audioHandlerProvider = Provider<BkoAudioHandler>((ref) {
 
 class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
   final BkoAudioHandler _audioHandler;
+  final Ref? _ref;
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   Timer? _sleepTimer;
   Timer? _heartbeatTimer;
@@ -221,8 +223,9 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
   int _lastProgressSec = 0;
   DateTime? _lastTickTime;
 
-  ActiveEpisodeNotifier(this._audioHandler)
-      : super(const ActiveEpisodeState()) {
+  ActiveEpisodeNotifier(this._audioHandler, {Ref? ref})
+      : _ref = ref,
+        super(const ActiveEpisodeState()) {
     _subscriptions.add(_audioHandler.positionStream.listen(_onPosition, onError: (_) {}));
     _subscriptions.add(_audioHandler.durationStream.listen(_onDuration, onError: (_) {}));
     _subscriptions.add(_audioHandler.playerStateStream.listen(
@@ -243,6 +246,12 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
                 positionSeconds: state.currentPosition.inSeconds,
                 playbackRate: state.playbackSpeed,
               );
+            }
+            if (state.episodeId.isNotEmpty) {
+              _ref?.read(downloadProvider.notifier).onEpisodePlaybackCompleted(
+                    state.episodeId,
+                    podcastSlug: state.podcastSlug,
+                  );
             }
           } else if (playerState.processingState == ProcessingState.idle) {
             newStatus = PlaybackStatus.idle;
@@ -868,7 +877,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
 
 final activeEpisodeProvider =
     StateNotifierProvider<ActiveEpisodeNotifier, ActiveEpisodeState>((ref) {
-  return ActiveEpisodeNotifier(ref.watch(audioHandlerProvider));
+  return ActiveEpisodeNotifier(ref.watch(audioHandlerProvider), ref: ref);
 });
 
 // State for Scroll Navigation Bar Visibility (true = visible, false = hidden on scroll down)

@@ -163,8 +163,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (token == null) return;
       try {
         await BkoApi.post('/playlists', {'name': controller.text.trim(), 'isPublic': false}, token: token);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Playlist créée avec succès !'), behavior: SnackBarBehavior.floating),
+          );
+        }
         _fetch();
-      } catch (_) {}
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(e is ApiException ? e.message : 'Impossible de créer la playlist.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -265,18 +279,40 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         children: _playlists.map((pl) {
           final map = pl as Map;
           final count = (map['_count']?['items'] ?? 0).toString();
+          final items = (map['items'] as List?) ?? [];
+          final firstItem = items.isNotEmpty && items.first is Map ? items.first as Map : null;
+          final ep = firstItem?['episode'] as Map?;
+          final cover = (ep?['cover'] ?? ep?['podcast']?['cover'] ?? '').toString();
+
           return GestureDetector(
             onTap: () => context.push('/playlists/${map['id']}'),
             child: Container(
               margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                   color: surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: border)),
               child: Row(
                 children: [
-                  const Icon(Icons.queue_music, color: BkoTheme.goldAccent),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      color: const Color(0xFF1E1E1E),
+                      child: cover.startsWith('http')
+                          ? CachedNetworkImage(
+                              imageUrl: cover,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => const Icon(
+                                Icons.queue_music,
+                                color: BkoTheme.goldAccent,
+                              ),
+                            )
+                          : const Icon(Icons.queue_music, color: BkoTheme.goldAccent),
+                    ),
+                  ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text('${map['name'] ?? ''}',
@@ -287,7 +323,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             fontWeight: FontWeight.w700,
                             color: textPri)),
                   ),
-                  Text('$count épisodes',
+                  Text('$count épisode${count != '1' ? 's' : ''}',
                       style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
                   const SizedBox(width: 8),
                   Icon(Icons.chevron_right_rounded, color: textSec, size: 20),

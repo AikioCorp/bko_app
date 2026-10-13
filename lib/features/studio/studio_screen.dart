@@ -204,19 +204,46 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 26,
-                            backgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.15),
-                            child: Text(
-                              _profile?['displayName']?.toString().substring(0, 1).toUpperCase() ??
-                                  auth.user?['fullName']?.toString().substring(0, 1).toUpperCase() ??
-                                  'C',
-                              style: BkoTheme.fontLato(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                color: BkoTheme.goldAccent,
-                              ),
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                              border: Border.all(color: borderSub),
                             ),
+                            clipBehavior: Clip.antiAlias,
+                            child: (auth.user?['avatar'] != null &&
+                                    (auth.user!['avatar'] as String).trim().isNotEmpty)
+                                ? CachedNetworkImage(
+                                    imageUrl: auth.user!['avatar'] as String,
+                                    memCacheWidth: 150,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, __, ___) => Center(
+                                      child: Text(
+                                        _profile?['displayName']?.toString().substring(0, 1).toUpperCase() ??
+                                            auth.user?['fullName']?.toString().substring(0, 1).toUpperCase() ??
+                                            'C',
+                                        style: BkoTheme.fontLato(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w800,
+                                          color: BkoTheme.goldAccent,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      _profile?['displayName']?.toString().substring(0, 1).toUpperCase() ??
+                                          auth.user?['fullName']?.toString().substring(0, 1).toUpperCase() ??
+                                          'C',
+                                      style: BkoTheme.fontLato(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        color: BkoTheme.goldAccent,
+                                      ),
+                                    ),
+                                  ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(

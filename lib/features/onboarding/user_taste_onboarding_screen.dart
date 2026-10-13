@@ -66,16 +66,50 @@ class _UserTasteOnboardingScreenState
 
     try {
       final results = await Future.wait([
-        BkoApi.get('/languages'),
-        BkoApi.get('/topics'),
-        BkoApi.get('/podcasts?limit=15'),
+        BkoApi.get('/languages?hasContent=true'),
+        BkoApi.get('/topics?hasContent=true'),
+        BkoApi.get('/podcasts?limit=25&hasContent=true'),
       ]);
       if (!mounted) return;
-      _languages = _referentialList(results[0]);
-      _topics = _referentialList(results[1]);
-      _podcasts = _referentialList(results[2]);
+      // Conserver uniquement les langues ayant des podcasts
+      _languages = _referentialList(results[0]).where((item) {
+        final count = item['_count'];
+        if (count is Map) {
+          final primary = (count['primaryPodcasts'] as num?)?.toInt() ?? 0;
+          final pods = (count['podcasts'] as num?)?.toInt() ?? 0;
+          return (primary + pods) > 0;
+        }
+        return true;
+      }).toList();
+
+      // Conserver uniquement les sujets ayant des podcasts ou des épisodes
+      _topics = _referentialList(results[1]).where((item) {
+        final count = item['_count'];
+        if (count is Map) {
+          final podcasts = (count['podcasts'] as num?)?.toInt() ?? 0;
+          final episodes = (count['episodes'] as num?)?.toInt() ?? 0;
+          return (podcasts + episodes) > 0;
+        }
+        return true;
+      }).toList();
+
+      // Conserver uniquement les podcasts ayant des épisodes publiés
+      _podcasts = _referentialList(results[2]).where((p) {
+        final count = p['_count'];
+        if (count is Map) {
+          final episodes = (count['episodes'] as num?)?.toInt() ?? 0;
+          return episodes > 0;
+        }
+        final episodesList = p['episodes'];
+        if (episodesList is List) {
+          return episodesList.isNotEmpty;
+        }
+        return true;
+      }).toList();
+
       _selectedLanguageCodes.retainAll(_languages.map((item) => item['code'].toString()));
       _selectedTopicIds.retainAll(_topics.map((item) => item['id'].toString()));
+      _selectedPodcastIds.retainAll(_podcasts.map((item) => item['id'].toString()));
       // Si mode édition, charger les préférences existantes de l'utilisateur
       if (widget.isEditing) {
         final auth = ref.read(authProvider);
@@ -368,10 +402,28 @@ class _UserTasteOnboardingScreenState
             ),
           ),
           const SizedBox(height: 24),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _languages.length,
+          if (_languages.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF262626)),
+              ),
+              child: Text(
+                'Aucune langue avec du contenu disponible pour le moment.',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontPoppins(
+                  fontSize: 13,
+                  color: const Color(0xFF888888),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _languages.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final lang = _languages[index];
@@ -492,10 +544,28 @@ class _UserTasteOnboardingScreenState
             ),
           ),
           const SizedBox(height: 20),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: _topics.map((topic) {
+          if (_topics.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF121212),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFF262626)),
+              ),
+              child: Text(
+                'Aucun centre d\'intérêt avec du contenu disponible pour le moment.',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontPoppins(
+                  fontSize: 13,
+                  color: const Color(0xFF888888),
+                ),
+              ),
+            )
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _topics.map((topic) {
               final id = topic['id']?.toString() ?? topic['slug']?.toString() ?? '';
               final name = topic['name']?.toString() ?? 'Sujet';
               final isSelected = _selectedTopicIds.contains(id);
@@ -585,7 +655,7 @@ class _UserTasteOnboardingScreenState
                 border: Border.all(color: const Color(0xFF262626)),
               ),
               child: Text(
-                'Catalogue en cours de chargement. Vous pourrez suivre des émissions depuis l\'accueil à tout moment.',
+                'Aucune émission avec des épisodes disponible pour le moment. Vous pourrez suivre des émissions depuis l\'accueil à tout moment.',
                 textAlign: TextAlign.center,
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
@@ -606,6 +676,8 @@ class _UserTasteOnboardingScreenState
                 final desc = p['description']?.toString() ?? '';
                 final cover = p['cover']?.toString();
                 final isFollowed = _selectedPodcastIds.contains(id);
+                final epCount = ((p['_count']?['episodes'] as num?)?.toInt()) ??
+                    (p['episodes'] is List ? (p['episodes'] as List).length : null);
 
                 return Container(
                   padding: const EdgeInsets.all(12),
@@ -658,16 +730,35 @@ class _UserTasteOnboardingScreenState
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              desc,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: BkoTheme.fontPoppins(
-                                fontSize: 11.5,
-                                color: const Color(0xFF888888),
+                            if (epCount != null && epCount > 0) ...[
+                              const SizedBox(height: 2),
+                              Row(
+                                children: [
+                                  const Icon(IconsaxPlusLinear.play, size: 10, color: BkoTheme.goldAccent),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$epCount ${epCount > 1 ? 'épisodes' : 'épisode'}',
+                                    style: BkoTheme.fontPoppins(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: BkoTheme.goldAccent,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
+                            ],
+                            if (desc.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                desc,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: BkoTheme.fontPoppins(
+                                  fontSize: 11.5,
+                                  color: const Color(0xFF888888),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
