@@ -57,7 +57,17 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/forgot-password',
-      builder: (context, state) => const ForgotPasswordScreen(),
+      builder: (context, state) => ForgotPasswordScreen(
+        initialEmail: state.uri.queryParameters['email'],
+        initialCode: state.uri.queryParameters['code'] ?? state.uri.queryParameters['otpCode'],
+      ),
+    ),
+    GoRoute(
+      path: '/reset-password',
+      builder: (context, state) => ForgotPasswordScreen(
+        initialEmail: state.uri.queryParameters['email'],
+        initialCode: state.uri.queryParameters['code'] ?? state.uri.queryParameters['otpCode'],
+      ),
     ),
     GoRoute(
       path: '/verify-otp',
