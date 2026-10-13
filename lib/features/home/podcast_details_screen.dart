@@ -13,6 +13,8 @@ import '../shell/shell_providers.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
 import '../player/full_audio_player_sheet.dart';
+import '../player/widgets/bko_play_button.dart';
+import 'widgets/episode_actions_sheet.dart';
 import 'widgets/episode_list_item.dart';
 
 class PodcastDetailsScreen extends ConsumerStatefulWidget {
@@ -35,6 +37,47 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
   bool _loadingMoreEpisodes = false;
   String? _episodesError;
   int _episodeOffset = 0;
+  bool _descriptionExpanded = false;
+  bool _gridView = false;
+  String _episodeSort = 'recent';
+  String _episodeType = 'ALL';
+  int _episodeGeneration = 0;
+  bool _changingFilter = false;
+  final ScrollController _pageScrollController = ScrollController();
+  bool _showBackToTop = false;
+
+  @override
+  void dispose() {
+    _pageScrollController.dispose();
+    super.dispose();
+  }
+
+  String _episodeUrl(int offset) => Uri(
+    path: '/podcasts/${Uri.encodeComponent(widget.slug)}',
+    queryParameters: {
+      'episodeLimit': '30', 'episodeOffset': '$offset',
+      'episodeSort': _episodeSort,
+      if (_episodeType != 'ALL') 'episodeType': _episodeType,
+    },
+  ).toString();
+
+  Future<void> _changeEpisodeFilter({String? sort, String? type}) async {
+    if ((sort ?? _episodeSort) == _episodeSort &&
+        (type ?? _episodeType) == _episodeType) {
+      return;
+    }
+    setState(() {
+      _changingFilter = true;
+      _episodeSort = sort ?? _episodeSort;
+      _episodeType = type ?? _episodeType;
+      _episodeOffset = 0;
+      _hasMoreEpisodes = false;
+      _episodesError = null;
+      _loadingMoreEpisodes = false;
+      _episodes = [];
+    });
+    await _loadPodcastFromApi();
+  }
 
   @override
   void initState() {
@@ -44,14 +87,59 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
 
   Future<void> _fetchPodcastDetails() => _loadPodcastFromApi();
 
+  Widget _episodeGridCard(Map<String, dynamic> ep) {
+    final cover = '${ep['cover'] ?? _podcast?['cover'] ?? ''}';
+    final seconds = ep['durationSeconds'] as num? ?? 0;
+    return Container(
+      decoration: BoxDecoration(
+        color: BkoTheme.getBgSurfaceElevated(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: BkoTheme.getBorderSubtle(context)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: InkWell(
+            onTap: () => context.push('/podcasts/${widget.slug}/episodes/${ep['slug'] ?? ep['id']}'),
+            child: SizedBox.expand(child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: cover, fit: BoxFit.cover,
+                errorWidget: (_, __, ___) => Icon(IconsaxPlusLinear.music, color: BkoTheme.getTextSecondary(context)),
+              ),
+            )),
+          )),
+          const SizedBox(height: 8),
+          Text('${ep['title'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis,
+            style: BkoTheme.fontPoppins(fontSize: 13, fontWeight: FontWeight.w600, color: BkoTheme.getTextPrimary(context))),
+          Row(children: [
+            Expanded(child: Text(seconds > 0 ? '${(seconds / 60).round()} min' : '',
+              style: BkoTheme.fontPoppins(fontSize: 12, color: BkoTheme.getTextSecondary(context)))),
+            IconButton(tooltip: 'Actions de l’épisode',
+              icon: Icon(IconsaxPlusLinear.more, color: BkoTheme.getTextSecondary(context)),
+              onPressed: () => EpisodeActionsSheet.show(context, ep)),
+            BkoPlayButton(
+              episodeId: '${ep['id'] ?? ''}', title: '${ep['title'] ?? ''}',
+              showName: '${_podcast?['name'] ?? ''}', duration: seconds > 0 ? '${(seconds / 60).round()} min' : '',
+              coverUrl: cover, audioUrl: BkoApi.extractAudioUrl(ep), videoUrl: BkoApi.extractVideoUrl(ep),
+              podcastSlug: widget.slug, episodeSlug: '${ep['slug'] ?? ''}',
+              size: 40,
+            ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
   Future<void> _loadPodcastFromApi() async {
+    final generation = ++_episodeGeneration;
     try {
       final token = ref.read(authProvider).token;
       final data = await BkoApi.get(
-        '/podcasts/${Uri.encodeComponent(widget.slug)}?episodeLimit=30',
+        _episodeUrl(0),
         token: token,
       );
-      if (!mounted) return;
+      if (!mounted || generation != _episodeGeneration) return;
       final podcast = data is Map ? Map<String, dynamic>.from(data) : null;
       final viewer = podcast?['viewer'] is Map ? podcast!['viewer'] as Map : null;
 
@@ -70,25 +158,33 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
             ? List<dynamic>.from(podcast!['episodes'] as List)
             : [];
         _isLoading = false;
+        _changingFilter = false;
         _hasMoreEpisodes = podcast?['episodesPage']?['hasMore'] == true;
         _episodeOffset = (podcast?['episodesPage']?['nextOffset'] as num?)?.toInt() ?? _episodes.length;
       });
 
       _loadSimilarPodcasts(categorySlug: categorySlug);
     } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && generation == _episodeGeneration) {
+        setState(() {
+          _isLoading = false;
+          _changingFilter = false;
+          _episodesError = 'Impossible de charger les épisodes.';
+        });
+      }
     }
   }
 
   Future<void> _loadMoreEpisodes() async {
     if (_loadingMoreEpisodes || !_hasMoreEpisodes) return;
+    final generation = _episodeGeneration;
     setState(() { _loadingMoreEpisodes = true; _episodesError = null; });
     try {
       final data = await BkoApi.get(
-        '/podcasts/${Uri.encodeComponent(widget.slug)}?episodeLimit=30&episodeOffset=$_episodeOffset',
+        _episodeUrl(_episodeOffset),
         token: ref.read(authProvider).token,
       );
-      if (!mounted) return;
+      if (!mounted || generation != _episodeGeneration) return;
       if (data is! Map || data['episodes'] is! List) throw const FormatException('Liste invalide');
       final seen = _episodes.map((item) => item['id']).toSet();
       setState(() {
@@ -97,9 +193,9 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
         _episodeOffset = (data['episodesPage']?['nextOffset'] as num?)?.toInt() ?? _episodes.length;
       });
     } catch (_) {
-      if (mounted) setState(() => _episodesError = 'Impossible de charger les épisodes suivants.');
+      if (mounted && generation == _episodeGeneration) setState(() => _episodesError = 'Impossible de charger les épisodes suivants.');
     } finally {
-      if (mounted) setState(() => _loadingMoreEpisodes = false);
+      if (mounted && generation == _episodeGeneration) setState(() => _loadingMoreEpisodes = false);
     }
   }
 
@@ -216,7 +312,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
         appBar: AppBar(
           backgroundColor: bgSurf,
           elevation: 0,
-          leading: const AppBackButton(),
+          leading: const AppBackButton(size: 18),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -290,10 +386,36 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
 
     return Scaffold(
       backgroundColor: bgSurf,
+      floatingActionButton: _showBackToTop
+          ? Padding(
+              padding: EdgeInsets.only(
+                bottom: ref.watch(activeEpisodeProvider).hasActiveEpisode ? 88 : 12,
+              ),
+              child: FloatingActionButton.small(
+                materialTapTargetSize: MaterialTapTargetSize.padded,
+                heroTag: null,
+                tooltip: 'Retour en haut',
+                elevation: 0,
+                backgroundColor: BkoTheme.goldAccent,
+                foregroundColor: BkoTheme.getBgObsidian(context),
+                onPressed: () {
+                  if (!_pageScrollController.hasClients) return;
+                  if (MediaQuery.of(context).disableAnimations) {
+                    _pageScrollController.jumpTo(0);
+                  } else {
+                    _pageScrollController.animateTo(0,
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.easeOutCubic);
+                  }
+                },
+                child: const Icon(IconsaxPlusLinear.arrow_up_1, size: 18),
+              ),
+            )
+          : null,
       appBar: AppBar(
         backgroundColor: bgSurf,
         elevation: 0,
-        leading: const AppBackButton(),
+        leading: const AppBackButton(size: 18),
         title: Text(
           name,
           style: BkoTheme.fontLato(
@@ -310,10 +432,15 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
       ),
       body: NotificationListener<ScrollNotification>(
         onNotification: (notification) {
+          if (notification.depth == 0 && notification.metrics.axis == Axis.vertical) {
+            final visible = notification.metrics.pixels > 500;
+            if (visible != _showBackToTop) setState(() => _showBackToTop = visible);
+          }
           if (notification.metrics.extentAfter < 500 && _episodesError == null) _loadMoreEpisodes();
           return handleShellScrollNotification(notification, ref);
         },
         child: CustomScrollView(
+          controller: _pageScrollController,
           slivers: [
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -486,6 +613,8 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
             const SizedBox(height: 8),
             Text(
               description,
+              maxLines: _descriptionExpanded ? null : 4,
+              overflow: _descriptionExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
               style: BkoTheme.fontLato(
                 fontSize: 13.5,
                 color: textPri,
@@ -493,13 +622,19 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
               ),
             ),
 
+            if (description.length > 180)
+              TextButton(
+                onPressed: () => setState(() => _descriptionExpanded = !_descriptionExpanded),
+                child: Text(_descriptionExpanded ? 'Masquer' : 'Afficher plus'),
+              ),
+
             const SizedBox(height: 28),
 
             // Episodes List Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
+                Expanded(child: Text(
                   'ÉPISODES (${_podcast?['_count']?['episodes'] ?? _episodes.length})',
                   style: BkoTheme.fontLato(
                     fontSize: 12,
@@ -507,10 +642,42 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                     letterSpacing: 1.5,
                     color: BkoTheme.goldAccent,
                   ),
+                )),
+                PopupMenuButton<String>(
+                  tooltip: 'Format : ${_episodeType == 'ALL' ? 'Tout' : _episodeType == 'AUDIO' ? 'Audio' : 'Vidéo'}',
+                  initialValue: _episodeType,
+                  onSelected: (value) => _changeEpisodeFilter(type: value),
+                  icon: Icon(IconsaxPlusLinear.filter,
+                    color: _episodeType == 'ALL' ? textSec : BkoTheme.goldAccent, size: 20),
+                  itemBuilder: (_) => ['ALL', 'AUDIO', 'VIDEO'].map((type) => CheckedPopupMenuItem<String>(
+                    value: type, checked: _episodeType == type,
+                    child: Text(type == 'ALL' ? 'Tous les formats' : type == 'AUDIO' ? 'Audio' : 'Vidéo'),
+                  )).toList(),
                 ),
-                Icon(IconsaxPlusLinear.sort, color: textSec, size: 20),
+                PopupMenuButton<String>(
+                  tooltip: 'Trier les épisodes',
+                  icon: Icon(IconsaxPlusLinear.sort, color: textSec, size: 20),
+                  initialValue: _episodeSort,
+                  onSelected: (value) => _changeEpisodeFilter(sort: value),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(value: 'recent', child: Text('Plus récents')),
+                    PopupMenuItem(value: 'oldest', child: Text('Plus anciens')),
+                  ],
+                ),
+                IconButton(
+                  tooltip: _gridView ? 'Afficher en liste' : 'Afficher en grille',
+                  onPressed: () => setState(() => _gridView = !_gridView),
+                  icon: Icon(_gridView ? IconsaxPlusLinear.row_vertical : IconsaxPlusLinear.grid_1,
+                    color: textSec, size: 20),
+                ),
               ],
             ),
+
+            if (_episodeType != 'ALL' || _episodeSort != 'recent')
+              Text(
+                '${_episodeType == 'ALL' ? 'Tous les formats' : _episodeType == 'AUDIO' ? 'Audio' : 'Vidéo'} · ${_episodeSort == 'recent' ? 'Plus récents' : 'Plus anciens'}',
+                style: BkoTheme.fontPoppins(fontSize: 12, color: textSec),
+              ),
 
             const SizedBox(height: 14),
 
@@ -524,11 +691,25 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                   ? SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text('Aucun épisode disponible pour le moment.',
+                        child: Text(_changingFilter ? 'Chargement des épisodes…' : 'Aucun épisode pour ces filtres.',
                           style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
                       ),
                     )
-                  : SliverList(
+                  : _gridView
+                      ? SliverGrid(
+                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 260,
+                            mainAxisExtent: 300,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
+                          delegate: SliverChildBuilderDelegate((context, index) {
+                            final ep = Map<String, dynamic>.from(_episodes[index]);
+                            ep['podcast'] ??= _podcast;
+                            return _episodeGridCard(ep);
+                          }, childCount: _episodes.length),
+                        )
+                      : SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
                         final ep = Map<String, dynamic>.from(_episodes[index]);
                         ep['podcast'] ??= {

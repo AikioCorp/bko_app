@@ -1,10 +1,104 @@
 import 'dart:math' as math;
+import 'package:country_picker/country_picker.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/bko_theme.dart';
 import 'auth_controller.dart';
 import 'widgets/auth_legal_sheets.dart';
+
+class PhoneNumberTextInputFormatter extends TextInputFormatter {
+  final String countryCode;
+
+  const PhoneNumberTextInputFormatter(this.countryCode);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final rawDigits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final formatted = formatNumber(rawDigits, countryCode);
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+
+  static String formatNumber(String digits, String countryCode) {
+    if (digits.isEmpty) return '';
+    final cc = countryCode.toUpperCase();
+
+    // 1. Mali, Burkina Faso, Niger (8 chiffres : 2-2-2-2, ex: 70 00 00 90)
+    if (cc == 'ML' || cc == 'BF' || cc == 'NE') {
+      final buffer = StringBuffer();
+      for (int i = 0; i < digits.length && i < 8; i++) {
+        if (i > 0 && i % 2 == 0) buffer.write(' ');
+        buffer.write(digits[i]);
+      }
+      return buffer.toString();
+    }
+
+    // 2. Ghana (10 chiffres ex: 050 706 6762, ou 9 chiffres: 50 706 6762)
+    if (cc == 'GH') {
+      final buffer = StringBuffer();
+      if (digits.startsWith('0')) {
+        for (int i = 0; i < digits.length && i < 10; i++) {
+          if (i == 3 || i == 6) buffer.write(' ');
+          buffer.write(digits[i]);
+        }
+      } else {
+        for (int i = 0; i < digits.length && i < 9; i++) {
+          if (i == 2 || i == 5) buffer.write(' ');
+          buffer.write(digits[i]);
+        }
+      }
+      return buffer.toString();
+    }
+
+    // 3. Côte d'Ivoire & France (10 chiffres : 2-2-2-2-2, ex: 07 00 00 00 00 ou 06 12 34 56 78)
+    if (cc == 'CI' || cc == 'FR') {
+      final buffer = StringBuffer();
+      for (int i = 0; i < digits.length && i < 10; i++) {
+        if (i > 0 && i % 2 == 0) buffer.write(' ');
+        buffer.write(digits[i]);
+      }
+      return buffer.toString();
+    }
+
+    // 4. Sénégal (9 chiffres : 2-3-2-2, ex: 77 123 45 67)
+    if (cc == 'SN') {
+      final buffer = StringBuffer();
+      for (int i = 0; i < digits.length && i < 9; i++) {
+        if (i == 2 || i == 5 || i == 7) buffer.write(' ');
+        buffer.write(digits[i]);
+      }
+      return buffer.toString();
+    }
+
+    // 5. Guinée (9 chiffres : 3-2-2-2, ex: 620 00 00 00)
+    if (cc == 'GN') {
+      final buffer = StringBuffer();
+      for (int i = 0; i < digits.length && i < 9; i++) {
+        if (i == 3 || i == 5 || i == 7) buffer.write(' ');
+        buffer.write(digits[i]);
+      }
+      return buffer.toString();
+    }
+
+    // Défaut : groupements de 3 chiffres
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length && i < 15; i++) {
+      if (i > 0 && i % 3 == 0) buffer.write(' ');
+      buffer.write(digits[i]);
+    }
+    return buffer.toString();
+  }
+}
 
 enum AuthTab { login, register }
 
@@ -37,6 +131,212 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   final _registerPassword = TextEditingController();
   bool _showRegisterPassword = false;
   bool _acceptTerms = false;
+  Country _phoneCountry = Country.parse('ML');
+  final Map<TextEditingController, String> _fieldErrors = {};
+  String? _termsError;
+
+  void _selectPhoneCountry() {
+    FocusScope.of(context).unfocus();
+    showCountryPicker(
+      context: context,
+      showPhoneCode: true,
+      searchAutofocus: false,
+      favorite: const ['ML', 'CI', 'SN', 'BF', 'GN', 'NE', 'FR'],
+      countryListTheme: CountryListThemeData(
+        backgroundColor: BkoTheme.getBgSurface(context),
+        textStyle: BkoTheme.fontPoppins(fontSize: 14, color: BkoTheme.getTextPrimary(context)),
+        searchTextStyle: BkoTheme.fontPoppins(fontSize: 14, color: BkoTheme.getTextPrimary(context)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        bottomSheetHeight: MediaQuery.of(context).size.height * 0.72,
+        inputDecoration: InputDecoration(
+          hintText: 'Rechercher un pays ou un indicatif...',
+          hintStyle: BkoTheme.fontPoppins(fontSize: 13, color: const Color(0xFF757575)),
+          prefixIcon: const Icon(IconsaxPlusLinear.search_normal_1, color: Color(0xFF757575), size: 18),
+          filled: true,
+          fillColor: const Color(0xFF0E0E0E),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: BkoTheme.goldAccent, width: 1.2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        ),
+      ),
+      onSelect: (country) => setState(() {
+        _phoneCountry = country;
+        _fieldErrors.remove(_registerPhone);
+        if (_registerPhone.text.isNotEmpty) {
+          final rawDigits = _registerPhone.text.replaceAll(RegExp(r'\D'), '');
+          _registerPhone.text = PhoneNumberTextInputFormatter.formatNumber(rawDigits, _phoneCountry.countryCode);
+        }
+      }),
+    );
+  }
+
+  String _getPhoneHintForCountry(String countryCode) {
+    switch (countryCode.toUpperCase()) {
+      case 'ML':
+        return '70 00 00 90';
+      case 'GH':
+        return '050 706 6762';
+      case 'CI':
+        return '07 00 00 00 00';
+      case 'SN':
+        return '77 123 45 67';
+      case 'BF':
+        return '70 00 00 00';
+      case 'GN':
+        return '620 00 00 00';
+      case 'FR':
+        return '06 12 34 56 78';
+      default:
+        return 'Numéro national';
+    }
+  }
+
+  Widget _buildPhoneInputRow() {
+    final error = _fieldErrors[_registerPhone];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Sélecteur de pays compact (Drapeau + Indicatif + flèche)
+            InkWell(
+              onTap: _isSubmitting ? null : _selectPhoneCountry,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0E0E0E),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: error != null
+                        ? Theme.of(context).colorScheme.error
+                        : BkoTheme.getBorderSubtle(context),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _phoneCountry.flagEmoji,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      '+${_phoneCountry.phoneCode}',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      IconsaxPlusLinear.arrow_down_1,
+                      size: 14,
+                      color: Color(0xFF757575),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Champ de saisie du numéro national
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0E0E0E),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: error != null
+                        ? Theme.of(context).colorScheme.error
+                        : BkoTheme.getBorderSubtle(context),
+                  ),
+                ),
+                child: TextField(
+                  controller: _registerPhone,
+                  keyboardType: TextInputType.phone,
+                  autofillHints: const [AutofillHints.telephoneNumber],
+                  textInputAction: TextInputAction.next,
+                  inputFormatters: [
+                    PhoneNumberTextInputFormatter(_phoneCountry.countryCode),
+                  ],
+                  onChanged: (value) {
+                    if (_fieldErrors.containsKey(_registerPhone)) {
+                      setState(() => _fieldErrors.remove(_registerPhone));
+                    }
+                  },
+                  style: BkoTheme.fontPoppins(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: _getPhoneHintForCountry(_phoneCountry.countryCode),
+                    hintStyle: BkoTheme.fontPoppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF555555),
+                    ),
+                    prefixIcon: const Icon(
+                      IconsaxPlusLinear.call,
+                      color: Color(0xFF757575),
+                      size: 18,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: InputBorder.none,
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: BkoTheme.goldAccent, width: 1.2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 6),
+            child: Semantics(
+              liveRegion: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    IconsaxPlusLinear.info_circle,
+                    size: 13,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      error,
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        height: 1.3,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 
   // Local feedback state
   String? _localError;
@@ -95,6 +395,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() {
       _activeTab = tab;
       _localError = null;
+      _fieldErrors.clear();
+      _termsError = null;
     });
   }
 
@@ -110,13 +412,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _handleLogin() async {
     FocusScope.of(context).unfocus();
-    setState(() => _localError = null);
+    setState(() { _localError = null; _fieldErrors.clear(); });
 
     final identifier = _loginIdentifier.text.trim();
     final password = _loginPassword.text;
 
     if (identifier.isEmpty || password.isEmpty) {
-      setState(() => _localError = 'Veuillez saisir votre identifiant et votre mot de passe.');
+      setState(() {
+        if (identifier.isEmpty) _fieldErrors[_loginIdentifier] = 'Renseignez votre identifiant.';
+        if (password.isEmpty) _fieldErrors[_loginPassword] = 'Renseignez votre mot de passe.';
+      });
       return;
     }
 
@@ -141,40 +446,61 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
   Future<void> _handleRegister() async {
     FocusScope.of(context).unfocus();
-    setState(() => _localError = null);
+    setState(() { _localError = null; _fieldErrors.clear(); _termsError = null; });
 
     final fullName = _registerName.text.trim();
     final email = _registerEmail.text.trim();
     final phone = _registerPhone.text.trim();
     final password = _registerPassword.text;
 
-    if (fullName.isEmpty) {
-      setState(() => _localError = 'Veuillez renseigner votre nom complet ou pseudo.');
-      return;
+    String? normalizedPhone;
+    if (fullName.isEmpty) _fieldErrors[_registerName] = 'Renseignez votre nom ou pseudo.';
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      _fieldErrors[_registerEmail] = 'Saisissez une adresse e-mail valide.';
     }
-    if (email.isEmpty || !email.contains('@')) {
-      setState(() => _localError = 'Veuillez renseigner une adresse e-mail valide.');
-      return;
+    if (password.length < 8 || password.length > 72) {
+      _fieldErrors[_registerPassword] = 'Utilisez entre 8 et 72 caractères.';
     }
-    if (password.length < 8) {
-      setState(() => _localError = 'Le mot de passe doit comporter au moins 8 caractères.');
-      return;
+    if (phone.isNotEmpty) {
+      final rawDigits = phone.replaceAll(RegExp(r'\D'), '');
+      final cc = _phoneCountry.countryCode.toUpperCase();
+
+      if (cc == 'ML') {
+        if (rawDigits.length != 8) {
+          _fieldErrors[_registerPhone] = 'Le numéro malien doit comporter 8 chiffres (ex. 70 00 00 90).';
+        } else {
+          normalizedPhone = '+223$rawDigits';
+        }
+      } else if (cc == 'GH') {
+        if (rawDigits.length < 9 || rawDigits.length > 10) {
+          _fieldErrors[_registerPhone] = 'Numéro invalide pour le Ghana (ex. 050 706 6762).';
+        } else {
+          final nsn = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+          normalizedPhone = '+233$nsn';
+        }
+      } else {
+        try {
+          final iso = IsoCode.values.byName(_phoneCountry.countryCode);
+          final number = PhoneNumber.parse(rawDigits, destinationCountry: iso);
+          if (!number.isValid() || number.isoCode != iso) {
+            _fieldErrors[_registerPhone] = 'Numéro invalide pour ${_phoneCountry.name}.';
+          } else {
+            normalizedPhone = '+${number.countryCode}${number.nsn}';
+          }
+        } catch (_) {
+          _fieldErrors[_registerPhone] = 'Numéro invalide pour ${_phoneCountry.name}.';
+        }
+      }
     }
-    if (password.length > 72) {
-      setState(() => _localError = 'Le mot de passe ne doit pas dépasser 72 caractères.');
-      return;
-    }
-    if (!_acceptTerms) {
-      setState(() => _localError = 'Veuillez accepter les conditions d\'utilisation pour continuer.');
-      return;
-    }
+    if (!_acceptTerms) _termsError = 'Acceptez les conditions pour continuer.';
+    if (_fieldErrors.isNotEmpty || _termsError != null) { setState(() {}); return; }
 
     setState(() => _isSubmitting = true);
     final res = await ref.read(authProvider.notifier).register(
           fullName: fullName,
           email: email,
           password: password,
-          phoneNumber: phone.isNotEmpty ? phone : null,
+          phoneNumber: normalizedPhone,
         );
     if (!mounted) return;
     setState(() => _isSubmitting = false);
@@ -511,7 +837,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _buildTextField(
             controller: _loginIdentifier,
             hint: 'nom@exemple.com ou +00 000 000 000',
-            icon: Icons.person_outline_rounded,
+            icon: IconsaxPlusLinear.user,
             keyboardType: TextInputType.emailAddress,
             autofillHints: const [
               AutofillHints.username,
@@ -527,7 +853,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildInputLabel(label: 'Mot de passe'),
+              Flexible(
+                child: Text(
+                  'Mot de passe',
+                  style: BkoTheme.fontPoppins(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
               Semantics(
                 button: true,
                 child: InkWell(
@@ -548,14 +885,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _buildTextField(
             controller: _loginPassword,
             hint: '••••••••••••',
-            icon: Icons.lock_outline_rounded,
+            icon: IconsaxPlusLinear.lock,
             obscureText: !_showLoginPassword,
             autofillHints: const [AutofillHints.password],
             textInputAction: TextInputAction.done,
             onSubmitted: (_) => _handleLogin(),
             suffixIcon: IconButton(
               icon: Icon(
-                _showLoginPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _showLoginPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
                 color: const Color(0xFF757575),
                 size: 20,
               ),
@@ -570,7 +907,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           // Session Information Badge
           Row(
             children: [
-              const Icon(Icons.shield_outlined, color: BkoTheme.goldAccent, size: 16),
+              const Icon(IconsaxPlusLinear.shield_tick, color: BkoTheme.goldAccent, size: 16),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -644,7 +981,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _buildTextField(
             controller: _registerName,
             hint: 'ex. Awa Traoré',
-            icon: Icons.person_outline_rounded,
+            icon: IconsaxPlusLinear.user,
             autofillHints: const [AutofillHints.name],
             textInputAction: TextInputAction.next,
           ),
@@ -660,7 +997,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _buildTextField(
             controller: _registerEmail,
             hint: 'ex. nom@exemple.com',
-            icon: Icons.mail_outline_rounded,
+            icon: IconsaxPlusLinear.sms,
             keyboardType: TextInputType.emailAddress,
             autofillHints: const [AutofillHints.email],
             textInputAction: TextInputAction.next,
@@ -671,17 +1008,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           // Numéro de téléphone (optionnel)
           _buildInputLabel(
             label: 'Numéro de téléphone',
-            subtitle: 'Optionnel • alertes & SMS',
+            subtitle: 'Optionnel',
           ),
           const SizedBox(height: 6),
-          _buildTextField(
-            controller: _registerPhone,
-            hint: 'ex. +00 00 00 00 00',
-            icon: Icons.phone_outlined,
-            keyboardType: TextInputType.phone,
-            autofillHints: const [AutofillHints.telephoneNumber],
-            textInputAction: TextInputAction.next,
-          ),
+          _buildPhoneInputRow(),
 
           const SizedBox(height: 14),
 
@@ -694,7 +1024,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           _buildTextField(
             controller: _registerPassword,
             hint: '8+ caractères, majuscule, chiffre',
-            icon: Icons.lock_outline_rounded,
+            icon: IconsaxPlusLinear.lock,
             obscureText: !_showRegisterPassword,
             autofillHints: const [AutofillHints.newPassword],
             textInputAction: TextInputAction.done,
@@ -702,7 +1032,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             onSubmitted: (_) => _handleRegister(),
             suffixIcon: IconButton(
               icon: Icon(
-                _showRegisterPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                _showRegisterPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
                 color: const Color(0xFF757575),
                 size: 20,
               ),
@@ -749,7 +1079,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () {
-                setState(() => _acceptTerms = !_acceptTerms);
+                setState(() { _acceptTerms = !_acceptTerms; _termsError = null; });
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -766,7 +1096,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         side: const BorderSide(color: Color(0xFF757575), width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         onChanged: (val) {
-                          setState(() => _acceptTerms = val ?? false);
+                          setState(() { _acceptTerms = val ?? false; _termsError = null; });
                         },
                       ),
                     ),
@@ -825,6 +1155,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           const SizedBox(height: 20),
 
           // Submit Button
+          if (_termsError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10, left: 4),
+              child: Semantics(
+                liveRegion: true,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Icon(
+                      IconsaxPlusLinear.info_circle,
+                      size: 13,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        _termsError!,
+                        style: BkoTheme.fontPoppins(
+                          fontSize: 12,
+                          height: 1.3,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           SizedBox(
             height: 52,
             child: ElevatedButton(
@@ -934,42 +1292,85 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     ValueChanged<String>? onSubmitted,
     Widget? suffixIcon,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0E0E0E),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF262626)),
-      ),
-      child: TextField(
-        controller: controller,
-        obscureText: obscureText,
-        keyboardType: keyboardType,
-        autofillHints: autofillHints,
-        textInputAction: textInputAction,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        style: BkoTheme.fontPoppins(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: Colors.white,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: BkoTheme.fontPoppins(
-            fontSize: 13,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF555555),
-          ),
-          prefixIcon: Icon(icon, color: const Color(0xFF757575), size: 18),
-          suffixIcon: suffixIcon,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: InputBorder.none,
-          focusedBorder: OutlineInputBorder(
+    final error = _fieldErrors[controller];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF0E0E0E),
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: BkoTheme.goldAccent, width: 1.2),
+            border: Border.all(
+              color: error != null
+                  ? Theme.of(context).colorScheme.error
+                  : BkoTheme.getBorderSubtle(context),
+            ),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            autofillHints: autofillHints,
+            textInputAction: textInputAction,
+            onChanged: (value) {
+              if (_fieldErrors.containsKey(controller)) {
+                setState(() => _fieldErrors.remove(controller));
+              }
+              onChanged?.call(value);
+            },
+            onSubmitted: onSubmitted,
+            style: BkoTheme.fontPoppins(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: BkoTheme.fontPoppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: const Color(0xFF555555),
+              ),
+              prefixIcon: Icon(icon, color: const Color(0xFF757575), size: 18),
+              suffixIcon: suffixIcon,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: InputBorder.none,
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(color: BkoTheme.goldAccent, width: 1.2),
+              ),
+            ),
           ),
         ),
-      ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(left: 4, top: 6),
+            child: Semantics(
+              liveRegion: true,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(
+                    IconsaxPlusLinear.info_circle,
+                    size: 13,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      error,
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        height: 1.3,
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1054,8 +1455,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   }
 
   Widget _buildLegalFooter() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         _buildFooterLink('Centre d\'aide', () => AuthLegalSheets.showHelp(context)),
         const Padding(

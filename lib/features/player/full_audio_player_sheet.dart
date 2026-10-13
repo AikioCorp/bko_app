@@ -20,12 +20,18 @@ class FullAudioPlayerSheet extends ConsumerStatefulWidget {
 
   static Future<void> show(BuildContext context) async {
     final container = ProviderScope.containerOf(context, listen: false);
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => const FullAudioPlayerSheet(),
-    );
+    container.read(isFullPlayerOpenProvider.notifier).state = true;
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+      useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => const FullAudioPlayerSheet(),
+      );
+    } finally {
+      container.read(isFullPlayerOpenProvider.notifier).state = false;
+    }
     final active = container.read(activeEpisodeProvider);
     if (active.mode == 'VIDEO' && active.isPlaying) {
       container.read(activeEpisodeProvider.notifier).pauseVideo();
@@ -353,7 +359,9 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
           Expanded(
             child: SingleChildScrollView(
               physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              padding: EdgeInsets.fromLTRB(
+                24, 8, 24, MediaQuery.viewPaddingOf(context).bottom + 24,
+              ),
               child: Column(
                 children: [
                   // Audio / Video Switcher (if both available)
@@ -739,10 +747,11 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                   const SizedBox(height: 24),
 
                   // Bottom Tabs: "À suivre" / "Chapitres"
-                  Row(
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 8,
                     children: [
                       _buildTabButton('À suivre (${active.queue.length})', 0),
-                      const SizedBox(width: 10),
                       _buildTabButton('Chapitres (${_chapters.length})', 1),
                     ],
                   ),
@@ -767,7 +776,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'File d’attente vide. Utilisez « Lire ensuite » pour en ajouter.',
+                                'Votre file est vide.\nAjoutez des épisodes avec « Lire ensuite » pour continuer l’écoute.',
                                 style: BkoTheme.fontLato(
                                     fontSize: 12, color: textSec),
                               ),
@@ -912,7 +921,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       ),
                   ],
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 8),
                 ],
               ),
             ),

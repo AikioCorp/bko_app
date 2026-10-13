@@ -25,6 +25,8 @@ dependencies:
   youtube_player_iframe: ^5.2.1
   path_provider: ^2.1.2
   iconsax_plus: ^1.0.0
+  country_picker: ^2.0.28
+  phone_numbers_parser: ^9.0.28
 
 
 dev_dependencies:

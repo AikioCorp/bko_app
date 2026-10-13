@@ -22,6 +22,7 @@ import '../../features/notifications/notifications_screen.dart';
 import '../../features/library/playlist_details_screen.dart';
 import '../../features/downloads/downloads_screen.dart';
 import '../../features/shell/subpage_audio_shell.dart';
+import '../../features/discovery/section_discovery_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/splash',
@@ -120,16 +121,43 @@ final appRouter = GoRouter(
       builder: (context, state, child) => SubpageAudioShell(child: child),
       routes: [
         GoRoute(
-          path: '/discovery',
-          builder: (context, state) => ExploreScreen(
-            initialQuery: state.uri.queryParameters['q'],
-            initialCategory: state.uri.queryParameters['category'],
-            initialLang: state.uri.queryParameters['lang'],
-            initialDuration: state.uri.queryParameters['duration'],
-            initialSort: state.uri.queryParameters['sort'],
-            initialView: state.uri.queryParameters['view'],
-            isStandalone: true,
+          path: '/discovery/sections/:sectionId',
+          builder: (context, state) => SectionDiscoveryScreen(
+            sectionId: state.pathParameters['sectionId'] ?? '',
+            initialSlug: state.uri.queryParameters['slug'],
+            initialTitle: state.uri.queryParameters['title'],
+            initialSubtitle: state.uri.queryParameters['subtitle'],
+            initialType: state.uri.queryParameters['type'],
+            category: state.uri.queryParameters['category'],
+            batchId: state.uri.queryParameters['batchId'],
           ),
+        ),
+        GoRoute(
+          path: '/discovery',
+          builder: (context, state) {
+            final secId = state.uri.queryParameters['sectionId'] ??
+                state.uri.queryParameters['section'];
+            if (secId != null && secId.isNotEmpty) {
+              return SectionDiscoveryScreen(
+                sectionId: secId,
+                initialSlug: state.uri.queryParameters['slug'],
+                initialTitle: state.uri.queryParameters['title'],
+                initialSubtitle: state.uri.queryParameters['subtitle'],
+                initialType: state.uri.queryParameters['type'],
+                category: state.uri.queryParameters['category'],
+                batchId: state.uri.queryParameters['batchId'],
+              );
+            }
+            return ExploreScreen(
+              initialQuery: state.uri.queryParameters['q'],
+              initialCategory: state.uri.queryParameters['category'],
+              initialLang: state.uri.queryParameters['lang'],
+              initialDuration: state.uri.queryParameters['duration'],
+              initialSort: state.uri.queryParameters['sort'],
+              initialView: state.uri.queryParameters['view'],
+              isStandalone: true,
+            );
+          },
         ),
         GoRoute(
           path: '/downloads',

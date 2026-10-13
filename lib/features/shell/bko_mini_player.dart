@@ -20,6 +20,9 @@ class BkoMiniPlayer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isFullPlayerOpen = ref.watch(isFullPlayerOpenProvider);
+    if (isFullPlayerOpen) return const SizedBox.shrink();
+
     final active = ref.watch(activeEpisodeProvider);
     if (!active.hasActiveEpisode) return const SizedBox.shrink();
 

@@ -126,8 +126,23 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
     try {
       final auth = ref.read(authProvider);
 
+      final previousSlides = state.homeData?['heroSlides'];
+      final previousIds = previousSlides is List
+          ? previousSlides.map((slide) {
+              if (slide is! Map || slide['episode'] is! Map) return '';
+              return slide['episode']['id']?.toString() ?? '';
+            }).where((id) => id.isNotEmpty).take(12).join(',')
+          : '';
+      final renewHero = !isInitial;
+      final homeUrl = Uri(path: '/home', queryParameters: {
+        'country': 'all',
+        'category': state.selectedCategory,
+        if (renewHero) 'refreshHero': '1',
+        if (renewHero && previousIds.isNotEmpty) 'previousHeroIds': previousIds,
+      }).toString();
+
       final homeDataRes = await BkoApi.get(
-        '/home?country=all&category=${state.selectedCategory}',
+        homeUrl,
         token: auth.token,
       );
       final categoriesRes = await BkoApi.get('/categories');
@@ -172,14 +187,16 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
       state = state.copyWith(
         isLoading: false,
         isRefreshing: false,
-        error: isInitial ? 'Impossible de charger le contenu d\'accueil.' : null,
+        error: isInitial
+            ? 'Impossible de charger le contenu d\'accueil.'
+            : 'Actualisation impossible. Le contenu précédent reste disponible.',
       );
     }
   }
 
   /// Change de catégorie et recharge immédiatement les sections adaptées
   Future<void> selectCategory(String category) async {
-    final nextCat = (state.selectedCategory == category || category.isEmpty) ? 'all' : category;
+    final nextCat = category.isEmpty ? 'all' : category;
     if (nextCat == state.selectedCategory) return;
 
     state = state.copyWith(

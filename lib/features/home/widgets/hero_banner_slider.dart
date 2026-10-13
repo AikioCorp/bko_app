@@ -21,31 +21,74 @@ class HeroBannerSlider extends ConsumerStatefulWidget {
   ConsumerState<HeroBannerSlider> createState() => _HeroBannerSliderState();
 }
 
-class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider> {
+class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
+    with WidgetsBindingObserver {
   late final PageController _pageController;
   int _currentIndex = 0;
   Timer? _autoSlideTimer;
   bool _isUserInteracting = false;
+  bool _foreground = true;
+
+  String _slideId(dynamic slide) {
+    if (slide is! Map) return '';
+    final episode = slide['episode'] is Map ? slide['episode'] as Map : slide;
+    return episode['id']?.toString() ?? '';
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController();
     _startAutoSlide();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoSlideTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _foreground = state == AppLifecycleState.resumed;
+  }
+
+  @override
+  void didUpdateWidget(covariant HeroBannerSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldIds = oldWidget.slides.map(_slideId).join(',');
+    final newIds = widget.slides.map(_slideId).join(',');
+    if (oldIds == newIds) return;
+    final currentId = oldWidget.slides.isNotEmpty
+        ? _slideId(oldWidget.slides[_currentIndex.clamp(0, oldWidget.slides.length - 1)])
+        : '';
+    final retainedIndex = widget.slides.indexWhere((s) => _slideId(s) == currentId);
+    _currentIndex = retainedIndex >= 0 ? retainedIndex : 0;
+    _isUserInteracting = false;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (_pageController.hasClients && widget.slides.isNotEmpty) {
+        _pageController.jumpToPage(_currentIndex);
+      }
+      _startAutoSlide();
+    });
   }
 
   void _startAutoSlide() {
     _autoSlideTimer?.cancel();
     if (widget.slides.length <= 1) return;
     _autoSlideTimer = Timer.periodic(const Duration(seconds: 7), (timer) {
-      if (_isUserInteracting || !mounted) return;
+      if (_isUserInteracting || !mounted || !_foreground) return;
+      if (!TickerMode.valuesOf(context).enabled ||
+          MediaQuery.of(context).disableAnimations ||
+          GoRouterState.of(context).uri.path != '/' ||
+          ModalRoute.of(context)?.isCurrent == false ||
+          widget.slides.length <= 1) {
+        return;
+      }
       if (_pageController.hasClients) {
         final nextIndex = (_currentIndex + 1) % widget.slides.length;
         _pageController.animateToPage(
@@ -89,7 +132,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider> {
           height: 380,
           child: NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              if (notification is ScrollStartNotification) {
+              if (notification is ScrollStartNotification && notification.dragDetails != null) {
                 _isUserInteracting = true;
               } else if (notification is ScrollEndNotification) {
                 _isUserInteracting = false;
@@ -156,102 +199,120 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Top badges row
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: BkoTheme.goldAccent,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      label,
-                                      style: BkoTheme.fontLato(
-                                        fontSize: 10.5,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.5,
-                                        color: Colors.black,
-                                      ),
-                                    ),
-                                  ),
-                                  if (durationText != null) ...[
-                                    const SizedBox(width: 8),
+                              SizedBox(
+                                height: 26,
+                                child: Row(
+                                  children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF262626),
+                                        color: BkoTheme.goldAccent,
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
-                                        durationText,
+                                        label,
                                         style: BkoTheme.fontLato(
                                           fontSize: 10.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: textSec,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                          color: Colors.black,
                                         ),
                                       ),
                                     ),
+                                    if (durationText != null) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF262626),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          durationText,
+                                          style: BkoTheme.fontLato(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: textSec,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ],
-                                ],
+                                ),
                               ),
 
                               const Spacer(),
 
-                              // Podcast name link
-                              if (podcastName.isNotEmpty) ...[
-                                GestureDetector(
-                                  onTap: () {
-                                    if (podcastSlug.isNotEmpty) {
-                                      context.push('/podcasts/$podcastSlug');
-                                    }
-                                  },
-                                  child: Text(
-                                    podcastName.toUpperCase(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: BkoTheme.fontLato(
-                                      fontSize: 11.5,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 1.1,
-                                      color: BkoTheme.goldAccent,
+                              // Podcast name link (fixed slot height: 18px)
+                              SizedBox(
+                                height: 18,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      if (podcastSlug.isNotEmpty) {
+                                        context.push('/podcasts/$podcastSlug');
+                                      }
+                                    },
+                                    child: Text(
+                                      (podcastName.isNotEmpty ? podcastName : 'BAMAKO PODCAST').toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: BkoTheme.fontLato(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1.1,
+                                        color: BkoTheme.goldAccent,
+                                      ),
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 6),
-                              ],
-
-                              // Episode Title
-                              Text(
-                                title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: BkoTheme.fontLato(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  height: 1.15,
-                                ),
                               ),
+                              const SizedBox(height: 6),
 
-                              // Episode Description
-                              if (desc.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  desc,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: BkoTheme.fontLato(
-                                    fontSize: 12,
-                                    color: textSec,
-                                    height: 1.35,
+                              // Episode Title (fixed slot height: 50px - exactly 2 lines reserved)
+                              SizedBox(
+                                height: 50,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: BkoTheme.fontLato(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      height: 1.2,
+                                    ),
                                   ),
                                 ),
-                              ],
+                              ),
+                              const SizedBox(height: 6),
 
+                              // Episode Description (fixed slot height: 34px - exactly 2 lines reserved)
+                              SizedBox(
+                                height: 34,
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Text(
+                                    desc.isNotEmpty ? desc : 'Découvrez cet épisode exclusif sur la plateforme BKO Podcast.',
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: BkoTheme.fontLato(
+                                      fontSize: 12,
+                                      color: textSec,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: 16),
 
-                              // Bottom Actions
-                              Row(
+                              // Bottom Actions (fixed slot height: 44px)
+                              SizedBox(
+                                height: 44,
+                                child: Row(
                                 children: [
                                   // Play / Pause button
                                   Consumer(
@@ -345,7 +406,8 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider> {
                                   ),
                                 ],
                               ),
-                            ],
+                            ),
+                          ],
                           ),
                         ),
                       ],

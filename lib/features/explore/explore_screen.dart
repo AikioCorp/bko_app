@@ -265,7 +265,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
   void _triggerPlayEpisode(Map<String, dynamic> ep) {
     BkoHaptics.light();
     final title = ep['title'] ?? 'Épisode';
-    final podcastName = ep['podcast']?['name'] ?? 'Bamako Podcast';
+    final podcastName = ep['podcast']?['name']?.toString() ?? ep['showName']?.toString() ?? '';
     final durationSeconds = ep['durationSeconds'] ?? 1800;
     final duration = '${(durationSeconds / 60).round()} min';
     final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
@@ -780,7 +780,20 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           final pod = Map<String, dynamic>.from(_podcasts[index]);
           final cover = pod['cover'] ?? '';
           final name = pod['name'] ?? 'Émission';
-          final author = pod['author']?['name'] ?? pod['organization']?['name'] ?? 'Bamako Podcast';
+          final authorCandidate = pod['author']?['name'] ??
+              pod['author']?['fullName'] ??
+              pod['organization']?['name'];
+          final authorStr = (authorCandidate != null &&
+                  authorCandidate.toString().trim().isNotEmpty &&
+                  authorCandidate.toString().trim().toLowerCase() != 'bamako podcast')
+              ? authorCandidate.toString().trim()
+              : null;
+          final lang = pod['primaryLanguage']?['name']?.toString();
+          final subtitleParts = [
+            if (authorStr != null) authorStr,
+            if (lang != null && lang.isNotEmpty) lang,
+          ];
+          final author = subtitleParts.join(' • ');
           final count = pod['_count']?['episodes'] as num? ?? 0;
 
           return BkoBounceable(
@@ -843,13 +856,15 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                       color: textPri,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    author,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: BkoTheme.fontLato(fontSize: 11, color: textSec),
-                  ),
+                  if (author.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      author,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: BkoTheme.fontLato(fontSize: 11, color: textSec),
+                    ),
+                  ],
                 ],
               ),
             ),

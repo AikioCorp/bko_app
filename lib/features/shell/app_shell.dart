@@ -265,7 +265,7 @@ class _AppShellState extends ConsumerState<AppShell>
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          title.isNotEmpty ? title : "Bamako Podcast",
+                                          title.isNotEmpty ? title : "Épisode",
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: BkoTheme.fontLato(

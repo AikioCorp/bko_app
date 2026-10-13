@@ -887,6 +887,8 @@ final shellNavVisibilityProvider =
   return ShellNavVisibilityNotifier();
 });
 
+final isFullPlayerOpenProvider = StateProvider<bool>((ref) => false);
+
 /// Smoothly hides/shows the navigation bar and animates the floating mini-player
 /// on scroll up/down across screens in the application.
 bool handleShellScrollNotification(ScrollNotification notification, WidgetRef ref) {

@@ -310,7 +310,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           final podcast = (raw is Map && raw['podcast'] is Map) ? raw['podcast'] as Map : (raw as Map);
           final cover = '${podcast['cover'] ?? ''}';
           final name = '${podcast['name'] ?? 'Émission'}';
-          final author = '${podcast['author']?['fullName'] ?? 'Bamako Podcast'}';
+          final authorCandidate = podcast['author']?['fullName'] ??
+              podcast['author']?['name'] ??
+              podcast['organization']?['name'];
+          final authorStr = (authorCandidate != null &&
+                  authorCandidate.toString().trim().isNotEmpty &&
+                  authorCandidate.toString().trim().toLowerCase() != 'bamako podcast')
+              ? authorCandidate.toString().trim()
+              : null;
+          final count = podcast['_count']?['episodes'] ?? podcast['episodesCount'];
+          final author = authorStr ??
+              (count != null && count is num && count > 0
+                  ? '$count ${count == 1 ? 'épisode' : 'épisodes'}'
+                  : '');
           final slug = '${podcast['slug'] ?? ''}';
 
           return GestureDetector(
@@ -342,8 +354,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri)),
-                        const SizedBox(height: 2),
-                        Text(author, maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 11.5, color: textSec)),
+                        if (author.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          Text(author, maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 11.5, color: textSec)),
+                        ],
                       ],
                     ),
                   ),
