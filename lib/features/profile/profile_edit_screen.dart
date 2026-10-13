@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 
 class ProfileEditScreen extends ConsumerStatefulWidget {
@@ -54,14 +58,22 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profil mis à jour avec succès.', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Profil mis à jour avec succès.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: BkoTheme.goldAccent,
+          ),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur lors de la mise à jour : $e')),
+          SnackBar(
+            content: Text('Erreur lors de la mise à jour : $e'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
         );
       }
     } finally {
@@ -78,13 +90,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Modifier mon profil', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
+        title: Text(
+          'Modifier mon profil',
+          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
+        ),
         backgroundColor: BkoTheme.getBgObsidian(context),
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_rounded, color: textPri),
-          onPressed: () => context.pop(),
-        ),
+        leading: const AppBackButton(),
       ),
       backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
@@ -95,17 +107,30 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text('Nom complet', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w700, color: textSec)),
+                Text(
+                  'Nom complet',
+                  style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w700, color: textSec),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
-                  style: BkoTheme.fontLato(fontSize: 16, color: textPri),
+                  style: BkoTheme.fontLato(fontSize: 15, color: textPri),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: surface,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: BkoTheme.goldAccent)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: BkoTheme.goldAccent),
+                    ),
                   ),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Ce champ est requis';
@@ -113,18 +138,41 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   },
                 ),
                 const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BkoTheme.goldAccent,
-                    foregroundColor: Colors.black,
+                BkoBounceable(
+                  onTap: _isLoading
+                      ? null
+                      : () {
+                          BkoHaptics.light();
+                          _save();
+                        },
+                  child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    disabledBackgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.5),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _isLoading
+                          ? BkoTheme.goldAccent.withValues(alpha: 0.5)
+                          : BkoTheme.goldAccent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator.adaptive(
+                              valueColor: AlwaysStoppedAnimation(BkoTheme.darkBgObsidian),
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'ENREGISTRER',
+                            style: BkoTheme.fontLato(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                              color: BkoTheme.darkBgObsidian,
+                            ),
+                          ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
-                      : Text('ENREGISTRER', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w900)),
                 ),
               ],
             ),

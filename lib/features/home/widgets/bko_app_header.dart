@@ -93,8 +93,8 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
     final textSec = BkoTheme.getTextSecondary(context);
     final borderSub = BkoTheme.getBorderSubtle(context);
     final Color normalBg = BkoTheme.getBgObsidian(context);
-    const Color elevatedSurfaceBg = Color(0xFF16161A);
-    const Color bottomBorderActive = Color(0xFF28282D);
+    final Color elevatedSurfaceBg = BkoTheme.getBgSurfaceElevated(context);
+    final Color bottomBorderActive = borderSub;
 
     return AnimatedBuilder(
       animation: _animation,
@@ -157,10 +157,10 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                 width: 44,
                                 height: 44,
                                 alignment: Alignment.center,
-                                child: const Icon(
+                                child: Icon(
                                   IconsaxPlusLinear.menu_1,
                                   size: 22,
-                                  color: Colors.white,
+                                  color: textPri,
                                 ),
                               ),
                             ),
@@ -186,8 +186,8 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                   height: 38,
                                   decoration: BoxDecoration(
                                     color: Color.lerp(
-                                      const Color(0xFF141414),
-                                      const Color(0xFF1C1C22),
+                                      BkoTheme.getBgSurface(context),
+                                      elevatedSurfaceBg,
                                       t,
                                     ),
                                     borderRadius: BorderRadius.circular(10),
@@ -240,7 +240,7 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                               style: BkoTheme.fontPoppins(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w700,
-                                                color: Colors.white,
+                                                color: textPri,
                                                 letterSpacing: -0.2,
                                               ),
                                             ),
@@ -307,10 +307,10 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                               width: 44,
                               height: 44,
                               alignment: Alignment.center,
-                              child: const Icon(
+                              child: Icon(
                                 IconsaxPlusLinear.document_download,
                                 size: 22,
-                                color: Colors.white,
+                                color: textPri,
                               ),
                             ),
                           ),
@@ -335,10 +335,10 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                               child: Stack(
                                 alignment: Alignment.center,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     IconsaxPlusLinear.notification,
                                     size: 22,
-                                    color: Colors.white,
+                                    color: textPri,
                                   ),
                                   if (unreadCount > 0)
                                     Positioned(
@@ -393,10 +393,10 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                     height: 44,
                                     padding: const EdgeInsets.symmetric(horizontal: 14),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF161618),
+                                      color: elevatedSurfaceBg,
                                       borderRadius: BorderRadius.circular(14),
                                       border: Border.all(
-                                        color: const Color(0xFF28282B),
+                                        color: borderSub,
                                         width: 1.0,
                                       ),
                                     ),
@@ -427,7 +427,7 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                             vertical: 3.5,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: const Color(0xFF222224),
+                                            color: BkoTheme.getBgSurface(context),
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(

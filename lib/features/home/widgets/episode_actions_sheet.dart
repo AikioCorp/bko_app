@@ -279,7 +279,10 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     final ep = widget.episode;
     final podcast = ep['podcast'] is Map ? ep['podcast'] as Map : null;
     final title = '${ep['title'] ?? 'Épisode'}';
-    final podcastName = '${podcast?['name'] ?? 'Bamako Podcast'}';
+    final rawPodcastName = '${podcast?['name'] ?? ''}'.trim();
+    final podcastName = (rawPodcastName.isNotEmpty && rawPodcastName.toLowerCase() != 'bamako podcast')
+        ? rawPodcastName
+        : '';
     final coverUrl = '${ep['cover'] ?? podcast?['cover'] ?? ''}';
     final episodeId = '${ep['id'] ?? ''}';
 
@@ -357,16 +360,18 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
                           color: textPri,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        podcastName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: BkoTheme.fontLato(
-                          fontSize: 12.5,
-                          color: textSec,
+                      if (podcastName.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          podcastName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: BkoTheme.fontLato(
+                            fontSize: 12.5,
+                            color: textSec,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

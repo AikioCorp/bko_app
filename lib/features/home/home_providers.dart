@@ -92,7 +92,7 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
   }
 
   Future<void> fetchInitial() async {
-    if (state.hasData) {
+    if (state.hasData && state.feedItems.isNotEmpty) {
       final now = DateTime.now();
       if (state.lastFetched == null ||
           now.difference(state.lastFetched!) > const Duration(minutes: 5)) {
@@ -164,9 +164,18 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
 
       final homeMap = homeDataRes is Map ? Map<String, dynamic>.from(homeDataRes) : null;
       final feedMap = homeMap?['feed'] is Map ? Map<String, dynamic>.from(homeMap!['feed'] as Map) : null;
-      final initialFeedItems = feedMap != null ? _asList(feedMap['items']) : <dynamic>[];
-      final nextCursor = feedMap?['nextCursor']?.toString();
-      final hasMore = feedMap?['hasMore'] == true;
+      var initialFeedItems = feedMap != null ? _asList(feedMap['items']) : <dynamic>[];
+      var nextCursor = feedMap?['nextCursor']?.toString();
+      var hasMore = feedMap?['hasMore'] == true;
+
+      // Filet de sécurité résilient : si le feed personnalisé est vide, utiliser les derniers épisodes de l'accueil
+      if (initialFeedItems.isEmpty && homeMap != null) {
+        final latest = _asList(homeMap['latestEpisodes']);
+        if (latest.isNotEmpty) {
+          initialFeedItems = latest;
+          hasMore = true;
+        }
+      }
 
       state = state.copyWith(
         homeData: homeMap,
@@ -214,7 +223,7 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
 
   /// Défilement infini : charge le lot d'épisodes suivant
   Future<void> fetchMoreFeed() async {
-    if (state.isLoadingMore || !state.hasMore || state.nextCursor == null) return;
+    if (state.isLoadingMore || !state.hasMore) return;
 
     state = state.copyWith(isLoadingMore: true, clearFeedError: true);
     final int thisGeneration = _requestGeneration;
@@ -222,8 +231,9 @@ class HomeDataNotifier extends StateNotifier<HomeDataState> {
 
     try {
       final auth = ref.read(authProvider);
+      final cursorParam = state.nextCursor != null ? '&cursor=${state.nextCursor}' : '';
       final feedRes = await BkoApi.get(
-        '/home/feed?country=all&category=${state.selectedCategory}&cursor=${state.nextCursor}&limit=12',
+        '/home/feed?country=all&category=${state.selectedCategory}$cursorParam&limit=12',
         token: auth.token,
       );
 

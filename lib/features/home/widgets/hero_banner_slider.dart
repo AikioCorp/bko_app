@@ -4,7 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../../core/theme/bko_theme.dart';
+import '../../../core/widgets/bko_bounceable.dart';
+import '../../../core/widgets/bko_haptics.dart';
 import '../../shell/shell_providers.dart';
 
 class HeroBannerSlider extends ConsumerStatefulWidget {
@@ -169,7 +172,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF121212), // Solid background
+                      color: BkoTheme.getBgSurface(context),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: borderSub, width: 1),
                     ),
@@ -188,7 +191,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                         // Crisp solid dark overlay
                         Positioned.fill(
                           child: Container(
-                            color: const Color(0xEB0B0B0B), // Solid 92% dark overlay
+                            color: BkoTheme.getBgObsidian(context).withValues(alpha: 0.92),
                           ),
                         ),
 
@@ -215,7 +218,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 0.5,
-                                          color: Colors.black,
+                                          color: BkoTheme.bgObsidian,
                                         ),
                                       ),
                                     ),
@@ -224,7 +227,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF262626),
+                                          color: BkoTheme.getBgSurfaceElevated(context),
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Text(
@@ -255,7 +258,10 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                       }
                                     },
                                     child: Text(
-                                      (podcastName.isNotEmpty ? podcastName : 'BAMAKO PODCAST').toUpperCase(),
+                                      (podcastName.trim().isNotEmpty &&
+                                              podcastName.trim().toLowerCase() != 'bamako podcast')
+                                          ? podcastName.toUpperCase()
+                                          : (label.isNotEmpty ? label : 'ÉMISSION'),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: BkoTheme.fontLato(
@@ -282,7 +288,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                     style: BkoTheme.fontLato(
                                       fontSize: 19,
                                       fontWeight: FontWeight.w900,
-                                      color: Colors.white,
+                                      color: textPri,
                                       height: 1.2,
                                     ),
                                   ),
@@ -320,42 +326,50 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                       final isCurrent = ref.watch(activeEpisodeProvider.select((s) => s.episodeId == episodeId));
                                       final isPlayingThis = isCurrent && ref.watch(activeEpisodeProvider.select((s) => s.isPlaying));
                                       final isLoadingThis = isCurrent && ref.watch(activeEpisodeProvider.select((s) => s.isLoading));
-                                      return ElevatedButton.icon(
-                                        onPressed: () => widget.onPlay(ep),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: BkoTheme.goldAccent,
-                                          foregroundColor: Colors.black,
-                                          elevation: 0,
+                                      return BkoBounceable(
+                                        onTap: () {
+                                          BkoHaptics.light();
+                                          widget.onPlay(ep);
+                                        },
+                                        child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                                          shape: RoundedRectangleBorder(
+                                          decoration: BoxDecoration(
+                                            color: BkoTheme.goldAccent,
                                             borderRadius: BorderRadius.circular(999),
                                           ),
-                                        ),
-                                        icon: isLoadingThis
-                                            ? const SizedBox(
-                                                width: 16,
-                                                height: 16,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              if (isLoadingThis)
+                                                const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                    valueColor: AlwaysStoppedAnimation<Color>(BkoTheme.bgObsidian),
+                                                  ),
+                                                )
+                                              else
+                                                Icon(
+                                                  isPlayingThis ? IconsaxPlusBold.pause : IconsaxPlusBold.play,
+                                                  size: 16,
+                                                  color: BkoTheme.bgObsidian,
                                                 ),
-                                              )
-                                            : Icon(
-                                                isPlayingThis ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                                size: 18,
-                                                color: Colors.black,
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                isLoadingThis
+                                                    ? 'CHARGEMENT'
+                                                    : (isPlayingThis
+                                                        ? 'PAUSE'
+                                                        : (isCurrent ? 'REPRENDRE' : 'ÉCOUTER')),
+                                                style: BkoTheme.fontLato(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w900,
+                                                  letterSpacing: 0.5,
+                                                  color: BkoTheme.bgObsidian,
+                                                ),
                                               ),
-                                        label: Text(
-                                          isLoadingThis
-                                              ? 'CHARGEMENT'
-                                              : (isPlayingThis
-                                                  ? 'PAUSE'
-                                                  : (isCurrent ? 'REPRENDRE' : 'ÉCOUTER')),
-                                          style: BkoTheme.fontLato(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.5,
-                                            color: Colors.black,
+                                            ],
                                           ),
                                         ),
                                       );
@@ -366,23 +380,25 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
 
                                   // Podcast page button
                                   if (podcastSlug.isNotEmpty)
-                                    OutlinedButton(
-                                      onPressed: () => context.push('/podcasts/$podcastSlug'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.white,
-                                        side: BorderSide(color: borderSub),
-                                        backgroundColor: const Color(0xFF1E1E1E),
+                                    BkoBounceable(
+                                      onTap: () {
+                                        BkoHaptics.light();
+                                        context.push('/podcasts/$podcastSlug');
+                                      },
+                                      child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                        shape: RoundedRectangleBorder(
+                                        decoration: BoxDecoration(
+                                          color: BkoTheme.getBgSurfaceElevated(context),
                                           borderRadius: BorderRadius.circular(999),
+                                          border: Border.all(color: borderSub),
                                         ),
-                                      ),
-                                      child: Text(
-                                        'Émission',
-                                        style: BkoTheme.fontLato(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          color: textPri,
+                                        child: Text(
+                                          'Émission',
+                                          style: BkoTheme.fontLato(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: textPri,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -390,18 +406,27 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                   const Spacer(),
 
                                   // Share button
-                                  IconButton(
-                                    onPressed: () {
+                                  BkoBounceable(
+                                    onTap: () {
+                                      BkoHaptics.light();
                                       // ignore: deprecated_member_use
                                       Share.share(
                                         'Découvrez "${ep['title']}" sur Bamako Podcast : https://bamakopodcast.studio/podcasts/$podcastSlug',
                                       );
                                     },
-                                    icon: const Icon(Icons.share_outlined, size: 20),
-                                    color: textSec,
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1E1E1E),
-                                      shape: const CircleBorder(),
+                                    child: Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: BkoTheme.getBgSurfaceElevated(context),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: borderSub),
+                                      ),
+                                      child: Icon(
+                                        IconsaxPlusLinear.share,
+                                        size: 18,
+                                        color: textSec,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -440,7 +465,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                   width: isCurrent ? 24 : 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: isCurrent ? BkoTheme.goldAccent : const Color(0xFF333333),
+                    color: isCurrent ? BkoTheme.goldAccent : borderSub,
                     borderRadius: BorderRadius.circular(3),
                   ),
                 ),

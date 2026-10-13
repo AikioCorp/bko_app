@@ -207,7 +207,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Sélecteur de pays compact (Drapeau + Indicatif + flèche)
             InkWell(
@@ -252,9 +252,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            // Champ de saisie du numéro national
+            // Champ de saisie du numéro national sur la même ligne (hauteur 52)
             Expanded(
               child: Container(
+                height: 52,
                 decoration: BoxDecoration(
                   color: const Color(0xFF0E0E0E),
                   borderRadius: BorderRadius.circular(14),
@@ -294,12 +295,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       color: Color(0xFF757575),
                       size: 18,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
                     border: InputBorder.none,
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: BkoTheme.goldAccent, width: 1.2),
-                    ),
+                    isDense: true,
                   ),
                 ),
               ),
@@ -478,6 +476,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           final nsn = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
           normalizedPhone = '+233$nsn';
         }
+      } else if (cc == 'CI' || cc == 'FR') {
+        if (rawDigits.length != 10) {
+          _fieldErrors[_registerPhone] = 'Le numéro doit comporter 10 chiffres (ex. ${cc == 'CI' ? '07 00 00 00 00' : '06 12 34 56 78'}).';
+        } else {
+          final nsn = rawDigits.startsWith('0') ? rawDigits.substring(1) : rawDigits;
+          final pCode = cc == 'CI' ? '225' : '33';
+          normalizedPhone = '+$pCode$nsn';
+        }
+      } else if (cc == 'SN' || cc == 'GN') {
+        if (rawDigits.length != 9) {
+          _fieldErrors[_registerPhone] = 'Le numéro doit comporter 9 chiffres (ex. ${cc == 'SN' ? '77 123 45 67' : '620 00 00 00'}).';
+        } else {
+          final pCode = cc == 'SN' ? '221' : '224';
+          normalizedPhone = '+$pCode$rawDigits';
+        }
       } else {
         try {
           final iso = IsoCode.values.byName(_phoneCountry.countryCode);
@@ -488,7 +501,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             normalizedPhone = '+${number.countryCode}${number.nsn}';
           }
         } catch (_) {
-          _fieldErrors[_registerPhone] = 'Numéro invalide pour ${_phoneCountry.name}.';
+          if (rawDigits.length < 7 || rawDigits.length > 15) {
+            _fieldErrors[_registerPhone] = 'Numéro invalide pour ${_phoneCountry.name}.';
+          } else {
+            normalizedPhone = '+${_phoneCountry.phoneCode}$rawDigits';
+          }
         }
       }
     }

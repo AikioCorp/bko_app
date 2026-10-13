@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
 
@@ -17,6 +22,7 @@ class StudioScreen extends ConsumerStatefulWidget {
 class _StudioScreenState extends ConsumerState<StudioScreen> {
   bool _loading = true;
   Map<String, dynamic>? _profile;
+  Map<String, dynamic>? _dashboardMetrics;
   List<dynamic> _podcasts = [];
   String? _error;
 
@@ -38,13 +44,17 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
     });
 
     try {
-      final profileData = await BkoApi.get('/me/creator-profile', token: auth.token);
-      final podcastsData = await BkoApi.get('/creator/podcasts', token: auth.token);
+      final results = await Future.wait([
+        BkoApi.get('/me/creator-profile', token: auth.token).catchError((_) => null),
+        BkoApi.get('/creator/podcasts', token: auth.token).catchError((_) => []),
+        BkoApi.get('/creator/dashboard', token: auth.token).catchError((_) => null),
+      ]);
 
       if (!mounted) return;
       setState(() {
-        _profile = profileData is Map ? Map<String, dynamic>.from(profileData) : null;
-        _podcasts = (podcastsData as List?) ?? [];
+        _profile = results[0] is Map ? Map<String, dynamic>.from(results[0] as Map) : null;
+        _podcasts = (results[1] as List?) ?? [];
+        _dashboardMetrics = results[2] is Map ? Map<String, dynamic>.from(results[2] as Map) : null;
         _loading = false;
       });
     } on ApiException catch (e) {
@@ -68,6 +78,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
     final bgSurf = BkoTheme.getBgSurface(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
     final borderSub = BkoTheme.getBorderSubtle(context);
 
     if (!auth.isAuthenticated) {
@@ -76,11 +87,11 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
         appBar: AppBar(
           backgroundColor: bgSurf,
           elevation: 0,
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPri, size: 20),
-            onPressed: () => context.pop(),
+          leading: const AppBackButton(),
+          title: Text(
+            'Studio Créateur',
+            style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
           ),
-          title: Text('Studio Créateur', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
         ),
         body: Center(
           child: Padding(
@@ -88,26 +99,47 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.mic_external_on_rounded, size: 64, color: BkoTheme.goldAccent),
+                const Icon(IconsaxPlusLinear.microphone_2, size: 56, color: BkoTheme.goldAccent),
                 const SizedBox(height: 16),
-                Text('Rejoignez le Studio Bko', style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
+                Text(
+                  'Rejoignez le Studio Bko',
+                  style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w800, color: textPri),
+                ),
                 const SizedBox(height: 8),
                 Text(
-                  'Publiez vos émission audio et vidéo, importez vos flux RSS et suivez vos statistiques.',
+                  'Publiez vos émissions audio et vidéo, importez vos flux RSS et suivez vos statistiques en direct.',
                   textAlign: TextAlign.center,
-                  style: BkoTheme.fontLato(fontSize: 13.5, color: textSec, height: 1.4),
+                  style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
                 ),
                 const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: BkoTheme.goldAccent,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                BkoBounceable(
+                  onTap: () {
+                    BkoHaptics.light();
+                    AuthRequiredModal.show(context, actionTitle: 'accéder au Studio Créateur');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: BkoTheme.goldAccent,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(IconsaxPlusLinear.login, size: 20, color: BkoTheme.darkBgObsidian),
+                        const SizedBox(width: 8),
+                        Text(
+                          'SE CONNECTER',
+                          style: BkoTheme.fontLato(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                            color: BkoTheme.darkBgObsidian,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  icon: const Icon(Icons.login_rounded, size: 20, color: Colors.black),
-                  label: Text('SE CONNECTER', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black)),
-                  onPressed: () => AuthRequiredModal.show(context, actionTitle: 'accéder au Studio Créateur'),
                 ),
               ],
             ),
@@ -116,31 +148,49 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
       );
     }
 
+    final plays30d = _dashboardMetrics?['plays30d'] ?? 0;
+    final totalFollowers = _dashboardMetrics?['totalFollowers'] ?? 0;
+    final episodesCount = _dashboardMetrics?['episodesCount'] ?? 0;
+    final draftEpisodes = _dashboardMetrics?['draftEpisodes'] ?? 0;
+    final rejected = (_dashboardMetrics?['rejected'] as List?) ?? [];
+
     return Scaffold(
       backgroundColor: bgSurf,
       appBar: AppBar(
         backgroundColor: bgSurf,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPri, size: 20),
-          onPressed: () => context.pop(),
+        leading: const AppBackButton(),
+        title: Text(
+          'Studio Bko Podcast',
+          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
-        title: Text('Studio Bko Podcast', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
         actions: [
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: textPri, size: 22),
-            onPressed: _fetchStudioData,
+          BkoBounceable(
+            onTap: () {
+              BkoHaptics.light();
+              _fetchStudioData();
+            },
+            child: Container(
+              width: 48,
+              height: 48,
+              alignment: Alignment.center,
+              child: Icon(IconsaxPlusLinear.refresh, color: textPri, size: 20),
+            ),
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+          ? const Center(
+              child: CircularProgressIndicator.adaptive(
+                valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+              ),
+            )
           : RefreshIndicator(
               color: BkoTheme.goldAccent,
               onRefresh: _fetchStudioData,
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -148,34 +198,38 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: BkoTheme.getBgSurfaceElevated(context),
-                        borderRadius: BorderRadius.circular(20),
+                        color: bgElevated,
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: borderSub),
                       ),
                       child: Row(
                         children: [
                           CircleAvatar(
-                            radius: 28,
+                            radius: 26,
                             backgroundColor: BkoTheme.goldAccent.withValues(alpha: 0.15),
                             child: Text(
                               _profile?['displayName']?.toString().substring(0, 1).toUpperCase() ??
                                   auth.user?['fullName']?.toString().substring(0, 1).toUpperCase() ??
                                   'C',
-                              style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: BkoTheme.goldAccent),
+                              style: BkoTheme.fontLato(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: BkoTheme.goldAccent,
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 14),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   _profile?['displayName'] ?? auth.user?['fullName'] ?? 'Créateur Bko',
-                                  style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w900, color: textPri),
+                                  style: BkoTheme.fontLato(fontSize: 15, fontWeight: FontWeight.w800, color: textPri),
                                 ),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: 4),
                                 Text(
-                                  'Compte Créateur Vérifié • ${_podcasts.length} Émission(s)',
+                                  'Espace Créateur Vérifié • ${_podcasts.length} Émission(s)',
                                   style: BkoTheme.fontLato(fontSize: 12, color: textSec),
                                 ),
                               ],
@@ -185,10 +239,111 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: 16),
+
+                    // Creator KPI Cards Bar (Level 1 Metrics)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _kpiCard(
+                            context,
+                            title: 'Écoutes (30j)',
+                            value: plays30d.toString(),
+                            icon: IconsaxPlusLinear.headphones,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _kpiCard(
+                            context,
+                            title: 'Abonnés',
+                            value: totalFollowers.toString(),
+                            icon: IconsaxPlusLinear.profile_2user,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _kpiCard(
+                            context,
+                            title: 'Épisodes',
+                            value: episodesCount.toString(),
+                            icon: IconsaxPlusLinear.play,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _kpiCard(
+                            context,
+                            title: 'Brouillons',
+                            value: draftEpisodes.toString(),
+                            icon: IconsaxPlusLinear.document_text,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Moderation feedback alert if any rejected episodes
+                    if (rejected.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: bgElevated,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  IconsaxPlusLinear.warning_2,
+                                  color: Theme.of(context).colorScheme.error,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Ajustements requis par la modération',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: textPri,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ...rejected.map((item) {
+                              final title = item['title'] ?? 'Épisode';
+                              final note = item['reviewNote'] ?? 'Veuillez réviser cet épisode.';
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '• $title : $note',
+                                  style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 24),
 
                     // Studio Action Hub
-                    Text('GESTION DU CONTENU', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                    Text(
+                      'GESTION DU CONTENU',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
                     const SizedBox(height: 12),
 
                     Row(
@@ -198,7 +353,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                             context,
                             title: 'Nouvelle Émission',
                             subtitle: 'Créer une série audio/vidéo',
-                            icon: Icons.add_circle_outline_rounded,
+                            icon: IconsaxPlusLinear.add_circle,
                             color: BkoTheme.goldAccent,
                             onTap: () => context.push('/studio/podcasts/new'),
                           ),
@@ -209,8 +364,8 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                             context,
                             title: 'Nouvel Épisode',
                             subtitle: 'Publier un média',
-                            icon: Icons.video_call_rounded,
-                            color: const Color(0xFF38BDF8),
+                            icon: IconsaxPlusLinear.video_play,
+                            color: BkoTheme.goldAccent,
                             onTap: () => context.push('/studio/episodes/new'),
                           ),
                         ),
@@ -223,45 +378,97 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                       context,
                       title: 'Importer une émission via RSS',
                       subtitle: 'Connecter et synchroniser un flux externe (Anchor, Spotify, RSS)',
-                      icon: Icons.rss_feed_rounded,
-                      color: const Color(0xFFF97316),
+                      icon: IconsaxPlusLinear.routing,
+                      color: BkoTheme.goldAccent,
                       onTap: () => context.push('/studio/import-rss'),
                     ),
 
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 24),
 
-                    // Podcasts List
+                    // Podcasts List Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('MES ÉMISSIONS (${_podcasts.length})', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textPri)),
-                        TextButton(
-                          onPressed: () => context.push('/studio/podcasts/new'),
-                          child: Text('+ CRÉER', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, color: BkoTheme.goldAccent)),
+                        Text(
+                          'MES ÉMISSIONS (${_podcasts.length})',
+                          style: BkoTheme.fontLato(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: textPri,
+                          ),
+                        ),
+                        BkoBounceable(
+                          onTap: () {
+                            BkoHaptics.light();
+                            context.push('/studio/podcasts/new');
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Text(
+                              '+ CRÉER',
+                              style: BkoTheme.fontLato(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: BkoTheme.goldAccent,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
 
                     if (_error != null)
                       Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
-                        child: Text(_error!, style: BkoTheme.fontLato(fontSize: 13, color: Colors.red.shade300)),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          _error!,
+                          style: BkoTheme.fontLato(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                       )
                     else if (_podcasts.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(24),
                         alignment: Alignment.center,
-                        decoration: BoxDecoration(color: BkoTheme.getBgSurfaceElevated(context), borderRadius: BorderRadius.circular(18), border: Border.all(color: borderSub)),
+                        decoration: BoxDecoration(
+                          color: bgElevated,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: borderSub),
+                        ),
                         child: Column(
                           children: [
-                            Icon(Icons.podcasts_rounded, size: 48, color: textSec.withValues(alpha: 0.5)),
+                            Icon(
+                              IconsaxPlusLinear.radio,
+                              size: 40,
+                              color: textSec.withValues(alpha: 0.5),
+                            ),
                             const SizedBox(height: 12),
-                            Text('Aucune émission pour le moment', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri)),
+                            Text(
+                              'Aucune émission pour le moment',
+                              style: BkoTheme.fontLato(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: textPri,
+                              ),
+                            ),
                             const SizedBox(height: 4),
-                            Text('Commencez par créer votre première émission ou importez un flux RSS.', textAlign: TextAlign.center, style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
+                            Text(
+                              'Commencez par créer votre première émission ou importez un flux RSS.',
+                              textAlign: TextAlign.center,
+                              style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                            ),
                           ],
                         ),
                       )
@@ -278,50 +485,111 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                           final cover = pod['cover'] ?? '';
                           final episodeCount = pod['_count']?['episodes'] ?? (pod['episodes'] as List?)?.length ?? 0;
 
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: BkoTheme.getBgSurfaceElevated(context),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: borderSub),
-                            ),
-                            child: Row(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: cover.isNotEmpty
-                                      ? CachedNetworkImage(
-                                          imageUrl: cover,
-                                          width: 52,
-                                          height: 52,
-                                          fit: BoxFit.cover,
-                                          errorWidget: (_, __, ___) => _coverFallback(),
-                                        )
-                                      : _coverFallback(),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri)),
-                                      const SizedBox(height: 4),
-                                      Text('$format • $episodeCount épisode(s)', style: BkoTheme.fontLato(fontSize: 11.5, color: textSec)),
-                                    ],
+                          return BkoBounceable(
+                            onTap: () {
+                              BkoHaptics.light();
+                              final id = pod['id'];
+                              if (id != null) {
+                                context.push('/studio/podcasts/$id');
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: bgElevated,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: borderSub),
+                              ),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: cover.isNotEmpty
+                                        ? CachedNetworkImage(
+                                            imageUrl: cover,
+                                            width: 48,
+                                            height: 48,
+                                            memCacheWidth: 144,
+                                            memCacheHeight: 144,
+                                            fit: BoxFit.cover,
+                                            errorWidget: (_, __, ___) => _coverFallback(),
+                                          )
+                                        : _coverFallback(),
                                   ),
-                                ),
-                                Icon(Icons.chevron_right_rounded, color: textSec),
-                              ],
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: BkoTheme.fontLato(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                            color: textPri,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '$format • $episodeCount épisode(s)',
+                                          style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(IconsaxPlusLinear.arrow_right_3, color: textSec, size: 18),
+                                ],
+                              ),
                             ),
                           );
                         },
                       ),
 
-                    const SizedBox(height: 120),
+                    const SizedBox(height: 96),
                   ],
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _kpiCard(
+    BuildContext context, {
+    required String title,
+    required String value,
+    required IconData icon,
+  }) {
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
+    final borderSub = BkoTheme.getBorderSubtle(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: bgElevated,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderSub),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 18, color: BkoTheme.goldAccent),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: BkoTheme.fontLato(fontSize: 15, fontWeight: FontWeight.w800, color: textPri),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: BkoTheme.fontLato(fontSize: 10, color: textSec),
+          ),
+        ],
+      ),
     );
   }
 
@@ -338,10 +606,13 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
     final bgElevated = BkoTheme.getBgSurfaceElevated(context);
     final borderSub = BkoTheme.getBorderSubtle(context);
 
-    return GestureDetector(
-      onTap: onTap,
+    return BkoBounceable(
+      onTap: () {
+        BkoHaptics.light();
+        onTap();
+      },
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: bgElevated,
           borderRadius: BorderRadius.circular(16),
@@ -350,19 +621,22 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w800, color: textPri)),
+                  Text(
+                    title,
+                    style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri),
+                  ),
                   const SizedBox(height: 2),
                   Text(subtitle, style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
                 ],
@@ -375,9 +649,9 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
   }
 
   Widget _coverFallback() => Container(
-        width: 52,
-        height: 52,
+        width: 48,
+        height: 48,
         color: BkoTheme.goldAccent.withValues(alpha: 0.15),
-        child: const Icon(Icons.podcasts_rounded, color: BkoTheme.goldAccent),
+        child: const Icon(IconsaxPlusLinear.radio, color: BkoTheme.goldAccent, size: 22),
       );
 }

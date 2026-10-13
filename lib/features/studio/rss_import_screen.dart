@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 
 class RssImportScreen extends ConsumerStatefulWidget {
@@ -108,14 +113,14 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
       if (!mounted) return;
       setState(() {
         _analyzing = false;
-        _errorMessage = 'Erreur d\'analyse du flux RSS.';
+        _errorMessage = 'Erreur lors de l\'analyse du flux RSS.';
       });
     }
   }
 
   Future<void> _confirmImport() async {
     final auth = ref.read(authProvider);
-    if (!auth.isAuthenticated || auth.token == null || _previewData == null || _selectedPodcastId == null) return;
+    if (!auth.isAuthenticated || auth.token == null || _selectedPodcastId == null) return;
 
     setState(() {
       _importing = true;
@@ -127,19 +132,10 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
         '/creator/podcasts/$_selectedPodcastId/rss/connect',
         {
           'feedUrl': _urlController.text.trim(),
+          'autoSync': _autoSync,
         },
         token: auth.token,
       );
-
-      if (_autoSync) {
-        try {
-          await BkoApi.post(
-            '/creator/podcasts/$_selectedPodcastId/rss/sync',
-            {},
-            token: auth.token,
-          );
-        } catch (_) {}
-      }
 
       if (!mounted) return;
       setState(() {
@@ -166,6 +162,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
     final bgSurf = BkoTheme.getBgSurface(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
     final borderSub = BkoTheme.getBorderSubtle(context);
 
     return Scaffold(
@@ -173,16 +170,20 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
       appBar: AppBar(
         backgroundColor: bgSurf,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPri, size: 20),
-          onPressed: () => context.pop(),
+        leading: const AppBackButton(),
+        title: Text(
+          'Importation RSS',
+          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
-        title: Text('Importation RSS', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
       ),
       body: _loadingPodcasts
-          ? const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+          ? const Center(
+              child: CircularProgressIndicator.adaptive(
+                valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+              ),
+            )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -205,15 +206,18 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: BkoTheme.getBgSurfaceElevated(context),
+                          color: bgElevated,
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: borderSub),
                         ),
                         child: Column(
                           children: [
-                            const Icon(Icons.podcasts_rounded, size: 48, color: BkoTheme.goldAccent),
+                            const Icon(IconsaxPlusLinear.radio, size: 48, color: BkoTheme.goldAccent),
                             const SizedBox(height: 12),
-                            Text('Aucune émission trouvée', style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800, color: textPri)),
+                            Text(
+                              'Aucune émission trouvée',
+                              style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800, color: textPri),
+                            ),
                             const SizedBox(height: 6),
                             Text(
                               'Vous devez d\'abord créer une émission dans votre studio avant de pouvoir y associer un flux RSS.',
@@ -221,32 +225,57 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                               style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
                             ),
                             const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: () => context.push('/studio/podcasts/new'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: BkoTheme.goldAccent,
-                                foregroundColor: Colors.black,
+                            BkoBounceable(
+                              onTap: () {
+                                BkoHaptics.light();
+                                context.push('/studio/podcasts/new');
+                              },
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(
+                                  color: BkoTheme.goldAccent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'CRÉER UNE ÉMISSION',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: BkoTheme.darkBgObsidian,
+                                  ),
+                                ),
                               ),
-                              child: Text('CRÉER UNE ÉMISSION', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black)),
                             ),
                           ],
                         ),
                       ),
                     ] else ...[
-                      Text('ÉMISSION DE DESTINATION', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                      Text(
+                        'ÉMISSION DE DESTINATION',
+                        style: BkoTheme.fontLato(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: textSec,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         initialValue: _selectedPodcastId,
-                        dropdownColor: BkoTheme.getBgSurfaceElevated(context),
+                        dropdownColor: bgElevated,
                         style: BkoTheme.fontLato(fontSize: 14, color: textPri),
                         decoration: InputDecoration(
                           filled: true,
-                          fillColor: BkoTheme.getBgSurfaceElevated(context),
+                          fillColor: bgElevated,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderSub)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: BkoTheme.goldAccent)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: borderSub),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: BkoTheme.goldAccent),
+                          ),
                         ),
                         items: _podcasts.map<DropdownMenuItem<String>>((p) {
                           return DropdownMenuItem<String>(
@@ -259,19 +288,33 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
 
                       const SizedBox(height: 20),
 
-                      Text('ADRESSE DU FLUX RSS', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                      Text(
+                        'ADRESSE DU FLUX RSS',
+                        style: BkoTheme.fontLato(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: textSec,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _urlController,
                         style: BkoTheme.fontLato(fontSize: 14, color: textPri),
                         decoration: InputDecoration(
                           hintText: 'https://anchor.fm/s/12345/podcast/rss',
-                          hintStyle: BkoTheme.fontLato(fontSize: 13, color: Colors.grey),
+                          hintStyle: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextMuted(context)),
                           filled: true,
-                          fillColor: BkoTheme.getBgSurfaceElevated(context),
+                          fillColor: bgElevated,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderSub)),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: BkoTheme.goldAccent)),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(color: borderSub),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: BkoTheme.goldAccent),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -284,28 +327,64 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
-                          child: Text(_errorMessage!, style: BkoTheme.fontLato(fontSize: 12, color: Colors.red.shade300)),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Text(
+                            _errorMessage!,
+                            style: BkoTheme.fontLato(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
                         ),
                       ],
 
                       const SizedBox(height: 32),
 
                       if (_analyzing)
-                        const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+                        const Center(
+                          child: CircularProgressIndicator.adaptive(
+                            valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                          ),
+                        )
                       else
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _analyzeRssFeed,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: BkoTheme.goldAccent,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        BkoBounceable(
+                          onTap: () {
+                            BkoHaptics.light();
+                            _analyzeRssFeed();
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: BkoTheme.goldAccent,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            icon: const Icon(Icons.search_rounded, size: 20, color: Colors.black),
-                            label: Text('ANALYSER LE FLUX RSS', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  IconsaxPlusLinear.search_normal_1,
+                                  size: 18,
+                                  color: BkoTheme.darkBgObsidian,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'ANALYSER LE FLUX RSS',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: BkoTheme.darkBgObsidian,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                     ],
@@ -313,27 +392,46 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
 
                   // Step 2: Preview & Mapping
                   if (_step == 2 && _previewData != null) ...[
-                    Text('APERÇU DU FLUX DÉTECTÉ', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                    Text(
+                      'APERÇU DU FLUX DÉTECTÉ',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: BkoTheme.getBgSurfaceElevated(context),
-                        borderRadius: BorderRadius.circular(18),
+                        color: bgElevated,
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(color: borderSub),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('${_previewData!['title'] ?? 'Émission RSS'}', style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w900, color: textPri)),
+                          Text(
+                            '${_previewData!['title'] ?? 'Émission RSS'}',
+                            style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800, color: textPri),
+                          ),
                           const SizedBox(height: 6),
-                          Text('${_previewData!['description'] ?? 'Aucune description'}', maxLines: 3, overflow: TextOverflow.ellipsis, style: BkoTheme.fontLato(fontSize: 12.5, color: textSec, height: 1.4)),
+                          Text(
+                            '${_previewData!['description'] ?? 'Aucune description'}',
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: BkoTheme.fontLato(fontSize: 12.5, color: textSec, height: 1.4),
+                          ),
                           const SizedBox(height: 14),
                           Row(
                             children: [
-                              const Icon(Icons.podcasts_rounded, size: 16, color: BkoTheme.goldAccent),
+                              const Icon(IconsaxPlusLinear.radio, size: 16, color: BkoTheme.goldAccent),
                               const SizedBox(width: 6),
-                              Text('${_previewData!['itemCount'] ?? _previewData!['episodesCount'] ?? 0} épisodes détectés', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: textPri)),
+                              Text(
+                                '${_previewData!['itemCount'] ?? _previewData!['episodesCount'] ?? 0} épisodes détectés',
+                                style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: textPri),
+                              ),
                             ],
                           ),
                         ],
@@ -346,8 +444,14 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                       contentPadding: EdgeInsets.zero,
                       value: _autoSync,
                       activeThumbColor: BkoTheme.goldAccent,
-                      title: Text('Synchronisation automatique', style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w800, color: textPri)),
-                      subtitle: Text('Importer automatiquement les nouveaux épisodes publiés sur le flux RSS.', style: BkoTheme.fontLato(fontSize: 11.5, color: textSec)),
+                      title: Text(
+                        'Synchronisation automatique',
+                        style: BkoTheme.fontLato(fontSize: 13.5, fontWeight: FontWeight.w800, color: textPri),
+                      ),
+                      subtitle: Text(
+                        'Importer automatiquement les nouveaux épisodes publiés sur le flux RSS.',
+                        style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                      ),
                       onChanged: (val) => setState(() => _autoSync = val),
                     ),
 
@@ -355,41 +459,83 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
-                        child: Text(_errorMessage!, style: BkoTheme.fontLato(fontSize: 12, color: Colors.red.shade300)),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.error.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          _errorMessage!,
+                          style: BkoTheme.fontLato(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                       ),
                     ],
 
                     const SizedBox(height: 28),
 
                     if (_importing)
-                      const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+                      const Center(
+                        child: CircularProgressIndicator.adaptive(
+                          valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                        ),
+                      )
                     else
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => setState(() => _step = 1),
-                              style: OutlinedButton.styleFrom(
+                            child: BkoBounceable(
+                              onTap: () {
+                                BkoHaptics.light();
+                                setState(() => _step = 1);
+                              },
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                side: BorderSide(color: borderSub),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: bgElevated,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderSub),
+                                ),
+                                child: Text(
+                                  'MODIFIER',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: textPri,
+                                  ),
+                                ),
                               ),
-                              child: Text('MODIFIER', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: textPri)),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             flex: 2,
-                            child: ElevatedButton(
-                              onPressed: _confirmImport,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: BkoTheme.goldAccent,
-                                foregroundColor: Colors.black,
+                            child: BkoBounceable(
+                              onTap: () {
+                                BkoHaptics.light();
+                                _confirmImport();
+                              },
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: BkoTheme.goldAccent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  'CONNECTER ET IMPORTER',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    color: BkoTheme.darkBgObsidian,
+                                  ),
+                                ),
                               ),
-                              child: Text('CONNECTER ET IMPORTER', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black)),
                             ),
                           ),
                         ],
@@ -402,35 +548,56 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(28),
                         decoration: BoxDecoration(
-                          color: BkoTheme.getBgSurfaceElevated(context),
-                          borderRadius: BorderRadius.circular(24),
+                          color: bgElevated,
+                          borderRadius: BorderRadius.circular(20),
                           border: Border.all(color: borderSub),
                         ),
                         child: Column(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(color: BkoTheme.goldAccent.withValues(alpha: 0.15), shape: BoxShape.circle),
-                              child: const Icon(Icons.check_circle_rounded, size: 64, color: BkoTheme.goldAccent),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                IconsaxPlusLinear.tick_circle,
+                                size: 56,
+                                color: BkoTheme.goldAccent,
+                              ),
                             ),
                             const SizedBox(height: 20),
-                            Text('Flux RSS Connecté !', style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
+                            Text(
+                              'Flux RSS Connecté !',
+                              style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w800, color: textPri),
+                            ),
                             const SizedBox(height: 8),
                             Text(
                               'L\'émission et ses épisodes sont en cours de synchronisation avec Bamako Podcast.',
                               textAlign: TextAlign.center,
                               style: BkoTheme.fontLato(fontSize: 13, color: textSec, height: 1.4),
                             ),
-                            const SizedBox(height: 32),
-                            ElevatedButton(
-                              onPressed: () => context.go('/studio'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: BkoTheme.goldAccent,
-                                foregroundColor: Colors.black,
+                            const SizedBox(height: 28),
+                            BkoBounceable(
+                              onTap: () {
+                                BkoHaptics.light();
+                                context.go('/studio');
+                              },
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                decoration: BoxDecoration(
+                                  color: BkoTheme.goldAccent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  'REVENIR AU STUDIO',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w900,
+                                    color: BkoTheme.darkBgObsidian,
+                                  ),
+                                ),
                               ),
-                              child: Text('REVENIR AU STUDIO', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black)),
                             ),
                           ],
                         ),
@@ -454,15 +621,27 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
           decoration: BoxDecoration(
             color: active ? BkoTheme.goldAccent : BkoTheme.getBgSurfaceElevated(context),
             shape: BoxShape.circle,
-            border: Border.all(color: active ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context)),
+            border: Border.all(
+              color: active ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
+            ),
           ),
           child: Text(
             '$stepNum',
-            style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, color: active ? Colors.black : BkoTheme.getTextSecondary(context)),
+            style: BkoTheme.fontLato(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: active ? BkoTheme.darkBgObsidian : BkoTheme.getTextSecondary(context),
+            ),
           ),
         ),
         const SizedBox(height: 4),
-        Text(label, style: BkoTheme.fontLato(fontSize: 10, color: active ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context))),
+        Text(
+          label,
+          style: BkoTheme.fontLato(
+            fontSize: 10,
+            color: active ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context),
+          ),
+        ),
       ],
     );
   }

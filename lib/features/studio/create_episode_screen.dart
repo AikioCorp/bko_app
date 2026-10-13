@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
+import '../../core/widgets/bko_bounceable.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
 
 class CreateEpisodeScreen extends ConsumerStatefulWidget {
@@ -68,7 +73,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedPodcastId == null || _selectedPodcastId!.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez sélectionner une émission.'), backgroundColor: Colors.red),
+        SnackBar(
+          content: const Text('Veuillez sélectionner une émission.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
       return;
     }
@@ -83,7 +91,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         if (_coverUrlController.text.trim().isNotEmpty) 'cover': _coverUrlController.text.trim(),
-        if (_episodeNumController.text.trim().isNotEmpty) 'episodeNumber': int.tryParse(_episodeNumController.text.trim()),
+        if (_episodeNumController.text.trim().isNotEmpty)
+          'episodeNumber': int.tryParse(_episodeNumController.text.trim()),
       };
 
       final episodeRes = await BkoApi.post('/creator/podcasts/$_selectedPodcastId/episodes', body, token: auth.token);
@@ -158,13 +167,21 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), behavior: SnackBarBehavior.floating, backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(e.message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _submitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible de publier l\'épisode.'), behavior: SnackBarBehavior.floating, backgroundColor: Colors.red),
+        SnackBar(
+          content: const Text('Impossible de publier l\'épisode.'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
       );
     }
   }
@@ -174,6 +191,7 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
     final bgSurf = BkoTheme.getBgSurface(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
     final borderSub = BkoTheme.getBorderSubtle(context);
 
     return Scaffold(
@@ -181,36 +199,55 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
       appBar: AppBar(
         backgroundColor: bgSurf,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textPri, size: 20),
-          onPressed: () => context.pop(),
+        leading: const AppBackButton(),
+        title: Text(
+          'Nouvel Épisode',
+          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
-        title: Text('Nouvel Épisode', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
       ),
       body: _loadingPodcasts
-          ? const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+          ? const Center(
+              child: CircularProgressIndicator.adaptive(
+                valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+              ),
+            )
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Select Podcast
-                    Text('ÉMISSION DE RATTACHEMENT', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                    Text(
+                      'ÉMISSION DE RATTACHEMENT',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     if (_podcasts.isEmpty)
                       Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.orange.withValues(alpha: 0.3))),
-                        child: Text('Aucune émission disponible. Créez d\'abord une émission.', style: BkoTheme.fontLato(fontSize: 13, color: Colors.orange.shade300)),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: BkoTheme.goldAccent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          'Aucune émission disponible. Créez d\'abord une émission.',
+                          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.goldAccent),
+                        ),
                       )
                     else
                       DropdownButtonFormField<String>(
                         initialValue: _selectedPodcastId,
-                        dropdownColor: BkoTheme.getBgSurfaceElevated(context),
+                        dropdownColor: bgElevated,
                         style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                        decoration: _inputDecoration('', borderSub, bgSurf),
+                        decoration: _inputDecoration('', borderSub, bgElevated),
                         items: _podcasts.map((p) {
                           final map = p as Map;
                           return DropdownMenuItem<String>(
@@ -224,73 +261,117 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     const SizedBox(height: 20),
 
                     // Media Type Selection
-                    Text('FORMAT DU MÉDIA PRINCIPAL', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
-                    const SizedBox(height: 10),
+                    Text(
+                      'FORMAT DU MÉDIA PRINCIPAL',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        _mediaTypeOption('AUDIO', 'Audio (MP3/AAC)', Icons.headphones_rounded),
+                        _mediaTypeOption('AUDIO', 'Audio (MP3/AAC)', IconsaxPlusLinear.headphone),
                         const SizedBox(width: 12),
-                        _mediaTypeOption('VIDEO', 'Vidéo (YouTube/MP4)', Icons.videocam_rounded),
+                        _mediaTypeOption('VIDEO', 'Vidéo (YouTube/MP4)', IconsaxPlusLinear.video),
                       ],
                     ),
 
                     const SizedBox(height: 20),
 
                     // Title
-                    Text('TITRE DE L\'ÉPISODE', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                    Text(
+                      'TITRE DE L\'ÉPISODE',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _titleController,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('Ex: Épisode #12 - Entretien Exclusif', borderSub, bgSurf),
+                      decoration: _inputDecoration('Ex: Épisode #12 - Entretien Exclusif', borderSub, bgElevated),
                       validator: (val) => val == null || val.trim().isEmpty ? 'Le titre est obligatoire.' : null,
                     ),
 
                     const SizedBox(height: 20),
 
                     // Description
-                    Text('DESCRIPTION & NOTES DE L\'ÉPISODE', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                    Text(
+                      'DESCRIPTION & NOTES DE L\'ÉPISODE',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _descriptionController,
                       maxLines: 4,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('Résumez le sujet abordé dans cet épisode...', borderSub, bgSurf),
+                      decoration: _inputDecoration('Résumez le sujet abordé dans cet épisode...', borderSub, bgElevated),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // Audio Source Link / File
-                    if (_mediaType == 'AUDIO' || true) ...[
-                      Text('URL SOURCE AUDIO (MP3/HLS/R2)', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _audioUrlController,
-                        style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                        decoration: _inputDecoration('https://mon-storage.com/media.mp3', borderSub, bgSurf),
+                    // Audio Source Link
+                    Text(
+                      'URL SOURCE AUDIO (MP3/HLS)',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
                       ),
-                      const SizedBox(height: 20),
-                    ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _audioUrlController,
+                      style: BkoTheme.fontLato(fontSize: 14, color: textPri),
+                      decoration: _inputDecoration('https://mon-storage.com/media.mp3', borderSub, bgElevated),
+                    ),
+                    const SizedBox(height: 20),
 
-                    // Video Source Link / File
-                    if (_mediaType == 'VIDEO' || true) ...[
-                      Text('LIEN VIDÉO (YOUTUBE OU DIRECT MP4)', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _videoUrlController,
-                        style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                        decoration: _inputDecoration('https://www.youtube.com/watch?v=...', borderSub, bgSurf),
+                    // Video Source Link
+                    Text(
+                      'LIEN VIDÉO (YOUTUBE OU MP4 DIRECT)',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
                       ),
-                      const SizedBox(height: 20),
-                    ],
+                    ),
+                    const SizedBox(height: 8),
+                    TextFormField(
+                      controller: _videoUrlController,
+                      style: BkoTheme.fontLato(fontSize: 14, color: textPri),
+                      decoration: _inputDecoration('https://www.youtube.com/watch?v=...', borderSub, bgElevated),
+                    ),
+                    const SizedBox(height: 20),
 
                     // Cover URL
-                    Text('URL POCHETTE D\'ÉPISODE (OPTIONNEL)', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                    Text(
+                      'URL POCHETTE D\'ÉPISODE (OPTIONNEL)',
+                      style: BkoTheme.fontLato(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: textSec,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     TextFormField(
                       controller: _coverUrlController,
                       style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: _inputDecoration('https://exemple.com/episode-cover.jpg', borderSub, bgSurf),
+                      decoration: _inputDecoration('https://exemple.com/episode-cover.jpg', borderSub, bgElevated),
                     ),
 
                     const SizedBox(height: 20),
@@ -302,13 +383,21 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('SAISON', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                              Text(
+                                'SAISON',
+                                style: BkoTheme.fontLato(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                  color: textSec,
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               TextFormField(
                                 controller: _seasonController,
                                 keyboardType: TextInputType.number,
                                 style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                                decoration: _inputDecoration('Ex: 1', borderSub, bgSurf),
+                                decoration: _inputDecoration('Ex: 1', borderSub, bgElevated),
                               ),
                             ],
                           ),
@@ -318,13 +407,21 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('NUMÉRO ÉPISODE', style: BkoTheme.fontLato(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.4, color: textSec)),
+                              Text(
+                                'NUMÉRO D\'ÉPISODE',
+                                style: BkoTheme.fontLato(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                  color: textSec,
+                                ),
+                              ),
                               const SizedBox(height: 8),
                               TextFormField(
                                 controller: _episodeNumController,
                                 keyboardType: TextInputType.number,
                                 style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                                decoration: _inputDecoration('Ex: 5', borderSub, bgSurf),
+                                decoration: _inputDecoration('Ex: 5', borderSub, bgElevated),
                               ),
                             ],
                           ),
@@ -332,36 +429,68 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 32),
 
                     // Submit Buttons
                     if (_submitting)
-                      const Center(child: CircularProgressIndicator(color: BkoTheme.goldAccent))
+                      const Center(
+                        child: CircularProgressIndicator.adaptive(
+                          valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                        ),
+                      )
                     else
                       Row(
                         children: [
                           Expanded(
-                            child: OutlinedButton(
-                              onPressed: () => _submit(isDraft: true),
-                              style: OutlinedButton.styleFrom(
+                            child: BkoBounceable(
+                              onTap: () {
+                                BkoHaptics.light();
+                                _submit(isDraft: true);
+                              },
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                side: BorderSide(color: borderSub),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: bgElevated,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: borderSub),
+                                ),
+                                child: Text(
+                                  'BROUILLON',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                    color: textPri,
+                                  ),
+                                ),
                               ),
-                              child: Text('ENREGISTRER BROUILLON', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: textPri)),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
-                              onPressed: () => _submit(isDraft: false),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: BkoTheme.goldAccent,
-                                foregroundColor: Colors.black,
+                            child: BkoBounceable(
+                              onTap: () {
+                                BkoHaptics.light();
+                                _submit(isDraft: false);
+                              },
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: BkoTheme.goldAccent,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Text(
+                                  'PUBLIER',
+                                  style: BkoTheme.fontLato(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                    color: BkoTheme.darkBgObsidian,
+                                  ),
+                                ),
                               ),
-                              child: Text('PUBLIER L\'ÉPISODE', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.black)),
                             ),
                           ),
                         ],
@@ -379,20 +508,30 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
     final borderSub = BkoTheme.getBorderSubtle(context);
 
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _mediaType = key),
+      child: BkoBounceable(
+        onTap: () {
+          BkoHaptics.select();
+          setState(() => _mediaType = key);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected ? BkoTheme.goldAccent.withValues(alpha: 0.15) : bgElevated,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: selected ? BkoTheme.goldAccent : borderSub, width: selected ? 1.5 : 1),
+            border: Border.all(
+              color: selected ? BkoTheme.goldAccent : borderSub,
+              width: selected ? 1.5 : 1,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: selected ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context), size: 18),
+              Icon(
+                icon,
+                color: selected ? BkoTheme.goldAccent : BkoTheme.getTextSecondary(context),
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -412,12 +551,18 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
   InputDecoration _inputDecoration(String hint, Color border, Color bg) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: BkoTheme.fontLato(fontSize: 13, color: Colors.grey),
+      hintStyle: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextMuted(context)),
       filled: true,
-      fillColor: BkoTheme.getBgSurfaceElevated(context),
+      fillColor: bg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: BkoTheme.goldAccent)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: BkoTheme.goldAccent),
+      ),
     );
   }
 }

@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (promoSec is Map) {
       final secId = promoSec['id']?.toString() ?? promoSec['slug']?.toString() ?? 'editorial';
       final title = promoSec['title']?.toString() ?? 'Sélection Spéciale';
-      final subtitle = promoSec['subtitle']?.toString() ?? 'Découvrez les contenus choisis par Bamako Podcast.';
+      final subtitle = promoSec['subtitle']?.toString() ?? 'Découvrez les contenus sélectionnés pour vous.';
       final items = _asList(promoSec['items']);
       String? cover;
       if (items.isNotEmpty && items.first is Map) {
@@ -182,14 +182,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           margin: const EdgeInsets.only(top: 40),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 30,
-                offset: const Offset(0, -6),
-              ),
-            ],
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border.all(color: border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -197,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               Center(
                 child: Container(
-                  margin: const EdgeInsets.only(top: 14),
+                  margin: const EdgeInsets.only(top: 12),
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
@@ -206,37 +200,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: BkoTheme.getBgSurfaceElevated(context),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: border),
                 ),
                 child: Row(
                   children: [
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 46,
+                      height: 46,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFF8B5CF6),
-                        border: Border.all(color: BkoTheme.goldAccent, width: 2),
+                        color: BkoTheme.getBgSurface(context),
+                        border: Border.all(color: BkoTheme.goldAccent, width: 1.5),
                       ),
                       child: Center(
                         child: Text(
                           ref.read(authProvider).user?['fullName']?.toString().substring(0, 1).toUpperCase() ?? 'A',
                           style: BkoTheme.fontLato(
                             fontWeight: FontWeight.w900,
-                            fontSize: 20,
-                            color: Colors.white,
+                            fontSize: 18,
+                            color: BkoTheme.goldAccent,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,16 +238,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           Text(
                             ref.read(authProvider).user?['fullName'] ?? 'Auditeur Bamako',
                             style: BkoTheme.fontLato(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
                               color: textPri,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            ref.read(authProvider).user?['email'] ?? 'Membre du club',
+                            ref.read(authProvider).user?['email'] ?? 'Membre Bamako Podcast',
                             style: BkoTheme.fontLato(
-                              fontSize: 12.5,
+                              fontSize: 12,
                               color: textSec,
                             ),
                           ),
@@ -263,52 +257,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
                   'COMPTE & PRÉFÉRENCES',
                   style: BkoTheme.fontLato(
                     fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
                     color: textSec,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              _buildMenuRow(context, Icons.person_outline_rounded, 'Mon Profil & Compte', 'Gérer vos informations personnelles', () {
+              const SizedBox(height: 8),
+              _buildMenuRow(context, IconsaxPlusLinear.user, 'Mon Profil & Compte', 'Gérer vos informations personnelles', () {
                 context.pop();
                 context.push('/profile');
               }),
-              _buildMenuRow(context, Icons.mic_external_on_rounded, 'Studio Créateur & Admin', 'Publier et administrer vos épisodes', () {
+              _buildMenuRow(context, IconsaxPlusLinear.microphone_2, 'Studio Créateur', 'Publier et administrer vos podcasts', () {
                 context.pop();
                 context.push('/studio');
               }),
-              _buildMenuRow(context, Icons.bookmark_outline_rounded, 'Bibliothèque & Favoris', 'Retrouver vos sauvegardes', () {
+              _buildMenuRow(context, IconsaxPlusLinear.bookmark, 'Bibliothèque & Favoris', 'Retrouver vos sauvegardes', () {
                 context.pop();
                 context.go('/library');
               }),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'APPARENCE (THÈME)',
+                  'THÈME D\'AFFICHAGE',
                   style: BkoTheme.fontLato(
                     fontSize: 11,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 1.2,
                     color: textSec,
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                padding: const EdgeInsets.all(6),
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: BkoTheme.getBgSurfaceElevated(context),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: border),
                 ),
                 child: Row(
@@ -319,39 +313,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 28),
-              const Divider(color: Color(0xFF242424), height: 1),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              Divider(color: border, height: 1),
+              const SizedBox(height: 12),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    Icon(Icons.help_outline_rounded, size: 20, color: textSec),
-                    const SizedBox(width: 12),
-                    Text('Aide & Support', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w600, color: textPri)),
+                    Icon(IconsaxPlusLinear.info_circle, size: 18, color: textSec),
+                    const SizedBox(width: 10),
+                    Text('Aide & Support', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w600, color: textPri)),
                     const Spacer(),
-                    Icon(Icons.chevron_right_rounded, size: 18, color: textSec),
+                    Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: textSec),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: TextButton.icon(
-                  onPressed: () {
-                    context.pop();
-                    ref.read(authProvider.notifier).logout();
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Builder(
+                  builder: (context) {
+                    final errColor = Theme.of(context).colorScheme.error;
+                    return TextButton.icon(
+                      onPressed: () {
+                        context.pop();
+                        ref.read(authProvider.notifier).logout();
+                      },
+                      icon: Icon(IconsaxPlusLinear.logout, size: 18, color: errColor),
+                      label: Text('Se déconnecter', style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w700, color: errColor)),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        backgroundColor: errColor.withValues(alpha: 0.1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    );
                   },
-                  icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.red),
-                  label: Text('Se déconnecter', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.red)),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    backgroundColor: Colors.red.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
                 ),
               ),
-              SizedBox(height: bottomInset + 32),
+              SizedBox(height: bottomInset + 24),
             ],
           ),
         );
@@ -363,30 +362,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: BkoTheme.getBgSurfaceElevated(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: BkoTheme.getBorderSubtle(context)),
               ),
-              child: Icon(icon, color: BkoTheme.goldAccent, size: 22),
+              child: Icon(icon, color: BkoTheme.goldAccent, size: 18),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: BkoTheme.fontLato(fontSize: 15, fontWeight: FontWeight.w800, color: BkoTheme.getTextPrimary(context))),
+                  Text(title, style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w700, color: BkoTheme.getTextPrimary(context))),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: BkoTheme.fontLato(fontSize: 12.5, color: BkoTheme.getTextSecondary(context))),
+                  Text(subtitle, style: BkoTheme.fontLato(fontSize: 11.5, color: BkoTheme.getTextSecondary(context))),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: BkoTheme.getTextSecondary(context), size: 20),
+            Icon(IconsaxPlusLinear.arrow_right_3, color: BkoTheme.getTextSecondary(context), size: 14),
           ],
         ),
       ),
@@ -412,7 +411,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           style: BkoTheme.fontLato(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-            color: isSelected ? Colors.black : BkoTheme.getTextSecondary(context),
+            color: isSelected ? BkoTheme.darkBgObsidian : BkoTheme.getTextSecondary(context),
           ),
         ),
       ),
@@ -422,6 +421,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final bgSurf = BkoTheme.getBgSurface(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
     final borderSub = BkoTheme.getBorderSubtle(context);
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
@@ -449,7 +449,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.cloud_off_rounded, size: 52, color: BkoTheme.goldAccent),
+                const Icon(IconsaxPlusLinear.wifi_square, size: 52, color: BkoTheme.goldAccent),
                 const SizedBox(height: 16),
                 Text(
                   'Impossible de charger les données',
@@ -472,14 +472,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () => ref.read(homeDataProvider.notifier).refresh(),
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  icon: const Icon(IconsaxPlusLinear.refresh_2, size: 16),
                   label: const Text('Réessayer'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BkoTheme.goldAccent,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    foregroundColor: BkoTheme.darkBgObsidian,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                 ),
@@ -511,6 +511,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (_filterMode == 'AUDIO') return !hasVideo; // Simplification
       return true;
     }).toList();
+
+    final feedEpisodes = homeState.feedItems.isNotEmpty
+        ? homeState.feedItems
+        : latestEpisodes;
 
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
@@ -579,46 +583,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   slides: heroSlides,
                   onPlay: (ep) => _triggerPlayEpisode(ep),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
               ],
 
-              // 2. Filtres Rapides
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.tune_rounded, color: BkoTheme.goldAccent, size: 18),
-                    const SizedBox(width: 8),
-                    Text('Filtres Rapides par Thématique', style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w900, color: textPri)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
+              // 2. Filtres Rapides (Barre de pills minimaliste et épurée)
               SizedBox(
-                height: 36,
+                height: 34,
                 child: ListView(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   children: [
-                    GestureDetector(
-                      onTap: () => ref.read(homeDataProvider.notifier).selectCategory('all'),
+                    BkoBounceable(
+                      onTap: () {
+                        BkoHaptics.light();
+                        ref.read(homeDataProvider.notifier).selectCategory('all');
+                      },
                       child: Container(
                         margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: homeState.selectedCategory == 'all' ? BkoTheme.goldAccent : bgSurf,
-                          borderRadius: BorderRadius.circular(18),
+                          color: homeState.selectedCategory == 'all'
+                              ? BkoTheme.getActivePillBg(context)
+                              : bgSurf,
+                          borderRadius: BorderRadius.circular(17),
                           border: Border.all(
-                            color: homeState.selectedCategory == 'all' ? BkoTheme.goldAccent : borderSub,
+                            color: homeState.selectedCategory == 'all'
+                                ? BkoTheme.getActivePillBg(context)
+                                : borderSub,
+                            width: 1,
                           ),
                         ),
                         child: Text(
                           'Tout explorer',
                           style: BkoTheme.fontLato(
                             fontSize: 12,
-                            fontWeight: homeState.selectedCategory == 'all' ? FontWeight.w900 : FontWeight.w800,
-                            color: homeState.selectedCategory == 'all' ? Colors.black : textPri,
+                            fontWeight: homeState.selectedCategory == 'all' ? FontWeight.w800 : FontWeight.w600,
+                            color: homeState.selectedCategory == 'all'
+                                ? BkoTheme.getActivePillText(context)
+                                : textPri,
                           ),
                         ),
                       ),
@@ -628,23 +631,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       final isActive = homeState.selectedCategory == catSlug ||
                           homeState.selectedCategory == cat['id']?.toString() ||
                           homeState.selectedCategory == cat['slug']?.toString();
-                      return GestureDetector(
-                        onTap: () => ref.read(homeDataProvider.notifier).selectCategory(catSlug),
+                      return BkoBounceable(
+                        onTap: () {
+                          BkoHaptics.light();
+                          ref.read(homeDataProvider.notifier).selectCategory(catSlug);
+                        },
                         child: Container(
                           margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
                           alignment: Alignment.center,
                           decoration: BoxDecoration(
-                            color: isActive ? BkoTheme.goldAccent : bgSurf,
-                            border: Border.all(color: isActive ? BkoTheme.goldAccent : borderSub),
-                            borderRadius: BorderRadius.circular(18),
+                            color: isActive ? BkoTheme.getActivePillBg(context) : bgSurf,
+                            borderRadius: BorderRadius.circular(17),
+                            border: Border.all(
+                              color: isActive ? BkoTheme.getActivePillBg(context) : borderSub,
+                              width: 1,
+                            ),
                           ),
                           child: Text(
                             '${cat['name']}',
                             style: BkoTheme.fontLato(
                               fontSize: 12,
-                              fontWeight: isActive ? FontWeight.w900 : FontWeight.w800,
-                              color: isActive ? Colors.black : textPri,
+                              fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                              color: isActive ? BkoTheme.getActivePillText(context) : textPri,
                             ),
                           ),
                         ),
@@ -686,18 +695,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   },
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
+                                      const Icon(IconsaxPlusBold.play, color: BkoTheme.goldAccent, size: 16),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
                                           secTitle.isNotEmpty ? secTitle : 'Reprendre l\'écoute',
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri),
+                                          style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
                                         ),
                                       ),
                                       const SizedBox(width: 4),
-                                      const Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: Color(0xFF888888)),
+                                      Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: textSec),
                                     ],
                                   ),
                                 ),
@@ -729,18 +738,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               final percent = (dur > 0 ? (pos / dur) : 0.0).clamp(0.0, 1.0);
                               final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
 
-                              return GestureDetector(
+                              return BkoBounceable(
                                 onTap: () => _triggerPlayEpisode(
                                   ep,
                                   attribution: item['attribution'] is Map ? Map<String, dynamic>.from(item['attribution']) : null,
                                 ),
                                 child: Container(
-                                  width: 280,
+                                  width: 260,
                                   margin: const EdgeInsets.only(right: 12),
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
                                     color: bgSurf,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(14),
                                     border: Border.all(color: borderSub),
                                   ),
                                   child: Column(
@@ -751,21 +760,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             borderRadius: BorderRadius.circular(8),
                                             child: CachedNetworkImage(
                                               imageUrl: cover,
-                                              width: 48,
-                                              height: 48,
+                                              width: 44,
+                                              height: 44,
                                               fit: BoxFit.cover,
-                                              errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                                              errorWidget: (context, url, error) => Container(
+                                                width: 44,
+                                                height: 44,
+                                                color: bgElevated,
+                                                child: const Center(
+                                                  child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent, size: 18),
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 10),
                                           Expanded(
                                             child: Column(
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children: [
                                                 Text(ep['title'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
-                                                    style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w800, color: textPri)),
-                                                const SizedBox(height: 4),
+                                                    style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w700, color: textPri)),
+                                                const SizedBox(height: 3),
                                                 Text(ep['podcast']?['name'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis,
                                                     style: BkoTheme.fontLato(fontSize: 11, color: textSec)),
                                               ],
@@ -776,9 +792,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       const Spacer(),
                                       LinearProgressIndicator(
                                         value: percent,
-                                        backgroundColor: BkoTheme.getBgObsidian(context),
+                                        backgroundColor: bgElevated,
                                         color: BkoTheme.goldAccent,
-                                        minHeight: 4,
+                                        minHeight: 2.5,
                                         borderRadius: BorderRadius.circular(2),
                                       ),
                                     ],
@@ -816,15 +832,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       Row(
                                         children: [
                                           if (secSlug == 'for-you') ...[
-                                            const Icon(Icons.auto_awesome, color: BkoTheme.goldAccent, size: 20),
+                                            const Icon(IconsaxPlusLinear.magic_star, color: BkoTheme.goldAccent, size: 18),
                                             const SizedBox(width: 8),
                                           ],
                                           Expanded(
                                             child: Text(secTitle,
-                                                style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
+                                                style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
                                           ),
                                           const SizedBox(width: 4),
-                                          const Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: Color(0xFF888888)),
+                                          Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: textSec),
                                         ],
                                       ),
                                       if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
@@ -929,10 +945,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: Text(secTitle, style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri)),
+                                          child: Text(secTitle, style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
                                         ),
                                         const SizedBox(width: 4),
-                                        const Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: Color(0xFF888888)),
+                                        Icon(IconsaxPlusLinear.arrow_right_3, size: 14, color: textSec),
                                       ],
                                     ),
                                     if (secSubtitle != null && secSubtitle.isNotEmpty) ...[
@@ -950,7 +966,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(height: 14),
                       SizedBox(
-                        height: 235,
+                        height: 220,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -965,8 +981,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             final attribution = item['attribution'] is Map ? Map<String, dynamic>.from(item['attribution']) : null;
                             final batchId = attribution?['batchId']?.toString();
 
-                            final podCard = GestureDetector(
+                            final podCard = BkoBounceable(
                               onTap: () {
+                                BkoHaptics.light();
                                 if (attribution != null) {
                                   BkoTelemetryService().trackInteraction(
                                     batchId: batchId ?? '',
@@ -981,19 +998,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 context.push('/podcasts/$pSlug');
                               },
                               child: Container(
-                                width: 144,
-                                margin: const EdgeInsets.only(right: 14),
+                                width: 140,
+                                margin: const EdgeInsets.only(right: 12),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     ClipRRect(
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: BorderRadius.circular(14),
                                       child: AspectRatio(
                                         aspectRatio: 1,
                                         child: CachedNetworkImage(
                                           imageUrl: p['cover'] ?? '',
                                           fit: BoxFit.cover,
-                                          errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                                          errorWidget: (context, url, error) => Container(
+                                            color: bgElevated,
+                                            child: const Center(
+                                              child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent, size: 28),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -1002,15 +1024,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF1E1E22),
+                                          color: bgElevated,
                                           borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: const Color(0xFF2C2C30)),
+                                          border: Border.all(color: borderSub),
                                         ),
                                         child: Text(
                                           reason,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: BkoTheme.fontLato(fontSize: 9, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
+                                          style: BkoTheme.fontLato(fontSize: 10, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -1084,9 +1106,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
-                        const Icon(Icons.play_arrow_rounded, color: BkoTheme.goldAccent, size: 20),
+                        const Icon(IconsaxPlusBold.play, color: BkoTheme.goldAccent, size: 16),
                         const SizedBox(width: 8),
-                        Text('Historique de lecture', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w900, color: textPri)),
+                        Text('Historique de lecture', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
                       ],
                     ),
                   ),
@@ -1105,8 +1127,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         final percent = (dur > 0 ? (pos / dur) : 0.0).clamp(0.0, 1.0);
                         final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
 
-                        return GestureDetector(
-                          onTap: () => _triggerPlayEpisode(ep),
+                        return BkoBounceable(
+                          onTap: () {
+                            BkoHaptics.light();
+                            _triggerPlayEpisode(ep);
+                          },
                           child: Container(
                             width: 280,
                             margin: const EdgeInsets.only(right: 12),
@@ -1127,7 +1152,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         width: 48,
                                         height: 48,
                                         fit: BoxFit.cover,
-                                        errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                                        errorWidget: (context, url, error) => Container(
+                                          color: bgElevated,
+                                          child: const Center(
+                                            child: Icon(IconsaxPlusLinear.play, color: BkoTheme.goldAccent, size: 20),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -1169,7 +1199,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Fraîchement publiés', style: BkoTheme.fontLato(fontSize: 22, fontWeight: FontWeight.w900, color: textPri)),
+                        Text('Fraîchement publiés', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
                       ],
                     ),
                   ),
@@ -1201,25 +1231,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ],
 
-              // 6. Flux continu d'épisodes (Défilement infini)
-              if (homeState.feedItems.isNotEmpty) ...[
-                const SizedBox(height: 16),
+              // 6. Flux continu d'épisodes (Défilement infini & Recommandations)
+              if (feedEpisodes.isNotEmpty) ...[
+                const SizedBox(height: 24),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Expanded(
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.stream_rounded, color: BkoTheme.goldAccent, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                homeState.selectedCategory == 'all'
-                                    ? 'Flux Continu d\'Épisodes'
-                                    : 'Flux : ${homeState.selectedCategory}',
-                                style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri),
+                            Text(
+                              homeState.selectedCategory == 'all'
+                                  ? 'Flux continu d\'épisodes'
+                                  : 'Flux : ${homeState.selectedCategory}',
+                              style: BkoTheme.fontLato(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: textPri,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Recommandations & nouveautés',
+                              style: BkoTheme.fontLato(
+                                fontSize: 11.5,
+                                color: textSec,
                               ),
                             ),
                           ],
@@ -1234,13 +1274,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
-                    children: homeState.feedItems.map((ep) {
+                    children: feedEpisodes.map((item) {
+                      final epData = (item is Map && item['episode'] is Map)
+                          ? Map<String, dynamic>.from(item['episode'] as Map)
+                          : (item is Map ? Map<String, dynamic>.from(item) : <String, dynamic>{});
+                      if (epData.isEmpty) return const SizedBox.shrink();
+
+                      final reason = item is Map ? item['reason']?.toString() : null;
+                      final attribution = (item is Map && item['attribution'] is Map)
+                          ? Map<String, dynamic>.from(item['attribution'] as Map)
+                          : null;
+
                       return EpisodeListItem(
-                        episode: Map<String, dynamic>.from(ep),
+                        episode: epData,
+                        recommendationReason: reason,
+                        onPlay: () => _triggerPlayEpisode(epData, attribution: attribution),
                       );
                     }).toList(),
                   ),
@@ -1248,29 +1300,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ],
 
               // Message si catégorie vide
-              if (!homeState.isLoading && homeState.feedItems.isEmpty && homeState.selectedCategory != 'all') ...[
+              if (!homeState.isLoading && feedEpisodes.isEmpty && homeState.selectedCategory != 'all') ...[
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
                   child: Center(
                     child: Column(
                       children: [
-                        const Icon(Icons.search_off_rounded, color: Colors.grey, size: 40),
+                        Icon(IconsaxPlusLinear.search_status, color: textSec, size: 36),
                         const SizedBox(height: 12),
                         Text(
                           'Aucun épisode disponible pour la thématique "${homeState.selectedCategory}".',
                           textAlign: TextAlign.center,
-                          style: BkoTheme.fontLato(fontSize: 14, color: textSec, fontWeight: FontWeight.w600),
+                          style: BkoTheme.fontLato(fontSize: 13, color: textSec, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 16),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: BkoTheme.goldAccent,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        BkoBounceable(
+                          onTap: () {
+                            BkoHaptics.light();
+                            ref.read(homeDataProvider.notifier).selectCategory('all');
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+                            decoration: BoxDecoration(
+                              color: BkoTheme.goldAccent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              'Tout explorer',
+                              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: BkoTheme.darkBgObsidian),
+                            ),
                           ),
-                          onPressed: () => ref.read(homeDataProvider.notifier).selectCategory('all'),
-                          child: Text('Revenir à Tout explorer', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800)),
                         ),
                       ],
                     ),
@@ -1287,18 +1346,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         Text(
                           homeState.feedError!,
-                          style: BkoTheme.fontLato(fontSize: 12, color: Colors.redAccent, fontWeight: FontWeight.w700),
+                          style: BkoTheme.fontLato(fontSize: 12, color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 10),
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: BkoTheme.goldAccent),
-                            foregroundColor: BkoTheme.goldAccent,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        BkoBounceable(
+                          onTap: () => ref.read(homeDataProvider.notifier).fetchMoreFeed(),
+                          child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: BkoTheme.goldAccent),
+                            ),
+                            child: Text(
+                              'Réessayer',
+                              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: BkoTheme.goldAccent),
+                            ),
                           ),
-                          onPressed: () => ref.read(homeDataProvider.notifier).fetchMoreFeed(),
-                          child: Text('Réessayer', style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800)),
                         ),
                       ],
                     ),
@@ -1309,64 +1372,86 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               // Indicateur de chargement ou fin de flux
               if (homeState.isLoadingMore) ...[
                 const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
+                  padding: EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: BkoTheme.goldAccent),
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: BkoTheme.goldAccent),
                     ),
                   ),
                 ),
-              ] else if (!homeState.hasMore && homeState.feedItems.isNotEmpty) ...[
+              ] else if (!homeState.hasMore && feedEpisodes.isNotEmpty) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Center(
                     child: Text(
-                      'Vous avez atteint la fin des recommandations actuelles.',
-                      style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                      'Vous êtes à jour dans le catalogue.',
+                      style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
                     ),
                   ),
                 ),
               ],
-              
-              const SizedBox(height: 32),
-              
-              const SizedBox(height: 48),
-              
-              // 7. Footer CTA
+
+              const SizedBox(height: 24),
+
+              // 7. Footer CTA Studio Minimaliste & Élégant
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 decoration: BoxDecoration(
                   color: bgSurf,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: borderSub),
                 ),
-                child: Column(
+                child: Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: const BoxDecoration(
-                        color: BkoTheme.goldAccent,
-                        shape: BoxShape.circle,
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: BkoTheme.getBgSurfaceElevated(context),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderSub),
                       ),
-                      child: const Icon(Icons.mic_rounded, color: Colors.black, size: 32),
+                      child: const Center(
+                        child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent, size: 20),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Text('Vous animez un podcast ?', textAlign: TextAlign.center, style: BkoTheme.fontLato(fontSize: 20, fontWeight: FontWeight.w900, color: textPri)),
-                    const SizedBox(height: 8),
-                    Text('Intégrez le catalogue Bamako Podcast.', textAlign: TextAlign.center, style: BkoTheme.fontLato(fontSize: 13, color: textSec)),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: BkoTheme.goldAccent,
-                        foregroundColor: Colors.black,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Vous animez un podcast ?',
+                            style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800, color: textPri),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Rejoignez Bamako Podcast Studio.',
+                            style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
+                          ),
+                        ],
                       ),
-                      onPressed: () => context.push('/studio'),
-                      child: Text('Accéder au Studio', style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w800)),
+                    ),
+                    const SizedBox(width: 8),
+                    BkoBounceable(
+                      onTap: () {
+                        BkoHaptics.light();
+                        context.push('/studio');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: BkoTheme.goldAccent,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'Studio',
+                          style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: BkoTheme.darkBgObsidian),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -1386,21 +1471,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildFilterBtn(String label, String mode) {
     final isSelected = _filterMode == mode;
-    return GestureDetector(
+    return BkoBounceable(
       onTap: () => setState(() => _filterMode = mode),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? BkoTheme.getBgSurfaceElevated(context) : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? BkoTheme.getBorderSubtle(context) : Colors.transparent),
+          color: isSelected ? BkoTheme.getActivePillBg(context) : BkoTheme.getBgSurface(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? BkoTheme.getActivePillBg(context) : BkoTheme.getBorderSubtle(context),
+            width: 1,
+          ),
         ),
         child: Text(
           label,
           style: BkoTheme.fontLato(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-            color: isSelected ? Colors.white : Colors.grey,
+            fontSize: 11,
+            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            color: isSelected ? BkoTheme.getActivePillText(context) : BkoTheme.getTextPrimary(context),
           ),
         ),
       ),
@@ -1444,9 +1532,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xFF141414),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF262626)),
+          color: BkoTheme.getBgSurfaceElevated(context),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: BkoTheme.getBorderSubtle(context)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1455,15 +1543,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               'Découvrir davantage',
               style: BkoTheme.fontLato(
                 fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFFD4D4D4),
+                fontWeight: FontWeight.w700,
+                color: BkoTheme.getTextPrimary(context),
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(
+            Icon(
               IconsaxPlusLinear.arrow_right_3,
               size: 11,
-              color: Color(0xFF888888),
+              color: BkoTheme.getTextSecondary(context),
             ),
           ],
         ),
