@@ -8,6 +8,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../downloads/download_manager.dart';
 
 /// Écran des paramètres de stockage et des téléchargements hors-ligne.
@@ -40,12 +41,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       if (mounted) {
         setState(() => _isCleaning = false);
         BkoHaptics.success();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Épisodes terminés retirés de la mémoire locale.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Nettoyage terminé',
+          message: 'Épisodes terminés retirés de la mémoire locale.',
         );
       }
     }
@@ -67,12 +66,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
       if (mounted) {
         setState(() => _isCleaning = false);
         BkoHaptics.success();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Toutes les copies locales ont été supprimées.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Stockage libéré',
+          message: 'Toutes les copies locales ont été supprimées.',
         );
       }
     }

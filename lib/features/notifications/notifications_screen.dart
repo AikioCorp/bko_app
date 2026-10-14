@@ -9,6 +9,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 import 'models/bko_notification.dart';
 import 'notification_providers.dart';
@@ -347,23 +348,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
   }
 
   void _showToast(String message) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        elevation: 0,
-        backgroundColor: BkoTheme.getBgSurfaceElevated(context),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
-        ),
-        content: Text(
-          message,
-          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextPrimary(context)),
-        ),
-        duration: const Duration(seconds: 3),
-      ),
+    BkoToast.showInfo(
+      context,
+      title: message,
     );
   }
 

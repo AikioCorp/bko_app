@@ -15,6 +15,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/capitalize_words_input_formatter.dart';
 import '../../core/widgets/phone_number_formatter.dart';
 import '../auth/auth_controller.dart';
@@ -232,12 +233,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         });
 
         BkoHaptics.success();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Photo de profil mise à jour avec succès !'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Photo mise à jour',
+          message: 'Votre photo de profil a été enregistrée',
         );
       }
     } catch (e) {
@@ -249,12 +248,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             : (e.toString().contains('DioException')
                 ? 'Erreur de connexion au serveur de stockage.'
                 : 'Erreur lors du téléversement : $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Téléversement impossible',
+          message: message,
         );
       }
     }
@@ -288,23 +285,20 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         });
 
         BkoHaptics.light();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Photo de profil supprimée.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showInfo(
+          context,
+          title: 'Photo supprimée',
+          message: 'Votre photo de profil a été réinitialisée',
+          icon: IconsaxPlusBold.trash,
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isUploadingAvatar = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de la suppression : $e'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Suppression impossible',
+          message: 'Erreur lors de la suppression de la photo.',
         );
       }
     }
@@ -545,12 +539,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         if (!mounted) return;
 
         BkoHaptics.success();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil mis à jour avec succès.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Profil mis à jour',
+          message: 'Vos informations ont été enregistrées',
         );
         context.pop();
       }
@@ -562,12 +554,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             : (e.toString().contains('DioException')
                 ? 'Erreur de connexion au serveur.'
                 : 'Erreur lors de la mise à jour : $e');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Mise à jour impossible',
+          message: message,
         );
       }
     } finally {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
+import '../../../core/widgets/bko_toast.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
 import '../library_screen.dart';
@@ -102,28 +103,24 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
       if (!mounted) return;
       ref.read(libraryUpdateSignalProvider.notifier).state++;
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Ajouté à « $playlistName »',
-            style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: BkoTheme.goldAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showPlaylist(
+        context,
+        playlistName: playlistName,
+        episodeTitle: '${widget.episode['title'] ?? ''}',
       );
     } on ApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message), behavior: SnackBarBehavior.floating),
+      BkoToast.showError(
+        context,
+        title: 'Ajout impossible',
+        message: e.message,
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Impossible d’ajouter l’épisode à cette playlist.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Ajout impossible',
+        message: 'Impossible d’ajouter l’épisode à cette playlist.',
       );
     }
   }
@@ -242,8 +239,10 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
         }
       } catch (_) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Impossible de créer la playlist.')),
+          BkoToast.showError(
+            context,
+            title: 'Création impossible',
+            message: 'Impossible de créer la playlist.',
           );
         }
       }

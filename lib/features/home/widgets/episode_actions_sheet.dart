@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
 import '../../../core/widgets/bko_download_toast.dart';
+import '../../../core/widgets/bko_toast.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
 import '../../downloads/download_manager.dart';
@@ -87,16 +88,10 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     final item = _buildQueueItem();
     ref.read(activeEpisodeProvider.notifier).playNext(item);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '« ${item.title} » sera lu ensuite.',
-          style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: BkoTheme.goldAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
+    BkoToast.showSuccess(
+      context,
+      title: 'Lecture suivante',
+      message: '« ${item.title} » sera lu ensuite',
     );
   }
 
@@ -104,16 +99,10 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     final item = _buildQueueItem();
     ref.read(activeEpisodeProvider.notifier).addToQueue(item);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '« ${item.title} » ajouté à la file d’attente.',
-          style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: BkoTheme.goldAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
+    BkoToast.showSuccess(
+      context,
+      title: 'File d’attente',
+      message: '« ${item.title} » ajouté à la file',
     );
   }
 
@@ -147,24 +136,21 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
       widget.onSavedStateChanged?.call();
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            !currentSaved
-                ? 'Épisode enregistré dans votre bibliothèque'
-                : 'Épisode retiré de votre bibliothèque',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+      final ep = widget.episode;
+      final podcast = ep['podcast'] is Map ? ep['podcast'] as Map : null;
+      BkoToast.showLibrary(
+        context,
+        title: '${ep['title'] ?? 'Épisode'}',
+        podcastName: podcast?['name'],
+        isSaved: !currentSaved,
       );
     } catch (_) {
       setState(() => _isSaving = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible de modifier l’enregistrement.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Action impossible',
+          message: 'Impossible de modifier l’enregistrement.',
         );
       }
     }
@@ -215,23 +201,19 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
         token: auth.token,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Recommandation masquée. Nous ajustons vos suggestions.'),
-          action: SnackBarAction(
-            label: 'Annuler',
-            textColor: BkoTheme.goldAccent,
-            onPressed: () async {
-              try {
-                await BkoApi.delete(
-                  '/recommendations/feedback',
-                  token: auth.token,
-                );
-              } catch (_) {}
-            },
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showInfo(
+        context,
+        title: 'Recommandation masquée',
+        message: 'Nous ajustons vos suggestions.',
+        actionLabel: 'Annuler',
+        onAction: () async {
+          try {
+            await BkoApi.delete(
+              '/recommendations/feedback',
+              token: auth.token,
+            );
+          } catch (_) {}
+        },
       );
     } catch (_) {}
   }
@@ -258,23 +240,19 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
         token: auth.token,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('« $podcastName » a été masquée de vos recommandations.'),
-          action: SnackBarAction(
-            label: 'Annuler',
-            textColor: BkoTheme.goldAccent,
-            onPressed: () async {
-              try {
-                await BkoApi.delete(
-                  '/recommendations/feedback',
-                  token: auth.token,
-                );
-              } catch (_) {}
-            },
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showInfo(
+        context,
+        title: 'Émission masquée',
+        message: '« $podcastName » a été masquée de vos suggestions.',
+        actionLabel: 'Annuler',
+        onAction: () async {
+          try {
+            await BkoApi.delete(
+              '/recommendations/feedback',
+              token: auth.token,
+            );
+          } catch (_) {}
+        },
       );
     } catch (_) {}
   }
@@ -440,11 +418,11 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
                     .read(downloadProvider.notifier)
                     .deleteTask(episodeId);
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Téléchargement supprimé.'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                BkoToast.showInfo(
+                  context,
+                  title: 'Téléchargement supprimé',
+                  message: '${widget.episode['title'] ?? ''}',
+                  icon: IconsaxPlusBold.document_download,
                 );
               },
             )

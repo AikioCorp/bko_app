@@ -8,6 +8,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 
 /// Écran complet de sécurité et gestion des appareils connectés.
@@ -101,16 +102,12 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
         await ref.read(authProvider.notifier).updateUser({'hasPassword': true});
         BkoHaptics.success();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                hasPassword
-                    ? 'Mot de passe modifié avec succès !'
-                    : 'Mot de passe défini avec succès ! Vous pouvez vous connecter sans Google.',
-              ),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: BkoTheme.goldAccent,
-            ),
+          BkoToast.showSuccess(
+            context,
+            title: 'Mot de passe enregistré',
+            message: hasPassword
+                ? 'Mot de passe modifié avec succès !'
+                : 'Mot de passe défini avec succès !',
           );
         }
       }
@@ -118,12 +115,10 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
       if (mounted) {
         setState(() => _isChangingPassword = false);
         BkoHaptics.error();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$e'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Modification impossible',
+          message: '$e',
         );
       }
     }
@@ -220,12 +215,10 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
         await _fetchDevices();
         BkoHaptics.success();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Toutes les autres sessions ont été révoquées.'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: BkoTheme.goldAccent,
-            ),
+          BkoToast.showSuccess(
+            context,
+            title: 'Sessions révoquées',
+            message: 'Toutes les autres sessions ont été déconnectées.',
           );
         }
       } catch (e) {

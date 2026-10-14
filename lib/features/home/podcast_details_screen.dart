@@ -10,6 +10,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../shell/shell_providers.dart';
@@ -292,13 +293,30 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
         await BkoApi.post('/podcasts/$podcastId/follow', {}, token: auth.token);
       }
       if (mounted) {
-        setState(() => _isFollowing = !_isFollowing);
+        final nowFollowing = !_isFollowing;
+        setState(() => _isFollowing = nowFollowing);
         ref.read(libraryUpdateSignalProvider.notifier).state++;
+        if (nowFollowing) {
+          BkoToast.showSuccess(
+            context,
+            title: 'Abonné à l’émission',
+            message: _podcast?['name'] ?? widget.slug,
+          );
+        } else {
+          BkoToast.showInfo(
+            context,
+            title: 'Désabonné',
+            message: _podcast?['name'] ?? widget.slug,
+            icon: IconsaxPlusLinear.archive_minus,
+          );
+        }
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Action impossible pour le moment.')),
+        BkoToast.showError(
+          context,
+          title: 'Action impossible',
+          message: 'Action impossible pour le moment.',
         );
       }
     }

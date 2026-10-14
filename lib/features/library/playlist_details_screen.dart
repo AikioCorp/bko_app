@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import '../home/widgets/episode_actions_sheet.dart';
@@ -149,16 +151,10 @@ class _PlaylistDetailsScreenState
           newQueue: queueItems,
         );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Lecture lancée : ${episodes.length} épisodes dans la file.',
-          style: const TextStyle(
-              color: Colors.black, fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: BkoTheme.goldAccent,
-        behavior: SnackBarBehavior.floating,
-      ),
+    BkoToast.showSuccess(
+      context,
+      title: 'Lecture lancée',
+      message: '${episodes.length} épisodes dans la file',
     );
   }
 
@@ -172,20 +168,19 @@ class _PlaylistDetailsScreenState
           token: token);
       _fetch();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Épisode retiré de la playlist.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showInfo(
+          context,
+          title: 'Épisode retiré',
+          message: 'Retiré de la playlist',
+          icon: IconsaxPlusLinear.music_playlist,
         );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible de retirer l’épisode.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Action impossible',
+          message: 'Impossible de retirer l’épisode.',
         );
       }
     }
@@ -237,20 +232,18 @@ class _PlaylistDetailsScreenState
       await BkoApi.delete('/playlists/${widget.playlistId}', token: token);
       if (mounted) {
         context.pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Playlist supprimée.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showInfo(
+          context,
+          title: 'Playlist supprimée',
+          icon: IconsaxPlusBold.trash,
         );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible de supprimer la playlist.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Action impossible',
+          message: 'Impossible de supprimer la playlist.',
         );
       }
     }

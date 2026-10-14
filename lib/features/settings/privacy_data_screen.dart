@@ -11,6 +11,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 
 /// Écran complet de gestion de la confidentialité, des données personnelles et de la suppression du compte.
@@ -71,12 +72,10 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
         await BkoApi.delete('/me/history', token: token);
         if (mounted) {
           BkoHaptics.success();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Historique d\'écoute intégralement effacé.'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: BkoTheme.goldAccent,
-            ),
+          BkoToast.showSuccess(
+            context,
+            title: 'Historique effacé',
+            message: 'Historique d\'écoute intégralement effacé.',
           );
         }
       } catch (e) {
@@ -107,12 +106,10 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
     } catch (e) {
       if (mounted) {
         BkoHaptics.error();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de l\'export : $e'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Export impossible',
+          message: 'Erreur lors de l\'export : $e',
         );
       }
     } finally {
@@ -220,23 +217,19 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
         if (mounted) {
           BkoHaptics.success();
           context.go('/home');
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Votre compte a été supprimé.'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Colors.black,
-            ),
+          BkoToast.showInfo(
+            context,
+            title: 'Compte supprimé',
+            message: 'Votre compte a été supprimé définitivement.',
           );
         }
       } catch (e) {
         if (mounted) {
           BkoHaptics.error();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Échec de la suppression : $e'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+          BkoToast.showError(
+            context,
+            title: 'Suppression impossible',
+            message: 'Échec de la suppression : $e',
           );
         }
       } finally {

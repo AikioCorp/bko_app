@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/routing/app_router.dart';
-import '../../../core/theme/bko_theme.dart';
 import '../../../core/widgets/bko_haptics.dart';
+import '../../../core/widgets/bko_toast.dart';
 import '../../auth/auth_controller.dart';
 
 /// Gestionnaire unifié et sécurisé des destinations de notifications (in-app & push FCM).
@@ -145,29 +145,10 @@ class NotificationDestinationHandler {
   }
 
   static void _showFeedback(BuildContext context, String message) {
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger == null) return;
-
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        elevation: 0,
-        backgroundColor: BkoTheme.getBgSurfaceElevated(context),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 80),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
-        ),
-        content: Text(
-          message,
-          style: BkoTheme.fontLato(
-            fontSize: 13,
-            color: BkoTheme.getTextPrimary(context),
-          ),
-        ),
-        duration: const Duration(seconds: 4),
-      ),
+    BkoToast.showInfo(
+      context,
+      title: 'Contenu inaccessible',
+      message: message,
     );
   }
 }

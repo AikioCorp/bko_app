@@ -7,6 +7,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../home/widgets/episode_actions_sheet.dart';
@@ -252,11 +253,11 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       .setSleepTimer(dur);
                   Navigator.pop(ctx);
                   if (dur != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Minuteur activé : $label'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
+                    BkoToast.showInfo(
+                      context,
+                      title: 'Minuteur activé',
+                      message: label,
+                      icon: IconsaxPlusBold.clock,
                     );
                   }
                 },

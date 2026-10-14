@@ -6,6 +6,7 @@ import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
 import '../../../core/widgets/bko_bounceable.dart';
 import '../../../core/widgets/bko_haptics.dart';
+import '../../../core/widgets/bko_toast.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
 
@@ -69,14 +70,18 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
   final Map<String, String?> _userReactions = {};
   final Map<String, Map<String, int>> _commentReactions = {};
 
+  // Fils de réponses dépliés (style TikTok / Facebook)
+  final Set<String> _expandedReplyCommentIds = {};
+
   // Commentaire auquel on est en train de répondre
   Map<String, dynamic>? _replyingTo;
 
   // Commentaire sur lequel le dock de réactions est actuellement ouvert
   String? _activeReactionsCommentId;
 
-  // Palette d'émotions rapides (style WhatsApp / Telegram)
-  static const List<String> _reactionEmojis = ['❤️', '🔥', '😂', '👏', '💡', '🎙️'];
+  // Palette d'émotions WhatsApp (principale 6 + étendue avec +)
+  static const List<String> _reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  static const List<String> _extendedReactionEmojis = ['🔥', '👏', '💡', '🎙️', '💯', '🤝', '🚀', '🎉'];
 
   @override
   void initState() {
@@ -95,6 +100,20 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
   String _getAuthorName(Map<String, dynamic> comment) {
     final author = comment['user'] is Map ? comment['user'] as Map : const {};
     return '${author['fullName'] ?? author['username'] ?? 'Auditeur'}';
+  }
+
+  void _initEngagementForComment(Map<String, dynamic> c) {
+    final id = '${c['id']}';
+    _likeCounts[id] ??= (c['likesCount'] as num?)?.toInt() ?? 0;
+    if (c['userLiked'] == true) {
+      _likedCommentIds.add(id);
+    }
+    if (c['userReaction'] != null) {
+      _userReactions[id] = '${c['userReaction']}';
+    }
+    if (c['reactions'] is Map) {
+      _commentReactions[id] = Map<String, int>.from(c['reactions']);
+    }
   }
 
   Future<void> _fetchComments() async {
@@ -118,19 +137,15 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
             .map((m) => Map<String, dynamic>.from(m))
             .toList();
 
-        // Initialisation des compteurs et réactions
+        // Initialisation récursive des compteurs et réactions (racines + sous-réponses)
         for (final c in loaded) {
-          final id = '${c['id']}';
-          _likeCounts[id] ??= (c['likesCount'] as num?)?.toInt() ?? 0;
-          if (c['userLiked'] == true) {
-            _likedCommentIds.add(id);
-          }
-          if (c['userReaction'] != null) {
-            _userReactions[id] = '${c['userReaction']}';
-          }
-          if (c['reactions'] is Map) {
-            final m = Map<String, int>.from(c['reactions']);
-            _commentReactions[id] = m;
+          _initEngagementForComment(c);
+          if (c['replies'] is List) {
+            for (final rep in c['replies']) {
+              if (rep is Map) {
+                _initEngagementForComment(Map<String, dynamic>.from(rep));
+              }
+            }
           }
         }
 
@@ -166,12 +181,14 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
       return;
     }
 
-    // Si on répond à quelqu'un, on mentionne l'auteur
+    // Si on répond à quelqu'un, on mentionne l'auteur et on récupère le parentId
     final String finalText;
+    String? parentId;
     if (_replyingTo != null) {
       final authorName = _getAuthorName(_replyingTo!);
       final prefix = '@$authorName ';
       finalText = rawText.startsWith(prefix) ? rawText : '$prefix$rawText';
+      parentId = '${_replyingTo!['parentId'] ?? _replyingTo!['id']}';
     } else {
       finalText = rawText;
     }
@@ -179,9 +196,14 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
     setState(() => _isSending = true);
 
     try {
+      final body = <String, dynamic>{
+        'text': finalText,
+        if (parentId != null) 'parentId': parentId,
+      };
+
       final res = await BkoApi.post(
         '/episodes/${widget.episodeId}/comments',
-        {'text': finalText},
+        body,
         token: auth.token,
       );
 
@@ -196,7 +218,25 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
         _likeCounts[newId] = 0;
 
         setState(() {
-          _comments = [newComment, ..._comments];
+          if (parentId != null) {
+            // Rattacher la réponse au fil racine style TikTok / Facebook
+            for (int i = 0; i < _comments.length; i++) {
+              if ('${_comments[i]['id']}' == parentId) {
+                final existingReplies = _comments[i]['replies'] is List
+                    ? List<dynamic>.from(_comments[i]['replies'])
+                    : [];
+                existingReplies.add(newComment);
+                final updatedRoot = Map<String, dynamic>.from(_comments[i]);
+                updatedRoot['replies'] = existingReplies;
+                updatedRoot['repliesCount'] = existingReplies.length;
+                _comments[i] = updatedRoot;
+                break;
+              }
+            }
+            _expandedReplyCommentIds.add(parentId);
+          } else {
+            _comments = [newComment, ..._comments];
+          }
           _totalCount += 1;
           _isSending = false;
           _replyingTo = null;
@@ -220,25 +260,18 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _isSending = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          elevation: 0,
-          backgroundColor: const Color(0xFF222226),
-          content: Text(e.message, style: const TextStyle(color: Colors.white)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Envoi impossible',
+        message: e.message,
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _isSending = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          elevation: 0,
-          backgroundColor: Color(0xFF222226),
-          content: Text('Impossible d’envoyer votre commentaire.',
-              style: TextStyle(color: Colors.white)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Envoi impossible',
+        message: 'Impossible d’envoyer votre commentaire.',
       );
     }
   }
@@ -409,25 +442,17 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
         }
       });
       widget.onCommentCountChanged?.call(_totalCount);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          elevation: 0,
-          backgroundColor: Color(0xFF222226),
-          content: Text('Commentaire supprimé.',
-              style: TextStyle(color: Colors.white)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showInfo(
+        context,
+        title: 'Commentaire supprimé',
+        icon: IconsaxPlusBold.trash,
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          elevation: 0,
-          backgroundColor: Color(0xFF222226),
-          content: Text('Impossible de supprimer le commentaire.',
-              style: TextStyle(color: Colors.white)),
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Suppression impossible',
+        message: 'Impossible de supprimer le commentaire.',
       );
     }
   }
@@ -612,32 +637,187 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                   final isReactionsOpen =
                                       _activeReactionsCommentId == commentId;
 
-                                  return _CommentItem(
-                                    commentId: commentId,
-                                    authorName: authorName,
-                                    avatarUrl: avatarUrl,
-                                    text: text,
-                                    dateStr: dateStr,
-                                    isAuthor: isAuthor,
-                                    isLiked: isLiked,
-                                    likeCount: likeCount,
-                                    reactions: reactions,
-                                    userReaction: userReaction,
-                                    isReactionsOpen: isReactionsOpen,
-                                    reactionEmojis: _reactionEmojis,
-                                    onLike: () => _toggleLike(commentId),
-                                    onDoubleTap: () => _onDoubleTapComment(commentId),
-                                    onReply: () => _triggerReplyTo(item),
-                                    onToggleReaction: (emoji) =>
-                                        _toggleReaction(commentId, emoji),
-                                    onOpenReactions: () {
-                                      BkoHaptics.medium();
-                                      setState(() {
-                                        _activeReactionsCommentId =
-                                            isReactionsOpen ? null : commentId;
-                                      });
-                                    },
-                                    onDelete: () => _deleteComment(commentId),
+                                  final replies = item['replies'] is List
+                                      ? (item['replies'] as List)
+                                          .whereType<Map>()
+                                          .map((m) => Map<String, dynamic>.from(m))
+                                          .toList()
+                                      : <Map<String, dynamic>>[];
+                                  final repliesCount = replies.isNotEmpty
+                                      ? replies.length
+                                      : ((item['repliesCount'] as num?)?.toInt() ?? 0);
+                                  final isExpanded =
+                                      _expandedReplyCommentIds.contains(commentId);
+
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      _CommentItem(
+                                        commentId: commentId,
+                                        authorName: authorName,
+                                        avatarUrl: avatarUrl,
+                                        text: text,
+                                        dateStr: dateStr,
+                                        isAuthor: isAuthor,
+                                        isLiked: isLiked,
+                                        likeCount: likeCount,
+                                        reactions: reactions,
+                                        userReaction: userReaction,
+                                        isReactionsOpen: isReactionsOpen,
+                                        reactionEmojis: _reactionEmojis,
+                                        extendedReactionEmojis: _extendedReactionEmojis,
+                                        onLike: () => _toggleLike(commentId),
+                                        onDoubleTap: () => _onDoubleTapComment(commentId),
+                                        onReply: () => _triggerReplyTo(item),
+                                        onToggleReaction: (emoji) =>
+                                            _toggleReaction(commentId, emoji),
+                                        onOpenReactions: () {
+                                          BkoHaptics.medium();
+                                          setState(() {
+                                            _activeReactionsCommentId =
+                                                isReactionsOpen ? null : commentId;
+                                          });
+                                        },
+                                        onDelete: () => _deleteComment(commentId),
+                                      ),
+
+                                      // Bouton déplier/replier les réponses style TikTok / Facebook
+                                      if (repliesCount > 0)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 46, top: 6, bottom: 2),
+                                          child: BkoBounceable(
+                                            onTap: () {
+                                              BkoHaptics.light();
+                                              setState(() {
+                                                if (isExpanded) {
+                                                  _expandedReplyCommentIds.remove(commentId);
+                                                } else {
+                                                  _expandedReplyCommentIds.add(commentId);
+                                                }
+                                              });
+                                            },
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Container(
+                                                  width: 20,
+                                                  height: 1.5,
+                                                  color: BkoTheme.goldAccent.withValues(alpha: 0.6),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  isExpanded
+                                                      ? 'Masquer les réponses'
+                                                      : 'Voir les $repliesCount ${repliesCount > 1 ? 'réponses' : 'réponse'}',
+                                                  style: BkoTheme.fontPoppins(
+                                                    fontSize: 11.5,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: BkoTheme.goldAccent,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Icon(
+                                                  isExpanded
+                                                      ? IconsaxPlusLinear.arrow_up_1
+                                                      : IconsaxPlusLinear.arrow_down_1,
+                                                  size: 13,
+                                                  color: BkoTheme.goldAccent,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+
+                                      // Arborescence des sous-réponses imbriquées TikTok / Facebook
+                                      if (isExpanded && replies.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 32, top: 6),
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              // Ligne verticale de guidage d'arbre TikTok
+                                              Positioned(
+                                                left: 6,
+                                                top: 0,
+                                                bottom: 12,
+                                                child: Container(
+                                                  width: 1.5,
+                                                  color: const Color(0xFF282832),
+                                                ),
+                                              ),
+                                              Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: replies.map((rep) {
+                                                  final repId = '${rep['id']}';
+                                                  final repAuthorName = _getAuthorName(rep);
+                                                  final repAuthor = rep['user'] is Map
+                                                      ? rep['user'] as Map
+                                                      : const {};
+                                                  final repAvatarUrl =
+                                                      '${repAuthor['avatar'] ?? ''}';
+                                                  final repText = '${rep['text'] ?? ''}';
+                                                  final repDateStr =
+                                                      _formatDate(rep['createdAt']);
+                                                  final repIsAuthor = currentUserId != null &&
+                                                      ('${rep['userId']}' == '$currentUserId' ||
+                                                          '${repAuthor['id']}' ==
+                                                              '$currentUserId');
+                                                  final repIsLiked =
+                                                      _likedCommentIds.contains(repId);
+                                                  final repLikeCount =
+                                                      _likeCounts[repId] ?? 0;
+                                                  final repReactions =
+                                                      _commentReactions[repId] ?? {};
+                                                  final repUserReaction =
+                                                      _userReactions[repId];
+                                                  final repIsReactionsOpen =
+                                                      _activeReactionsCommentId == repId;
+
+                                                  return Padding(
+                                                    padding: const EdgeInsets.only(
+                                                        left: 18, bottom: 8),
+                                                    child: _CommentItem(
+                                                      isReply: true,
+                                                      commentId: repId,
+                                                      authorName: repAuthorName,
+                                                      avatarUrl: repAvatarUrl,
+                                                      text: repText,
+                                                      dateStr: repDateStr,
+                                                      isAuthor: repIsAuthor,
+                                                      isLiked: repIsLiked,
+                                                      likeCount: repLikeCount,
+                                                      reactions: repReactions,
+                                                      userReaction: repUserReaction,
+                                                      isReactionsOpen: repIsReactionsOpen,
+                                                      reactionEmojis: _reactionEmojis,
+                                                      extendedReactionEmojis:
+                                                          _extendedReactionEmojis,
+                                                      onLike: () => _toggleLike(repId),
+                                                      onDoubleTap: () =>
+                                                          _onDoubleTapComment(repId),
+                                                      onReply: () => _triggerReplyTo(rep),
+                                                      onToggleReaction: (emoji) =>
+                                                          _toggleReaction(repId, emoji),
+                                                      onOpenReactions: () {
+                                                        BkoHaptics.medium();
+                                                        setState(() {
+                                                          _activeReactionsCommentId =
+                                                              repIsReactionsOpen
+                                                                  ? null
+                                                                  : repId;
+                                                        });
+                                                      },
+                                                      onDelete: () =>
+                                                          _deleteComment(repId),
+                                                    ),
+                                                  );
+                                                }).toList(),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                    ],
                                   );
                                 },
                               ),
@@ -778,6 +958,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
 /// - Long-press pour afficher le dock d'émotions
 /// - Badges de réactions cliquables
 class _CommentItem extends StatefulWidget {
+  final bool isReply;
   final String commentId;
   final String authorName;
   final String avatarUrl;
@@ -790,6 +971,7 @@ class _CommentItem extends StatefulWidget {
   final String? userReaction;
   final bool isReactionsOpen;
   final List<String> reactionEmojis;
+  final List<String> extendedReactionEmojis;
   final VoidCallback onLike;
   final VoidCallback onDoubleTap;
   final VoidCallback onReply;
@@ -798,6 +980,7 @@ class _CommentItem extends StatefulWidget {
   final VoidCallback onDelete;
 
   const _CommentItem({
+    this.isReply = false,
     required this.commentId,
     required this.authorName,
     required this.avatarUrl,
@@ -810,6 +993,7 @@ class _CommentItem extends StatefulWidget {
     required this.userReaction,
     required this.isReactionsOpen,
     required this.reactionEmojis,
+    required this.extendedReactionEmojis,
     required this.onLike,
     required this.onDoubleTap,
     required this.onReply,
@@ -827,6 +1011,7 @@ class _CommentItemState extends State<_CommentItem>
   double _dragOffset = 0.0;
   bool _thresholdReached = false;
   bool _showFloatingHeart = false;
+  bool _showExtended = false;
 
   void _onHorizontalDragUpdate(DragUpdateDetails details) {
     // Seul le glissement vers la droite (Swipe to Reply à la WhatsApp) est capté
@@ -919,7 +1104,7 @@ class _CommentItemState extends State<_CommentItem>
               children: [
                 // Avatar utilisateur
                 CircleAvatar(
-                  radius: 17,
+                  radius: widget.isReply ? 13 : 17,
                   backgroundColor: const Color(0xFF282830),
                   backgroundImage: widget.avatarUrl.isNotEmpty &&
                           widget.avatarUrl.startsWith('http')
@@ -931,10 +1116,10 @@ class _CommentItemState extends State<_CommentItem>
                           widget.authorName.isNotEmpty
                               ? widget.authorName[0].toUpperCase()
                               : 'A',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: BkoTheme.goldAccent,
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                            fontSize: widget.isReply ? 11 : 13,
                           ),
                         )
                       : null,
@@ -953,7 +1138,7 @@ class _CommentItemState extends State<_CommentItem>
                           Text(
                             widget.authorName,
                             style: BkoTheme.fontPoppins(
-                              fontSize: 13,
+                              fontSize: widget.isReply ? 12 : 13,
                               fontWeight: FontWeight.w700,
                               color: textPri,
                             ),
@@ -991,7 +1176,7 @@ class _CommentItemState extends State<_CommentItem>
                       Text(
                         widget.text,
                         style: BkoTheme.fontLato(
-                          fontSize: 13,
+                          fontSize: widget.isReply ? 12 : 13,
                           color: Colors.white.withValues(alpha: 0.9),
                           height: 1.38,
                         ),
@@ -1150,11 +1335,11 @@ class _CommentItemState extends State<_CommentItem>
           ),
         ),
 
-        // Dock flottant de sélection d'émotions (style WhatsApp)
+        // Dock flottant de sélection d'émotions (style WhatsApp avec +)
         if (widget.isReactionsOpen)
           Positioned(
-            left: 48,
-            top: -38,
+            left: widget.isReply ? 28 : 44,
+            top: _showExtended ? -84 : -40,
             child: Material(
               color: Colors.transparent,
               child: Container(
@@ -1164,28 +1349,87 @@ class _CommentItemState extends State<_CommentItem>
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: const Color(0xFF32323C)),
                 ),
-                child: Row(
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
-                  children: widget.reactionEmojis.map((emoji) {
-                    final isSelected = widget.userReaction == emoji;
-                    return BkoBounceable(
-                      onTap: () => widget.onToggleReaction(emoji),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 4),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: isSelected
-                              ? BkoTheme.goldAccent.withValues(alpha: 0.22)
-                              : Colors.transparent,
-                        ),
-                        child: Text(
-                          emoji,
-                          style: const TextStyle(fontSize: 20),
-                        ),
+                  children: [
+                    if (_showExtended) ...[
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: widget.extendedReactionEmojis.map((emoji) {
+                          final isSelected = widget.userReaction == emoji;
+                          return BkoBounceable(
+                            onTap: () {
+                              widget.onToggleReaction(emoji);
+                              setState(() => _showExtended = false);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 3),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? BkoTheme.goldAccent.withValues(alpha: 0.22)
+                                    : Colors.transparent,
+                              ),
+                              child: Text(
+                                emoji,
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  }).toList(),
+                      const SizedBox(height: 4),
+                    ],
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ...widget.reactionEmojis.map((emoji) {
+                          final isSelected = widget.userReaction == emoji;
+                          return BkoBounceable(
+                            onTap: () {
+                              widget.onToggleReaction(emoji);
+                              setState(() => _showExtended = false);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isSelected
+                                    ? BkoTheme.goldAccent.withValues(alpha: 0.22)
+                                    : Colors.transparent,
+                              ),
+                              child: Text(
+                                emoji,
+                                style: const TextStyle(fontSize: 20),
+                              ),
+                            ),
+                          );
+                        }),
+                        // Bouton + comme WhatsApp pour afficher d'autres émojis
+                        BkoBounceable(
+                          onTap: () {
+                            setState(() => _showExtended = !_showExtended);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _showExtended
+                                  ? BkoTheme.goldAccent.withValues(alpha: 0.22)
+                                  : const Color(0xFF282830),
+                            ),
+                            child: const Icon(
+                              IconsaxPlusLinear.add,
+                              size: 15,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -9,6 +9,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 import '../studio/studio_access_gate.dart';
 
@@ -86,14 +87,10 @@ class _BecomeCreatorScreenState extends ConsumerState<BecomeCreatorScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
         BkoHaptics.success();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Votre Studio est activé. Préparez votre première émission.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Studio activé',
+          message: 'Préparez votre première émission.',
         );
 
         // Navigation vers le Studio

@@ -9,6 +9,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
 import '../home/widgets/bko_drawer.dart';
@@ -255,26 +256,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         );
         BkoHaptics.success();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Playlist créée avec succès !'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: BkoTheme.goldAccent,
-            ),
+          BkoToast.showSuccess(
+            context,
+            title: 'Playlist créée',
+            message: 'Votre nouvelle playlist est prête',
           );
         }
         _fetchAll(silent: true);
       } catch (e) {
         BkoHaptics.error();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e is ApiException
-                  ? e.message
-                  : 'Impossible de créer la playlist.'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+          BkoToast.showError(
+            context,
+            title: 'Création impossible',
+            message: e is ApiException
+                ? e.message
+                : 'Impossible de créer la playlist.',
           );
         }
       }
@@ -344,22 +341,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         BkoHaptics.success();
         if (mounted) {
           setState(() => _history = []);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Historique d’écoute effacé.'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: BkoTheme.goldAccent,
-            ),
+          BkoToast.showSuccess(
+            context,
+            title: 'Historique effacé',
+            message: 'Votre historique d’écoute est désormais vide',
           );
         }
       } catch (e) {
         BkoHaptics.error();
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Impossible d’effacer l’historique pour le moment.'),
-              behavior: SnackBarBehavior.floating,
-            ),
+          BkoToast.showError(
+            context,
+            title: 'Action impossible',
+            message: 'Impossible d’effacer l’historique pour le moment.',
           );
         }
       }

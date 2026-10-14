@@ -8,6 +8,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../player/full_audio_player_sheet.dart';
 import '../player/widgets/bko_play_button.dart';
 import '../shell/shell_providers.dart';
@@ -58,11 +59,10 @@ class DownloadsScreen extends ConsumerWidget {
               BkoHaptics.light();
               await notifier.syncRemoteQueue();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Synchronisation des téléchargements effectuée.'),
-                    behavior: SnackBarBehavior.floating,
-                  ),
+                BkoToast.showSuccess(
+                  context,
+                  title: 'Synchronisation terminée',
+                  message: 'Vos téléchargements sont synchronisés.',
                 );
               }
             },

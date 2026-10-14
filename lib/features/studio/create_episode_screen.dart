@@ -9,6 +9,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 
 class CreateEpisodeScreen extends ConsumerStatefulWidget {
@@ -78,11 +79,10 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
   Future<void> _submit({bool isDraft = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedPodcastId == null || _selectedPodcastId!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Veuillez sélectionner une émission.'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Émission requise',
+        message: 'Veuillez sélectionner une émission.',
       );
       return;
     }
@@ -162,46 +162,37 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
         }
 
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(message),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: isDraft ? 'Brouillon enregistré' : 'Épisode publié',
+          message: message,
         );
         context.pop();
         return;
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              isDraft ? 'Épisode enregistré en brouillon.' : 'Épisode créé.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: BkoTheme.goldAccent,
-        ),
+      BkoToast.showSuccess(
+        context,
+        title: isDraft ? 'Brouillon enregistré' : 'Épisode créé',
+        message: isDraft ? 'Épisode enregistré en brouillon.' : 'Épisode créé avec succès.',
       );
       context.pop();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Erreur',
+        message: e.message,
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Impossible de publier l\'épisode.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Publication impossible',
+        message: 'Impossible de publier l\'épisode.',
       );
     }
   }

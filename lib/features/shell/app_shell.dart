@@ -13,6 +13,7 @@ import '../library/library_screen.dart';
 import '../player/full_audio_player_sheet.dart';
 import 'bko_mini_player.dart';
 import 'shell_providers.dart';
+import '../chat/bko_ali_chat_widget.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   final StatefulNavigationShell? navigationShell;
@@ -146,7 +147,12 @@ class _AppShellState extends ConsumerState<AppShell>
     return Scaffold(
       extendBody: true,
       drawer: const BkoDrawer(),
-      body: widget.navigationShell ?? widget.child,
+      body: Stack(
+        children: [
+          widget.navigationShell ?? widget.child ?? const SizedBox.shrink(),
+          const BkoAliDraggableBubble(),
+        ],
+      ),
       bottomNavigationBar: AnimatedContainer(
         duration: animDuration,
         curve: appleEase,

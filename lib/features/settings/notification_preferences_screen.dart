@@ -9,6 +9,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/notification_permission_primer.dart';
 import '../auth/auth_controller.dart';
 
@@ -104,12 +105,10 @@ class _NotificationPreferencesScreenState
       if (mounted) {
         setState(() => _isSaving = false);
         BkoHaptics.error();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de la sauvegarde : $e'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Sauvegarde impossible',
+          message: 'Erreur lors de la sauvegarde : $e',
         );
       }
     }

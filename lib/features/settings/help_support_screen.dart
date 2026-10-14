@@ -11,6 +11,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 
 /// Écran Aide et Assistance :
@@ -101,12 +102,10 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
       if (mounted) {
         setState(() => _isSubmitting = false);
         BkoHaptics.error();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur : $e'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Envoi impossible',
+          message: '$e',
         );
       }
     }
@@ -115,12 +114,10 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
   void _copyEmail() {
     Clipboard.setData(const ClipboardData(text: 'support@bamakopodcast.studio'));
     BkoHaptics.light();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('E-mail support copié dans le presse-papier !'),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: BkoTheme.goldAccent,
-      ),
+    BkoToast.showSuccess(
+      context,
+      title: 'E-mail copié',
+      message: 'support@bamakopodcast.studio copié dans le presse-papier',
     );
   }
 

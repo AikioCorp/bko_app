@@ -10,6 +10,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 
 class CreatePodcastScreen extends ConsumerStatefulWidget {
@@ -42,8 +43,11 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
   Future<void> _submit({bool isDraft = false}) async {
     if (!_formKey.currentState!.validate()) return;
     if (_country == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Choisissez le pays de votre émission.')));
+      BkoToast.showError(
+        context,
+        title: 'Pays requis',
+        message: 'Choisissez le pays de votre émission.',
+      );
       return;
     }
     final auth = ref.read(authProvider);
@@ -67,34 +71,27 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
       await BkoApi.post('/creator/podcasts', body, token: auth.token);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-              'Émission enregistrée en brouillon. Ajoutez votre premier épisode.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: BkoTheme.goldAccent,
-        ),
+      BkoToast.showSuccess(
+        context,
+        title: 'Émission créée',
+        message: 'Émission enregistrée en brouillon. Ajoutez votre premier épisode.',
       );
       context.pop();
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.message),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Erreur',
+        message: e.message,
       );
     } catch (_) {
       if (!mounted) return;
       setState(() => _submitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Impossible de créer l\'émission.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
+      BkoToast.showError(
+        context,
+        title: 'Création impossible',
+        message: 'Impossible de créer l\'émission.',
       );
     }
   }

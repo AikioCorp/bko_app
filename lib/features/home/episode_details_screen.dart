@@ -9,6 +9,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_download_toast.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../auth/auth_controller.dart';
@@ -219,11 +220,10 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           _isLiked = wasLiked;
           _likesCount = prevCount;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible d’enregistrer votre réaction.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Action impossible',
+          message: 'Impossible d’enregistrer votre réaction.',
         );
       }
     } finally {
@@ -253,20 +253,20 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
       }
       if (mounted) {
         ref.read(libraryUpdateSignalProvider.notifier).state++;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(!wasSaved
-                ? 'Épisode enregistré dans votre bibliothèque'
-                : 'Épisode retiré de votre bibliothèque'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showLibrary(
+          context,
+          title: _episode?['title'] ?? 'Épisode',
+          podcastName: _episode?['podcast']?['name'],
+          isSaved: !wasSaved,
         );
       }
     } catch (_) {
       if (mounted) {
         setState(() => _isSaved = wasSaved);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Action impossible.')),
+        BkoToast.showError(
+          context,
+          title: 'Action impossible',
+          message: 'Impossible de modifier l’enregistrement.',
         );
       }
     } finally {
@@ -641,10 +641,11 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                         ref
                             .read(downloadProvider.notifier)
                             .deleteTask(episodeId);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Téléchargement retiré.'),
-                              behavior: SnackBarBehavior.floating),
+                        BkoToast.showInfo(
+                          context,
+                          title: 'Téléchargement retiré',
+                          message: _episode?['title'],
+                          icon: IconsaxPlusBold.document_download,
                         );
                       } else {
                         try {

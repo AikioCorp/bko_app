@@ -7,6 +7,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 
 class PlaybackPreferencesScreen extends ConsumerStatefulWidget {
@@ -103,12 +104,10 @@ class _PlaybackPreferencesScreenState extends ConsumerState<PlaybackPreferencesS
     if (mounted) {
       setState(() => _saving = false);
       BkoHaptics.success();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Préférences d’écoute enregistrées.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: BkoTheme.goldAccent,
-        ),
+      BkoToast.showSuccess(
+        context,
+        title: 'Préférences enregistrées',
+        message: 'Vos préférences d’écoute sont à jour.',
       );
     }
   }
@@ -172,12 +171,10 @@ class _PlaybackPreferencesScreenState extends ConsumerState<PlaybackPreferencesS
       }
       BkoHaptics.success();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profil de recommandations réinitialisé.'),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: BkoTheme.goldAccent,
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Recommandations réinitialisées',
+          message: 'Votre profil a été remis à zéro.',
         );
       }
     }
