@@ -197,9 +197,23 @@ class AliChatNotifier extends StateNotifier<AliChatState> {
         },
       );
 
-      final data = response is Map ? response['data'] : null;
-      final output = data is Map ? (data['output'] ?? data['text']) : null;
-      final aliReply = output?.toString() ?? 'Je regarde ça pour toi !';
+      // BkoApi.post déballe déjà 'data', mais on gère les deux cas (déballé ou imbriqué)
+      final Map? respMap = response is Map ? response : null;
+      final Map? dataMap = respMap != null && respMap['data'] is Map ? respMap['data'] as Map : respMap;
+      final output = dataMap != null ? (dataMap['output'] ?? dataMap['text']) : null;
+      var aliReply = output?.toString() ?? 'Je regarde ça pour toi !';
+
+      // Filtrage de sécurité contre les fuites techniques de tool calling
+      if (aliReply.contains('Calling ') || aliReply.contains('Execute_a_SQL_query')) {
+        aliReply = aliReply
+            .replaceAll(RegExp(r'Calling\s+[\w_]+(?:\s+with\s+input:[^}]*}?)?', caseSensitive: false), '')
+            .replaceAll(RegExp(r'Execute_a_SQL_query[^\n]*', caseSensitive: false), '')
+            .replaceAll(RegExp(r'\{\s*["\x27]?term["\x27]?\s*:[^}]*\}'), '')
+            .trim();
+        if (aliReply.isEmpty) {
+          aliReply = 'Je consulte le catalogue pour toi... Que souhaites-tu découvrir aujourd\'hui ?';
+        }
+      }
 
       final aliMsg = AliChatMessage(
         id: 'ali_${DateTime.now().millisecondsSinceEpoch}',
@@ -255,6 +269,7 @@ class BkoAliDraggableBubble extends ConsumerStatefulWidget {
 class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
   Offset? _position;
   bool _hasMoved = false;
+  bool _modalOpening = false;
 
   @override
   void initState() {
@@ -280,16 +295,20 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
   }
 
   void _openChatModal() {
-    if (_hasMoved) return;
+    if (_modalOpening || ref.read(aliChatProvider).isChatOpen) return;
+    _modalOpening = true;
     BkoHaptics.selection();
     ref.read(aliChatProvider.notifier).setChatOpen(true);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useRootNavigator: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => const _AliChatBottomSheet(),
     ).whenComplete(() {
+      _modalOpening = false;
       if (mounted) {
         ref.read(aliChatProvider.notifier).setChatOpen(false);
       }
@@ -306,21 +325,27 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
       size.width - 70,
       size.height - padding.bottom - 160,
     );
-    final currentPos = _position ?? defaultPos;
+    final currentPos = Offset(
+      (_position ?? defaultPos).dx.clamp(12.0, (size.width - 68).clamp(12.0, double.infinity)),
+      (_position ?? defaultPos).dy.clamp(padding.top + 12,
+          (size.height - padding.bottom - 170).clamp(padding.top + 12, double.infinity)),
+    );
 
     return Positioned(
       left: currentPos.dx,
       top: currentPos.dy,
       child: GestureDetector(
+        key: const ValueKey('ali-chat-bubble'),
         onPanStart: (_) {
           _hasMoved = false;
+          _position = currentPos;
         },
         onPanUpdate: (details) {
           _hasMoved = true;
           final nextX =
-              (currentPos.dx + details.delta.dx).clamp(12.0, size.width - 68.0);
-          final nextY = (currentPos.dy + details.delta.dy)
-              .clamp(padding.top + 20, size.height - padding.bottom - 80);
+              (_position!.dx + details.delta.dx).clamp(12.0, (size.width - 68).clamp(12.0, double.infinity));
+          final nextY = (_position!.dy + details.delta.dy)
+              .clamp(padding.top + 12, (size.height - padding.bottom - 170).clamp(padding.top + 12, double.infinity));
 
           setState(() {
             _position = Offset(nextX, nextY);
@@ -330,7 +355,9 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
           if (_hasMoved && _position != null) {
             _savePosition(_position!);
           }
+          _hasMoved = false;
         },
+        onPanCancel: () => _hasMoved = false,
         onTap: _openChatModal,
         child: SizedBox(
           width: 56,
