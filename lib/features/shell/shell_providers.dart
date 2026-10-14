@@ -483,6 +483,22 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
 
   /// Inserts an episode immediately after the current playing track ("Lire ensuite")
   void playNext(QueueItem item) {
+    if (!state.hasActiveEpisode || state.episodeId.isEmpty) {
+      playEpisode(
+        title: item.title,
+        showName: item.showName,
+        duration: item.duration,
+        coverUrl: item.coverUrl,
+        audioUrl: item.audioUrl,
+        videoUrl: item.videoUrl,
+        hasAudio: item.hasAudio,
+        hasVideo: item.hasVideo,
+        episodeId: item.episodeId,
+        podcastSlug: item.podcastSlug,
+        episodeSlug: item.episodeSlug,
+      );
+      return;
+    }
     state = state.copyWith(
       queue: [item, ...state.queue],
     );
@@ -490,6 +506,22 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
 
   /// Adds an episode to the end of the playback queue ("Ajouter à la file")
   void addToQueue(QueueItem item) {
+    if (!state.hasActiveEpisode || state.episodeId.isEmpty) {
+      playEpisode(
+        title: item.title,
+        showName: item.showName,
+        duration: item.duration,
+        coverUrl: item.coverUrl,
+        audioUrl: item.audioUrl,
+        videoUrl: item.videoUrl,
+        hasAudio: item.hasAudio,
+        hasVideo: item.hasVideo,
+        episodeId: item.episodeId,
+        podcastSlug: item.podcastSlug,
+        episodeSlug: item.episodeSlug,
+      );
+      return;
+    }
     state = state.copyWith(
       queue: [...state.queue, item],
     );

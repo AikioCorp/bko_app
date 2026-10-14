@@ -848,10 +848,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          if (secSlug == 'for-you') ...[
-                                            const Icon(IconsaxPlusLinear.magic_star, color: BkoTheme.goldAccent, size: 18),
-                                            const SizedBox(width: 8),
-                                          ],
                                           Expanded(
                                             child: Text(secTitle,
                                                 style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),

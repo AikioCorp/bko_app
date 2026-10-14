@@ -28,11 +28,12 @@ class LibraryScreen extends ConsumerStatefulWidget {
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _tab = 0; // 0 = enregistrés, 1 = suivis, 2 = historique, 3 = playlists
+  int _tab = 0; // 0 = enregistrés, 1 = aimés, 2 = suivis, 3 = historique, 4 = playlists
   bool _loading = false;
   String? _errorMessage;
 
   List<dynamic> _saved = [];
+  List<dynamic> _liked = [];
   List<dynamic> _following = [];
   List<dynamic> _history = [];
   List<dynamic> _playlists = [];
@@ -41,7 +42,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _tab = widget.initialTab.clamp(0, 3);
+    _tab = widget.initialTab.clamp(0, 4);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && ref.read(authProvider).isAuthenticated) {
         _fetchAll();
@@ -53,7 +54,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   void didUpdateWidget(covariant LibraryScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialTab != widget.initialTab) {
-      _selectTab(widget.initialTab.clamp(0, 3));
+      _selectTab(widget.initialTab.clamp(0, 4));
     }
   }
 
@@ -66,7 +67,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
   }
 
-  /// Charge l'intégralité des 4 onglets de la bibliothèque en parallèle.
+  /// Charge l'intégralité des 5 onglets de la bibliothèque en parallèle.
   /// Met à jour les compteurs en direct et garantit des transitions d'onglets instantanées.
   Future<void> _fetchAll({bool silent = false}) async {
     final token = ref.read(authProvider).token;
@@ -86,6 +87,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     try {
       final results = await Future.wait([
         BkoApi.get('/me/saved', token: token),
+        BkoApi.get('/me/likes', token: token),
         BkoApi.get('/me/following', token: token),
         BkoApi.get('/me/history', token: token),
         BkoApi.get('/me/playlists', token: token),
@@ -94,9 +96,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (mounted) {
         setState(() {
           _saved = (results[0] as List?) ?? [];
-          _following = (results[1] as List?) ?? [];
-          _history = (results[2] as List?) ?? [];
-          _playlists = (results[3] as List?) ?? [];
+          _liked = (results[1] as List?) ?? [];
+          _following = (results[2] as List?) ?? [];
+          _history = (results[3] as List?) ?? [];
+          _playlists = (results[4] as List?) ?? [];
           _errorMessage = null;
         });
         if (silent) {
@@ -435,7 +438,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     ),
                   ),
                   // Actions contextuelles selon l'onglet
-                  if (_tab == 3)
+                  if (_tab == 4)
                     BkoBounceable(
                       onTap: _createPlaylistDialog,
                       child: Container(
@@ -467,7 +470,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         ),
                       ),
                     )
-                  else if (_tab == 2 && _history.isNotEmpty)
+                  else if (_tab == 3 && _history.isNotEmpty)
                     IconButton(
                       icon: Icon(
                         IconsaxPlusLinear.trash,
@@ -515,9 +518,19 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     ),
                     const SizedBox(width: 8),
                     _tabButton(
+                      label: 'Aimés',
+                      count: _liked.length,
+                      index: 1,
+                      icon: IconsaxPlusBold.heart,
+                      surface: surface,
+                      border: border,
+                      textSec: textSec,
+                    ),
+                    const SizedBox(width: 8),
+                    _tabButton(
                       label: 'Émissions suivies',
                       count: _following.length,
-                      index: 1,
+                      index: 2,
                       icon: IconsaxPlusLinear.heart,
                       surface: surface,
                       border: border,
@@ -527,7 +540,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     _tabButton(
                       label: 'Historique',
                       count: _history.length,
-                      index: 2,
+                      index: 3,
                       icon: IconsaxPlusLinear.clock,
                       surface: surface,
                       border: border,
@@ -537,7 +550,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     _tabButton(
                       label: 'Playlists',
                       count: _playlists.length,
-                      index: 3,
+                      index: 4,
                       icon: IconsaxPlusLinear.music_playlist,
                       surface: surface,
                       border: border,
@@ -557,6 +570,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                     handleShellScrollNotification(notification, ref),
                 child: _loading &&
                         _saved.isEmpty &&
+                        _liked.isEmpty &&
                         _following.isEmpty &&
                         _history.isEmpty &&
                         _playlists.isEmpty
@@ -629,9 +643,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     Color textSec,
   ) {
     // -------------------------------------------------------------------------
-    // ONGLET 3 : PLAYLISTS
+    // ONGLET 4 : PLAYLISTS
     // -------------------------------------------------------------------------
-    if (_tab == 3) {
+    if (_tab == 4) {
       if (_playlists.isEmpty) {
         return _buildEmptyState(
           icon: IconsaxPlusLinear.music_playlist,
@@ -740,9 +754,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
 
     // -------------------------------------------------------------------------
-    // ONGLET 1 : ÉMISSIONS SUIVIES
+    // ONGLET 2 : ÉMISSIONS SUIVIES
     // -------------------------------------------------------------------------
-    if (_tab == 1) {
+    if (_tab == 2) {
       if (_following.isEmpty) {
         return _buildEmptyState(
           icon: IconsaxPlusLinear.heart,
@@ -856,9 +870,53 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     }
 
     // -------------------------------------------------------------------------
-    // ONGLETS 0 (ENREGISTRÉS) & 2 (HISTORIQUE)
+    // ONGLET 1 : ÉPISODES AIMÉS
     // -------------------------------------------------------------------------
-    final isHist = _tab == 2;
+    if (_tab == 1) {
+      if (_liked.isEmpty) {
+        return _buildEmptyState(
+          icon: IconsaxPlusLinear.heart,
+          title: 'Aucun épisode aimé',
+          description:
+              'Aimez des épisodes en touchant le cœur pour enrichir vos recommandations et les retrouver rapidement ici.',
+          ctaLabel: 'Découvrir des épisodes',
+          onCta: () => context.go('/explore'),
+          textPri: textPri,
+          textSec: textSec,
+          surface: surface,
+          border: border,
+        );
+      }
+
+      return RefreshIndicator(
+        color: BkoTheme.goldAccent,
+        backgroundColor: surface,
+        onRefresh: () => _fetchAll(silent: true),
+        child: ListView.separated(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+          itemCount: _liked.length,
+          separatorBuilder: (_, __) => const SizedBox(height: 10),
+          itemBuilder: (context, index) {
+            final raw = _liked[index];
+            final rawMap = raw is Map ? raw : {};
+            final ep = (rawMap['episode'] is Map)
+                ? Map<String, dynamic>.from(rawMap['episode'] as Map)
+                : Map<String, dynamic>.from(rawMap);
+
+            return EpisodeListItem(
+              episode: ep,
+              onPlay: () => _play(ep),
+            );
+          },
+        ),
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // ONGLETS 0 (ENREGISTRÉS) & 3 (HISTORIQUE)
+    // -------------------------------------------------------------------------
+    final isHist = _tab == 3;
     final list = isHist ? _history : _saved;
 
     if (list.isEmpty) {

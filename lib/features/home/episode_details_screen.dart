@@ -411,10 +411,15 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.share, color: Colors.white, size: 22),
+            icon: Icon(
+              _isLiked ? IconsaxPlusBold.heart : IconsaxPlusLinear.heart,
+              color: _isLiked ? Colors.redAccent : Colors.white,
+              size: 22,
+            ),
+            tooltip: _isLiked ? 'Ne plus aimer' : 'Aimer cet épisode',
             onPressed: () {
-              BkoHaptics.select();
-              _shareEpisode();
+              BkoHaptics.light();
+              _toggleLike();
             },
           ),
           IconButton(
@@ -426,6 +431,13 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
             onPressed: () {
               BkoHaptics.light();
               _toggleSave();
+            },
+          ),
+          IconButton(
+            icon: const Icon(IconsaxPlusLinear.share, color: Colors.white, size: 22),
+            onPressed: () {
+              BkoHaptics.select();
+              _shareEpisode();
             },
           ),
           IconButton(
@@ -701,8 +713,8 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                       children: [
                         Icon(
                           _isLiked
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
+                              ? IconsaxPlusBold.heart
+                              : IconsaxPlusLinear.heart,
                           color: _isLiked ? Colors.redAccent : Colors.white70,
                           size: 22,
                         ),
@@ -725,7 +737,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.chat_bubble_outline_rounded,
+                          IconsaxPlusLinear.messages_2,
                           color: Colors.white70,
                           size: 20,
                         ),

@@ -11,6 +11,7 @@ import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../home/widgets/episode_actions_sheet.dart';
 import '../home/widgets/episode_comments_sheet.dart';
+import '../library/likes_provider.dart';
 import '../shell/shell_providers.dart';
 import 'queue_sheet.dart';
 import 'youtube_player_widget.dart';
@@ -711,7 +712,30 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           },
                         ),
 
-                        // 3. Queue Button
+                        // 3. Like (Heart) Button
+                        IconButton(
+                          icon: Icon(
+                            ref.watch(likedEpisodesProvider).contains(active.episodeId)
+                                ? IconsaxPlusBold.heart
+                                : IconsaxPlusLinear.heart,
+                            color: ref.watch(likedEpisodesProvider).contains(active.episodeId)
+                                ? Colors.redAccent
+                                : Colors.white70,
+                            size: 21,
+                          ),
+                          tooltip: ref.watch(likedEpisodesProvider).contains(active.episodeId)
+                              ? 'Ne plus aimer'
+                              : 'Aimer cet épisode',
+                          onPressed: () {
+                            if (active.episodeId.isNotEmpty) {
+                              ref
+                                  .read(likedEpisodesProvider.notifier)
+                                  .toggleLike(context, active.episodeId);
+                            }
+                          },
+                        ),
+
+                        // 4. Queue Button
                         Stack(
                           alignment: Alignment.topRight,
                           children: [

@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
@@ -10,6 +11,7 @@ import '../../auth/auth_controller.dart';
 import '../../auth/auth_modal.dart';
 import '../../downloads/download_manager.dart';
 import '../../library/library_screen.dart';
+import '../../library/likes_provider.dart';
 import '../../library/widgets/playlist_picker_sheet.dart';
 import '../../shell/shell_providers.dart';
 
@@ -388,28 +390,48 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
 
           // Action Items
           _buildActionTile(
-            icon: Icons.playlist_play_rounded,
+            icon: IconsaxPlusLinear.play_add,
             title: 'Lire ensuite',
             subtitle: 'Placer juste après le contenu en cours',
             onTap: _handlePlayNext,
           ),
           _buildActionTile(
-            icon: Icons.queue_music_rounded,
+            icon: IconsaxPlusLinear.music_playlist,
             title: 'Ajouter à la file d’attente',
             subtitle: 'Placer à la fin de la session de lecture',
             onTap: _handleAddToQueue,
           ),
           _buildActionTile(
-            icon: Icons.playlist_add_rounded,
+            icon: IconsaxPlusLinear.folder_add,
             title: 'Ajouter à une playlist',
             subtitle: 'Organiser dans vos collections personnelles',
             onTap: _handleOpenPlaylists,
           ),
 
+          // Like / Favorite Action
+          _buildActionTile(
+            icon: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
+                ? IconsaxPlusBold.heart
+                : IconsaxPlusLinear.heart,
+            iconColor: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
+                ? Colors.redAccent
+                : Colors.white,
+            title: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
+                ? 'Ne plus aimer'
+                : 'Aimer cet épisode',
+            subtitle: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
+                ? 'Retirer de vos épisodes aimés'
+                : 'Enrichir vos recommandations personnalisées',
+            onTap: () async {
+              Navigator.pop(context);
+              await ref.read(likedEpisodesProvider.notifier).toggleLike(context, episodeId);
+            },
+          ),
+
           // Offline Download Action
           if (isDownloaded)
             _buildActionTile(
-              icon: Icons.delete_outline_rounded,
+              icon: IconsaxPlusLinear.trash,
               iconColor: Colors.redAccent,
               title: 'Supprimer le téléchargement',
               subtitle: 'Libérer de l’espace sur votre téléphone',
@@ -428,7 +450,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
             )
           else if (isDownloading)
             _buildActionTile(
-              icon: Icons.downloading_rounded,
+              icon: IconsaxPlusLinear.arrow_circle_down,
               iconColor: BkoTheme.goldAccent,
               title: 'Téléchargement en cours...',
               subtitle: '${((downloadTask?.progress ?? 0) * 100).toInt()}%',
@@ -441,7 +463,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
             )
           else
             _buildActionTile(
-              icon: Icons.download_rounded,
+              icon: IconsaxPlusLinear.arrow_circle_down,
               title: 'Télécharger l’épisode',
               subtitle: 'Disponible pour l’écoute hors connexion',
               onTap: () {
@@ -464,8 +486,8 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           // Save / Bookmark Action
           _buildActionTile(
             icon: _isSaved == true
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_border_rounded,
+                ? IconsaxPlusBold.archive_add
+                : IconsaxPlusLinear.archive_add,
             iconColor: _isSaved == true ? BkoTheme.goldAccent : Colors.white,
             title: _isSaved == true
                 ? 'Retirer des enregistrés'
@@ -476,14 +498,14 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           ),
 
           _buildActionTile(
-            icon: Icons.share_rounded,
+            icon: IconsaxPlusLinear.share,
             title: 'Partager l’épisode',
             subtitle: 'Envoyer à un ami ou sur les réseaux',
             onTap: _handleShare,
           ),
 
           _buildActionTile(
-            icon: Icons.podcasts_rounded,
+            icon: IconsaxPlusLinear.radio,
             title: 'Accéder à l’émission',
             subtitle: 'Voir tous les épisodes de $podcastName',
             onTap: _handleGoToPodcast,
@@ -492,7 +514,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           const Divider(color: Color(0xFF262626), height: 16),
 
           _buildActionTile(
-            icon: Icons.thumb_down_outlined,
+            icon: IconsaxPlusLinear.dislike,
             iconColor: Colors.white70,
             title: 'Pas intéressé',
             subtitle: 'Moins de recommandations de ce type',
@@ -500,7 +522,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           ),
 
           _buildActionTile(
-            icon: Icons.visibility_off_outlined,
+            icon: IconsaxPlusLinear.eye_slash,
             iconColor: Colors.white70,
             title: 'Masquer cette émission',
             subtitle: 'Ne plus recommander $podcastName',
