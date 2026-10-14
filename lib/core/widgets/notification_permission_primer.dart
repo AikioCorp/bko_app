@@ -7,6 +7,7 @@ import '../services/push_notification_service.dart';
 import '../theme/bko_theme.dart';
 import 'bko_bounceable.dart';
 import 'bko_haptics.dart';
+import 'bko_toast.dart';
 
 /// Composant d'autorisation de notifications en 2 étapes (Permission Primer) :
 /// 1. Écran personnalisé expliquant la valeur ajoutée aux auditeurs selon les règles mobile-designer
@@ -55,14 +56,11 @@ class NotificationPermissionPrimer {
         // Étape 2 : Déclenchement du dialogue natif du système d'exploitation
         final granted = await PushNotificationService.instance.requestNativePermission();
         if (granted) {
-          BkoHaptics.success();
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Notifications activées avec succès !'),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: BkoTheme.goldAccent,
-              ),
+            BkoToast.showSuccess(
+              context,
+              title: 'Notifications activées',
+              message: 'Vous serez alerté des nouveaux épisodes.',
             );
           }
         }

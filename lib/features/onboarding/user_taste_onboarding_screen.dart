@@ -6,6 +6,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/notification_permission_primer.dart';
 import '../auth/auth_controller.dart';
@@ -204,11 +205,10 @@ class _UserTasteOnboardingScreenState
 
       if (!mounted) return;
       if (widget.isEditing) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Vos préférences ont été mises à jour avec succès.'),
-            backgroundColor: Color(0xFF15803D),
-          ),
+        BkoToast.showSuccess(
+          context,
+          title: 'Préférences enregistrées',
+          message: 'Vos recommandations ont été actualisées.',
         );
         context.pop();
       } else {

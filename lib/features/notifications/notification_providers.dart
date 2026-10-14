@@ -54,6 +54,11 @@ class UnreadNotificationsNotifier extends StateNotifier<int> with WidgetsBinding
 
   void _setupPeriodicRefresh() {
     _periodicTimer?.cancel();
+    _periodicTimer = null;
+    // Éviter de programmer des timers périodiques en environnement de test widget
+    if (WidgetsBinding.instance.runtimeType != WidgetsFlutterBinding) {
+      return;
+    }
     // Interrogation sobre toutes les 60 secondes uniquement si utilisateur connecté et app active
     _periodicTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (_isAppInForeground && mounted) {

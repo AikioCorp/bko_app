@@ -1,16 +1,15 @@
 import 'dart:async';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/network/bko_api.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../features/auth/auth_controller.dart';
+import '../../features/shell/shell_providers.dart';
 import '../../features/notifications/services/notification_destination_handler.dart';
 
-const String _kAliWebhookUrl =
-    'https://bko-n8n.salika.tech/webhook/9881143d-a47b-4638-a326-8679506ff3f0/chat';
-const int _kInactivityDelaySeconds = 120; // 2 minutes
+const int _kInactivityDelaySeconds = 180; // 3 minutes d'inactivité
 
 /// Modèle pour un message dans le chat avec Ali
 class AliChatMessage {
@@ -63,11 +62,6 @@ class AliChatState {
 
 class AliChatNotifier extends StateNotifier<AliChatState> {
   final Ref _ref;
-  final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 30),
-  ));
-
   Timer? _inactivityTimer;
   bool _hasSentInactivity = false;
   String? _sessionId;
@@ -110,25 +104,45 @@ class AliChatNotifier extends StateNotifier<AliChatState> {
       isChatOpen: open,
       unreadCount: open ? 0 : state.unreadCount,
     );
-  }
-
-  void notifyTyping() {
-    // Si l'utilisateur tape, on repousse le timer d'inactivité
-    if (_inactivityTimer != null && _inactivityTimer!.isActive) {
+    if (!open) {
+      _inactivityTimer?.cancel();
+    } else {
       _startInactivityTimer();
     }
   }
 
+  void notifyTyping() {
+    // Si l'utilisateur tape, annuler et repousser le timer
+    _inactivityTimer?.cancel();
+    _startInactivityTimer();
+  }
+
+  /// 4. RELANCE APRÈS INACTIVITÉ (3 MINUTES)
+  /// Affiche la relance DIRECTEMENT en local sans appel au modèle pour économiser l'API et supprimer toute latence.
+  /// Conditions strictes :
+  /// - Annulée si audio en cours de lecture
+  /// - Annulée si chat fermé
+  /// - Annulée si saisie ou requête en cours
+  /// - 1 seule relance max
   void _startInactivityTimer() {
     _inactivityTimer?.cancel();
-    _hasSentInactivity = false;
+
+    // Verrous : si chat fermé ou lecture audio active, pas de relance
+    final isPlaying = _ref.read(activeEpisodeProvider.select((s) => s.isPlaying));
+    if (!state.isChatOpen || isPlaying || _hasSentInactivity) {
+      return;
+    }
+
     _inactivityTimer = Timer(const Duration(seconds: _kInactivityDelaySeconds), () {
       _triggerInactivityFollowUp();
     });
   }
 
-  Future<void> _triggerInactivityFollowUp() async {
-    if (_hasSentInactivity || state.isLoading) return;
+  void _triggerInactivityFollowUp() {
+    final isPlaying = _ref.read(activeEpisodeProvider.select((s) => s.isPlaying));
+    if (_hasSentInactivity || state.isLoading || !state.isChatOpen || isPlaying) {
+      return;
+    }
     _hasSentInactivity = true;
 
     final auth = _ref.read(authProvider);
@@ -136,49 +150,31 @@ class AliChatNotifier extends StateNotifier<AliChatState> {
     final fullName = user?['fullName'] ?? user?['name'] ?? '';
     final firstName = fullName.toString().split(' ').first;
 
-    final chatInput = firstName.isNotEmpty
-        ? '[INACTIVITE_DETECTEE] Prénom: $firstName'
-        : '[INACTIVITE_DETECTEE]';
+    final followUpText = firstName.isNotEmpty
+        ? 'Hey $firstName, tu es toujours là ? 🙂'
+        : 'Hey, tu es toujours là ? 🙂';
 
-    try {
-      final response = await _dio.post(
-        _kAliWebhookUrl,
-        data: {
-          'action': 'sendMessage',
-          'sessionId': _sessionId ?? 'bko_mobile_user',
-          'chatInput': chatInput,
-        },
-      );
+    final newMsg = AliChatMessage(
+      id: 'relance_${DateTime.now().millisecondsSinceEpoch}',
+      isUser: false,
+      text: followUpText,
+      timestamp: DateTime.now(),
+    );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final output = data is Map ? (data['output'] ?? data['text']) : null;
-        final replyText = output?.toString() ?? 'Hey, tu es toujours là ? 🙂';
-
-        final newMsg = AliChatMessage(
-          id: 'relance_${DateTime.now().millisecondsSinceEpoch}',
-          isUser: false,
-          text: replyText,
-          timestamp: DateTime.now(),
-        );
-
-        state = state.copyWith(
-          messages: [...state.messages, newMsg],
-          unreadCount: state.isChatOpen ? 0 : state.unreadCount + 1,
-        );
-
-        if (!state.isChatOpen) {
-          BkoHaptics.light();
-        }
-      }
-    } catch (_) {}
+    state = state.copyWith(
+      messages: [...state.messages, newMsg],
+    );
   }
 
+  /// 3. TRANSMISSION SÉCURISÉE VIA LE BACKEND (ZERO TRUST)
+  /// Le client passe par /advisor/chat avec le JWT Session Bearer géré par BkoApi.
+  /// L'identité est résolue et vérifiée côté serveur.
   Future<void> sendMessage(String text) async {
     final cleanText = text.trim();
     if (cleanText.isEmpty || state.isLoading) return;
 
     _inactivityTimer?.cancel();
+    _hasSentInactivity = false;
 
     final userMsg = AliChatMessage(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
@@ -193,40 +189,35 @@ class AliChatNotifier extends StateNotifier<AliChatState> {
     );
 
     try {
-      final response = await _dio.post(
-        _kAliWebhookUrl,
-        data: {
-          'action': 'sendMessage',
+      final response = await BkoApi.post(
+        'advisor/chat',
+        {
           'sessionId': _sessionId ?? 'bko_mobile_user',
           'chatInput': cleanText,
         },
       );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final output = data is Map ? (data['output'] ?? data['text']) : null;
-        final aliReply = output?.toString() ?? 'Je regarde ça pour toi !';
+      final data = response is Map ? response['data'] : null;
+      final output = data is Map ? (data['output'] ?? data['text']) : null;
+      final aliReply = output?.toString() ?? 'Je regarde ça pour toi !';
 
-        final aliMsg = AliChatMessage(
-          id: 'ali_${DateTime.now().millisecondsSinceEpoch}',
-          isUser: false,
-          text: aliReply,
-          timestamp: DateTime.now(),
-        );
+      final aliMsg = AliChatMessage(
+        id: 'ali_${DateTime.now().millisecondsSinceEpoch}',
+        isUser: false,
+        text: aliReply,
+        timestamp: DateTime.now(),
+      );
 
-        state = state.copyWith(
-          messages: [...state.messages, aliMsg],
-          isLoading: false,
-          unreadCount: state.isChatOpen ? 0 : state.unreadCount + 1,
-        );
+      state = state.copyWith(
+        messages: [...state.messages, aliMsg],
+        isLoading: false,
+        unreadCount: state.isChatOpen ? 0 : state.unreadCount + 1,
+      );
 
-        // Relancer le chronomètre d'inactivité après la réponse d'Ali
-        _startInactivityTimer();
-      } else {
-        _handleError('Désolé, je n\'ai pas pu accéder au catalogue. Réessaie !');
-      }
+      // Relancer le chronomètre de 3 minutes
+      _startInactivityTimer();
     } catch (_) {
-      _handleError('Connexion interrompue. Vérifie ta connexion.');
+      _handleError('Désolé, je n\'ai pas pu accéder au catalogue. Réessaie dans un instant !');
     }
   }
 
@@ -311,7 +302,6 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
     final size = MediaQuery.of(context).size;
     final padding = MediaQuery.of(context).padding;
 
-    // Position par défaut : en bas à droite au-dessus de la nav bar
     final defaultPos = Offset(
       size.width - 70,
       size.height - padding.bottom - 160,
@@ -348,7 +338,6 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Bouton bulle principal
               Container(
                 width: 56,
                 height: 56,
@@ -376,7 +365,6 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
                 ),
               ),
 
-              // Pastille de notification dorée si messages non lus
               if (chatState.unreadCount > 0 && !chatState.isChatOpen)
                 Positioned(
                   top: -2,
@@ -409,7 +397,6 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
                   ),
                 ),
 
-              // Indicateur en ligne
               Positioned(
                 bottom: 2,
                 right: 2,
@@ -479,7 +466,6 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
     final chatState = ref.watch(aliChatProvider);
     final viewInsets = MediaQuery.of(context).viewInsets;
 
-    // Déclencher le scroll en bas dès que de nouveaux messages arrivent
     ref.listen(aliChatProvider.select((s) => s.messages.length), (_, __) {
       _scrollToBottom();
     });
@@ -498,7 +484,6 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
       ),
       child: Column(
         children: [
-          // Barre de glissement
           Container(
             margin: const EdgeInsets.only(top: 10, bottom: 8),
             width: 36,
@@ -509,7 +494,6 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
             ),
           ),
 
-          // En-tête
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -608,7 +592,6 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
           ),
           const Divider(color: Color(0xFF27272A), height: 1),
 
-          // Liste des messages
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -621,7 +604,6 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
             ),
           ),
 
-          // Indicateur de chargement
           if (chatState.isLoading)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -657,7 +639,6 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
               ),
             ),
 
-          // Barre de saisie
           Container(
             padding: EdgeInsets.fromLTRB(
               16,
@@ -682,7 +663,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                     onSubmitted: (_) => _submit(),
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Demande un podcast, un thème...',
+                      hintText: 'Demande un podcast, un thème, tes favoris...',
                       hintStyle:
                           const TextStyle(color: Color(0xFF71717A), fontSize: 13),
                       filled: true,
@@ -759,9 +740,9 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
     );
   }
 
-  /// Rend le texte avec support des liens Markdown cliquables et du texte en gras
+  /// Rend le texte avec support des liens Markdown cliquables et du texte en gras.
+  /// Normalise automatiquement tout lien complet en chemin interne Flutter.
   Widget _renderFormattedText(BuildContext context, String content) {
-    // Regex pour détecter [Texte](Lien) et **Gras**
     final regex = RegExp(r'(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*)');
     final matches = regex.allMatches(content);
 
@@ -789,13 +770,12 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
 
       final matchedText = match.group(0)!;
 
-      // Lien Markdown [Titre](URL)
       if (matchedText.startsWith('[') && matchedText.endsWith(')')) {
         final linkRegex = RegExp(r'\[([^\]]+)\]\(([^)]+)\)');
         final linkMatch = linkRegex.firstMatch(matchedText);
         if (linkMatch != null) {
           final label = linkMatch.group(1)!;
-          final url = linkMatch.group(2)!;
+          final rawUrl = linkMatch.group(2)!;
 
           spans.add(
             WidgetSpan(
@@ -804,7 +784,8 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
               child: InkWell(
                 onTap: () {
                   Navigator.of(context).pop(); // Fermer le chat
-                  NotificationDestinationHandler.navigate(context, url);
+                  // NotificationDestinationHandler gère la normalisation universelle
+                  NotificationDestinationHandler.navigate(context, rawUrl);
                 },
                 child: Text(
                   label,
@@ -820,9 +801,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
             ),
           );
         }
-      }
-      // Texte en gras **Gras**
-      else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
+      } else if (matchedText.startsWith('**') && matchedText.endsWith('**')) {
         final boldContent = matchedText.substring(2, matchedText.length - 2);
         spans.add(TextSpan(
           text: boldContent,

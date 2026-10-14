@@ -3,12 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bko_app/features/auth/auth_controller.dart';
+import 'package:bko_app/features/notifications/notification_providers.dart';
 import 'package:bko_app/features/studio/studio_access_gate.dart';
 
 class _AuthenticatedUser extends AuthNotifier {
   _AuthenticatedUser() {
     state = const AuthState(isAuthenticated: true, token: 'test', user: {'id': 'auditor'});
   }
+}
+
+class _MockUnreadNotifier extends UnreadNotificationsNotifier {
+  _MockUnreadNotifier(super.ref) {
+    state = 0;
+  }
+
+  @override
+  Future<void> fetchCount() async {}
 }
 
 void main() {
@@ -18,6 +28,7 @@ void main() {
     await tester.pumpWidget(ProviderScope(overrides: [
       authProvider.overrideWith((ref) => _AuthenticatedUser()),
       studioAccessProvider.overrideWith((ref) async => access),
+      unreadNotificationsProvider.overrideWith((ref) => _MockUnreadNotifier(ref)),
     ], child: MaterialApp(home: StudioAccessGate(requireProfile: requireProfile,
       child: const Scaffold(body: Text('Studio accessible'))))));
     await tester.pumpAndSettle();

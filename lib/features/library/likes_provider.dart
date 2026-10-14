@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_modal.dart';
 import 'library_screen.dart';
@@ -67,11 +68,10 @@ class LikedEpisodesNotifier extends StateNotifier<Set<String>> {
         ..remove(episodeId)
         ..addAll(currentlyLiked ? [episodeId] : []);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Impossible d’enregistrer votre réaction.'),
-            behavior: SnackBarBehavior.floating,
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Erreur',
+          message: 'Impossible d’enregistrer votre réaction.',
         );
       }
       return currentlyLiked;

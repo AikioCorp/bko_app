@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import 'auth_controller.dart';
 
 class SuspendedScreen extends StatelessWidget {
@@ -35,11 +36,11 @@ class SuspendedScreen extends StatelessWidget {
         await launchUrl(uri);
       } else {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Écrivez directement à support@bamakopodcast.com'),
-              backgroundColor: Color(0xFF1F1F1F),
-            ),
+          BkoToast.showInfo(
+            context,
+            title: 'Support',
+            message: 'support@bamakopodcast.com',
+            icon: IconsaxPlusBold.sms,
           );
         }
       }

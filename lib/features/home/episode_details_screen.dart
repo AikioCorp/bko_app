@@ -165,15 +165,13 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
 
       ref.read(activeEpisodeProvider.notifier).seek(pos);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('⏱ Saut au chapitre $time',
-              style: const TextStyle(
-                  color: Colors.black, fontWeight: FontWeight.bold)),
-          duration: const Duration(seconds: 1),
-          backgroundColor: BkoTheme.goldAccent,
-          behavior: SnackBarBehavior.floating,
-        ),
+      BkoToast.showInfo(
+        context,
+        title: 'Chapitre',
+        message: 'Position $time',
+        icon: IconsaxPlusBold.clock_1,
+        accentColor: BkoTheme.goldAccent,
+        duration: const Duration(seconds: 2),
       );
     }
   }

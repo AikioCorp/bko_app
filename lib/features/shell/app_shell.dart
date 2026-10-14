@@ -7,6 +7,7 @@ import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
+import '../../core/widgets/bko_toast.dart';
 import '../auth/auth_controller.dart';
 import '../home/widgets/bko_drawer.dart';
 import '../library/library_screen.dart';
@@ -115,19 +116,10 @@ class _AppShellState extends ConsumerState<AppShell>
       if (next.errorMessage != null &&
           next.errorMessage != prev?.errorMessage &&
           context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              next.errorMessage!,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            backgroundColor: const Color(0xFF991B1B),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
+        BkoToast.showError(
+          context,
+          title: 'Lecture interrompue',
+          message: next.errorMessage!,
         );
       }
     });
