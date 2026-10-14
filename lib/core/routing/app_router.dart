@@ -161,6 +161,7 @@ final appRouter = GoRouter(
             initialSubtitle: state.uri.queryParameters['subtitle'],
             initialType: state.uri.queryParameters['type'],
             category: state.uri.queryParameters['category'],
+            country: state.uri.queryParameters['country'],
             batchId: state.uri.queryParameters['batchId'],
           ),
         ),
@@ -177,6 +178,7 @@ final appRouter = GoRouter(
                 initialSubtitle: state.uri.queryParameters['subtitle'],
                 initialType: state.uri.queryParameters['type'],
                 category: state.uri.queryParameters['category'],
+            country: state.uri.queryParameters['country'],
                 batchId: state.uri.queryParameters['batchId'],
               );
             }
@@ -309,3 +311,4 @@ final appRouter = GoRouter(
     ),
   ],
 );
+

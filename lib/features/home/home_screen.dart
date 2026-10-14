@@ -21,6 +21,7 @@ import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../discovery/widgets/discovery_promotion_modal.dart';
+import '../notifications/services/notification_destination_handler.dart';
 import 'home_providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -42,6 +43,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(homeDataProvider.notifier).fetchInitial();
       _checkDiscoveryPromotion();
+      NotificationDestinationHandler.consumePending(context, ref: ref);
     });
   }
 
@@ -1528,6 +1530,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (secTitle.isNotEmpty) 'title': secTitle,
         if (secSubtitle.isNotEmpty) 'subtitle': secSubtitle,
         'type': secType,
+        if (ref.read(homeDataProvider).homeData?['batchId'] != null)
+          'batchId': '${ref.read(homeDataProvider).homeData!['batchId']}',
         if (category != null && category.isNotEmpty) 'category': category,
       },
     ).toString();

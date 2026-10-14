@@ -6,6 +6,7 @@ import '../../core/storage/token_storage.dart';
 import '../../core/routing/app_router.dart';
 import '../shell/shell_providers.dart';
 import '../downloads/download_manager.dart';
+import '../../core/services/push_notification_service.dart';
 
 /// État d'authentification.
 ///
@@ -27,6 +28,16 @@ class AuthState {
     this.isLoading = false,
     this.error,
   });
+
+  bool get isCreatorOrAdmin {
+    final userMap = user;
+    if (userMap == null) return false;
+    final roles = (userMap['roles'] as List?)?.map((r) => '$r'.toUpperCase()).toList() ?? [];
+    return roles.contains('CREATOR') ||
+        roles.contains('ADMIN') ||
+        roles.contains('SUPER_ADMIN') ||
+        userMap['creatorProfile'] != null;
+  }
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -107,6 +118,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             refreshToken: saved.refreshToken,
             user: Map<String, dynamic>.from(me),
           );
+          PushNotificationService.instance.syncTokenWithBackend(null, authToken: saved.token);
         }
       } on AccountSuspendedException catch (e) {
         await handleAccountSuspended(e);
@@ -171,6 +183,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         refreshToken: refreshToken,
         user: user,
       );
+      PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
       return (ok: true, error: null, isNotVerified: false);
     } on AccountSuspendedException catch (error) {
       await handleAccountSuspended(error);
@@ -285,6 +298,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             refreshToken: refreshToken,
             user: user,
           );
+          PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
         }
 
         final onboardingDone = user['onboardingCompleted'] == true;
@@ -367,6 +381,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           refreshToken: refreshToken,
           user: user,
         );
+        PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
 
         final onboardingDone = user['onboardingCompleted'] == true;
         return (ok: true, error: null, onboardingCompleted: onboardingDone);
@@ -469,6 +484,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           refreshToken: refreshToken,
           user: user,
         );
+        PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
 
         final onboardingDone = user['onboardingCompleted'] == true;
         return (ok: true, error: null, onboardingCompleted: onboardingDone);
@@ -532,6 +548,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    final curToken = state.token;
+    try {
+      await PushNotificationService.instance.unregisterToken(authToken: curToken);
+    } catch (_) {}
     await BkoTelemetryService().onUserSwitched(null);
     await TokenStorage.clear();
     state = const AuthState();

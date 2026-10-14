@@ -2,13 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
-import '../../core/widgets/skeleton_loaders.dart';
+import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
+import 'models/bko_notification.dart';
 import 'notification_providers.dart';
+import 'services/notification_destination_handler.dart';
 
+/// Écran des Notifications de Bamako Podcast.
+/// Conforme aux directives `mobile-designer` et `apple-design` :
+/// - Iconsax uniquement (retour AppBackButton avec arrow_left_1)
+/// - Zéro ombre, zéro dégradé, surfaces solides et contrastées
+/// - Pagination sans doublon ni requêtes concurrentes
+/// - Rollback optimiste en cas d'erreur serveur
+/// - Espacement inférieur compatible avec le mini-lecteur persistant
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
@@ -17,455 +28,719 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  final ScrollController _scrollController = ScrollController();
+
+  List<BkoNotification> _notifications = [];
   bool _loading = true;
+  bool _loadingMore = false;
+  bool _hasMore = false;
   String? _error;
   bool _isSessionExpired = false;
-  List<dynamic> _notifications = [];
 
   @override
   void initState() {
     super.initState();
-    _fetch();
+    _scrollController.addListener(_onScroll);
+    _fetch(isRefresh: false);
   }
 
-  Future<void> _fetch() async {
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients || _loadingMore || !_hasMore) return;
+    final threshold = _scrollController.position.maxScrollExtent - 200;
+    if (_scrollController.position.pixels >= threshold) {
+      _loadMore();
+    }
+  }
+
+  Future<void> _fetch({bool isRefresh = false}) async {
     final auth = ref.read(authProvider);
     final token = auth.token;
-    if (!auth.isAuthenticated || token == null) {
+
+    if (!auth.isAuthenticated || token == null || token.isEmpty) {
       if (mounted) {
         setState(() {
           _loading = false;
           _error = null;
           _isSessionExpired = false;
+          _notifications = [];
         });
       }
       return;
     }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-      _isSessionExpired = false;
-    });
+    if (!isRefresh) {
+      setState(() {
+        _loading = true;
+        _error = null;
+        _isSessionExpired = false;
+      });
+    }
 
     try {
-      final res = await BkoApi.get('/me/notifications', token: token);
-      if (mounted) {
-        setState(() {
-          _notifications = (res is List ? res : (res is Map && res['data'] is List ? res['data'] : [])) as List;
-          _loading = false;
-          _error = null;
-          _isSessionExpired = false;
-        });
-      }
+      final res = await BkoApi.get('/me/notifications?limit=25', token: token);
+      final parsed = NotificationListResponse.fromResponse(res);
+
+      if (!mounted) return;
+      setState(() {
+        _notifications = parsed.items;
+        _hasMore = parsed.items.length >= 25;
+        _loading = false;
+        _error = null;
+        _isSessionExpired = false;
+      });
+
+      // Réconciliation immédiate du compteur de notifications non lues
+      ref.read(unreadNotificationsProvider.notifier).setCount(parsed.unread);
     } on ApiException catch (e) {
-      if (mounted) {
-        final isAuthErr = e.statusCode == 401 ||
-            e.message.toLowerCase().contains('jeton') ||
-            e.message.toLowerCase().contains('expir');
-        setState(() {
-          _loading = false;
-          _isSessionExpired = isAuthErr;
-          _error = isAuthErr
-              ? 'Votre session a expiré. Veuillez vous reconnecter.'
-              : e.message;
-        });
-        if (isAuthErr) {
-          ref.read(authProvider.notifier).handleSessionExpired();
-        }
+      if (!mounted) return;
+      final isAuthErr = e.statusCode == 401 ||
+          e.message.toLowerCase().contains('jeton') ||
+          e.message.toLowerCase().contains('expir');
+
+      setState(() {
+        _loading = false;
+        _isSessionExpired = isAuthErr;
+        _error = isAuthErr
+            ? 'Votre session a expiré. Veuillez vous reconnecter.'
+            : e.message;
+      });
+
+      if (isAuthErr) {
+        ref.read(authProvider.notifier).handleSessionExpired();
       }
     } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _isSessionExpired = false;
+        _error = 'Impossible de charger vos notifications pour le moment.';
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _notifications.isEmpty) return;
+
+    final auth = ref.read(authProvider);
+    final token = auth.token;
+    if (token == null) return;
+
+    setState(() => _loadingMore = true);
+
+    final lastDate = _notifications.last.createdAt.toIso8601String();
+
+    try {
+      final res = await BkoApi.get(
+        '/me/notifications?limit=25&before=${Uri.encodeComponent(lastDate)}',
+        token: token,
+      );
+      final parsed = NotificationListResponse.fromResponse(res);
+
+      if (!mounted) return;
+
+      // Déduplication stricte par ID pour prévenir toute duplication visuelle
+      final existingIds = _notifications.map((n) => n.id).toSet();
+      final newItems = parsed.items.where((n) => !existingIds.contains(n.id)).toList();
+
+      setState(() {
+        _notifications.addAll(newItems);
+        _hasMore = parsed.items.length >= 25;
+        _loadingMore = false;
+      });
+
+      ref.read(unreadNotificationsProvider.notifier).setCount(parsed.unread);
+    } catch (_) {
       if (mounted) {
-        setState(() {
-          _loading = false;
-          _isSessionExpired = false;
-          _error = 'Impossible de charger vos notifications.';
-        });
+        setState(() => _loadingMore = false);
       }
     }
   }
 
   Future<void> _markAllRead() async {
     final token = ref.read(authProvider).token;
-    if (token == null) return;
+    if (token == null || _notifications.isEmpty) return;
+
+    BkoHaptics.light();
+
+    final previousList = List<BkoNotification>.from(_notifications);
+    final previousUnread = ref.read(unreadNotificationsProvider);
+    final now = DateTime.now();
+
+    // Mise à jour optimiste immédiate
+    setState(() {
+      _notifications = _notifications.map((n) => n.isRead ? n : n.copyWith(readAt: now)).toList();
+    });
+    ref.read(unreadNotificationsProvider.notifier).setCount(0);
+
     try {
       await BkoApi.post('/me/notifications/read', {}, token: token);
-      ref.read(unreadNotificationsProvider.notifier).reset();
-      _fetch();
-    } catch (_) {}
+      // Réconciliation avec le serveur
+      ref.read(unreadNotificationsProvider.notifier).fetchCount();
+    } catch (_) {
+      // Annulation en cas d'échec serveur
+      if (mounted) {
+        setState(() => _notifications = previousList);
+        ref.read(unreadNotificationsProvider.notifier).setCount(previousUnread);
+        _showToast("Échec du marquage des notifications.");
+      }
+    }
   }
 
-  Future<void> _onNotificationTap(Map<String, dynamic> notif) async {
-    final id = '${notif['id'] ?? ''}';
+  Future<void> _onNotificationTap(BkoNotification notif) async {
     final token = ref.read(authProvider).token;
-    if (id.isNotEmpty && token != null && notif['isRead'] != true) {
-      try {
-        await BkoApi.post('/me/notifications/read', {'ids': [id]}, token: token);
-        ref.read(unreadNotificationsProvider.notifier).markAsReadLocally(1);
-        setState(() {
-          notif['isRead'] = true;
-        });
-      } catch (_) {}
+
+    // Marquage individuel optimiste si non lue
+    if (!notif.isRead && token != null) {
+      final previousList = List<BkoNotification>.from(_notifications);
+      final now = DateTime.now();
+
+      setState(() {
+        _notifications = _notifications.map((n) {
+          return n.id == notif.id ? n.copyWith(readAt: now) : n;
+        }).toList();
+      });
+      ref.read(unreadNotificationsProvider.notifier).markAsReadLocally(1);
+
+      BkoApi.post(
+        '/me/notifications/read',
+        {'ids': [notif.id]},
+        token: token,
+      ).then((_) {
+        // Réconciliation avec le serveur
+        ref.read(unreadNotificationsProvider.notifier).fetchCount();
+      }).catchError((_) {
+        // Rollback en cas d'échec
+        if (mounted) {
+          setState(() => _notifications = previousList);
+          ref.read(unreadNotificationsProvider.notifier).fetchCount();
+        }
+      });
     }
 
-    // Deep link or navigation if payload has target
-    final data = notif['data'] is Map ? notif['data'] as Map : {};
-    final podcastSlug = data['podcastSlug'] ?? notif['podcastSlug'];
-    final episodeSlug = data['episodeSlug'] ?? notif['episodeSlug'];
-
-    if (podcastSlug != null && episodeSlug != null) {
-      if (mounted) context.push('/podcasts/$podcastSlug/episodes/$episodeSlug');
-    } else if (podcastSlug != null) {
-      if (mounted) context.push('/podcasts/$podcastSlug');
+    // Gestion unifiée de la destination
+    if (notif.link != null && notif.link!.isNotEmpty) {
+      await NotificationDestinationHandler.navigate(context, notif.link, ref: ref);
     }
+  }
+
+  void _showToast(String message) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        elevation: 0,
+        backgroundColor: BkoTheme.getBgSurfaceElevated(context),
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 88),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+        ),
+        content: Text(
+          message,
+          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextPrimary(context)),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final textPri = BkoTheme.getTextPrimary(context);
-    final textSec = BkoTheme.getTextSecondary(context);
-    final surface = BkoTheme.getBgSurface(context);
-    final border = BkoTheme.getBorderSubtle(context);
     final auth = ref.watch(authProvider);
+    final unreadCount = ref.watch(unreadNotificationsProvider);
+
+    final bgObsidian = BkoTheme.getBgObsidian(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+
+    final bottomPadding = 120.0 + MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
-      backgroundColor: BkoTheme.getBgObsidian(context),
+      backgroundColor: bgObsidian,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: bgObsidian,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(IconsaxPlusLinear.arrow_left_2, color: textPri, size: 20),
-          tooltip: 'Retour',
-          onPressed: () => context.pop(),
-        ),
+        scrolledUnderElevation: 0,
+        leading: const AppBackButton(),
+        centerTitle: false,
         title: Text(
           'Notifications',
           style: BkoTheme.fontPoppins(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
             color: textPri,
           ),
         ),
         actions: [
-          if (auth.isAuthenticated && !_isSessionExpired && _notifications.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: BkoBounceable(
-                onTap: _markAllRead,
-                child: TextButton.icon(
-                  onPressed: _markAllRead,
-                  icon: const Icon(IconsaxPlusLinear.tick_circle, color: BkoTheme.goldAccent, size: 16),
-                  label: Text(
-                    'Tout marquer lu',
-                    style: BkoTheme.fontPoppins(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+          if (auth.isAuthenticated && unreadCount > 0)
+            BkoBounceable(
+              onTap: _markAllRead,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.only(right: 14),
+                decoration: BoxDecoration(
+                  color: BkoTheme.goldAccent.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: BkoTheme.goldAccent.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      IconsaxPlusLinear.tick_circle,
+                      size: 15,
                       color: BkoTheme.goldAccent,
                     ),
-                  ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Tout lire ($unreadCount)',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: BkoTheme.goldAccent,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
         ],
       ),
-      body: (!auth.isAuthenticated || _isSessionExpired)
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: surface,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: border),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: BkoTheme.goldAccent.withValues(alpha: 0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _isSessionExpired
-                              ? IconsaxPlusLinear.shield_cross
-                              : IconsaxPlusLinear.notification_bing,
-                          size: 36,
+      body: Builder(
+        builder: (context) {
+          if (!auth.isAuthenticated) {
+            return _buildUnauthenticatedState(context);
+          }
+
+          if (_loading) {
+            return _buildSkeletonLoader(context);
+          }
+
+          if (_error != null) {
+            return _buildErrorState(context);
+          }
+
+          if (_notifications.isEmpty) {
+            return _buildEmptyState(context);
+          }
+
+          return RefreshIndicator(
+            color: BkoTheme.goldAccent,
+            backgroundColor: BkoTheme.getBgSurfaceElevated(context),
+            onRefresh: () => _fetch(isRefresh: true),
+            child: ListView.separated(
+              controller: _scrollController,
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
+              itemCount: _notifications.length + (_loadingMore ? 1 : 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                if (index >= _notifications.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Center(
+                      child: SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
                           color: BkoTheme.goldAccent,
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        _isSessionExpired ? 'Session expirée' : 'Connexion requise',
-                        style: BkoTheme.fontPoppins(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: textPri,
-                        ),
-                        textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+
+                final notif = _notifications[index];
+                return _buildNotificationCard(context, notif);
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(BuildContext context, BkoNotification notif) {
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final surface = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    final isUnread = !notif.isRead;
+
+    return BkoBounceable(
+      onTap: () => _onNotificationTap(notif),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isUnread ? surface : surface.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isUnread ? BkoTheme.goldAccent.withValues(alpha: 0.4) : border,
+            width: isUnread ? 1.2 : 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Indicateur visuel d'état lu / non-lu
+            Container(
+              margin: const EdgeInsets.only(top: 3),
+              width: 9,
+              height: 9,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isUnread ? BkoTheme.goldAccent : Colors.transparent,
+                border: Border.all(
+                  color: isUnread ? BkoTheme.goldAccent : textSec.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Contenu texte
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    notif.title,
+                    style: BkoTheme.fontPoppins(
+                      fontSize: 14,
+                      fontWeight: isUnread ? FontWeight.w700 : FontWeight.w600,
+                      color: textPri,
+                    ),
+                  ),
+                  if (notif.body != null && notif.body!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      notif.body!,
+                      style: BkoTheme.fontLato(
+                        fontSize: 12.5,
+                        color: textSec,
+                        height: 1.35,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _isSessionExpired
-                            ? 'Votre session d\'authentification s\'est terminée. Connectez-vous à nouveau pour consulter vos notifications.'
-                            : 'Connectez-vous à votre compte Bamako Podcast pour recevoir les alertes sur vos abonnements et émissions.',
-                        textAlign: TextAlign.center,
-                        style: BkoTheme.fontLato(
-                          fontSize: 13,
-                          color: textSec,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      BkoBounceable(
-                        onTap: () async {
-                          await context.push('/login');
-                          if (mounted) _fetch();
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          height: 46,
-                          decoration: BoxDecoration(
-                            color: BkoTheme.goldAccent,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            _isSessionExpired ? 'Se reconnecter' : 'Se connecter',
-                            style: BkoTheme.fontPoppins(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Text(
+                    _formatDate(notif.createdAt),
+                    style: BkoTheme.fontLato(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: textSec.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (notif.link != null && notif.link!.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Icon(
+                IconsaxPlusLinear.arrow_right_3,
+                size: 16,
+                color: isUnread ? BkoTheme.goldAccent : textSec,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final surface = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: BkoTheme.goldAccent.withValues(alpha: 0.12),
+                  border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: Icon(
+                    IconsaxPlusLinear.notification_1,
+                    size: 26,
+                    color: BkoTheme.goldAccent,
                   ),
                 ),
               ),
-            )
-          : _loading
-              ? const BkoNotificationListSkeleton(count: 6)
-              : _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                IconsaxPlusLinear.warning_2,
-                                size: 32,
-                                color: Colors.redAccent,
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: BkoTheme.fontLato(fontSize: 13, color: Colors.red.shade300),
-                            ),
-                            const SizedBox(height: 16),
-                            BkoBounceable(
-                              onTap: _fetch,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: BkoTheme.goldAccent,
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                                child: Text(
-                                  'Réessayer',
-                                  style: BkoTheme.fontPoppins(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  : _notifications.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(18),
-                                  decoration: BoxDecoration(
-                                    color: surface,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: border),
-                                  ),
-                                  child: Icon(
-                                    IconsaxPlusLinear.notification_bing,
-                                    size: 40,
-                                    color: textSec,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Aucune notification',
-                                  style: BkoTheme.fontPoppins(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: textPri,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Vous serez alerté dès la publication d\'un nouvel épisode de vos émissions suivies.',
-                                  textAlign: TextAlign.center,
-                                  style: BkoTheme.fontLato(
-                                    fontSize: 12.5,
-                                    color: textSec,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                const SizedBox(height: 20),
-                                BkoBounceable(
-                                  onTap: () => context.go('/explore'),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: surface,
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.4)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(IconsaxPlusLinear.discover, size: 16, color: BkoTheme.goldAccent),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Découvrir des émissions',
-                                          style: BkoTheme.fontPoppins(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: textPri,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      : RefreshIndicator(
-                          color: BkoTheme.goldAccent,
-                          backgroundColor: surface,
-                          onRefresh: _fetch,
-                          child: ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-                            itemCount: _notifications.length,
-                            itemBuilder: (context, index) {
-                              final notif = _notifications[index] as Map<String, dynamic>;
-                              final isRead = notif['isRead'] == true;
-                              final title = notif['title'] ?? 'Notification';
-                              final body = notif['body'] ?? notif['message'] ?? '';
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: BkoBounceable(
-                                  onTap: () => _onNotificationTap(notif),
-                                  child: Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: isRead ? surface : const Color(0xFF1B1B1F),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: isRead
-                                            ? border
-                                            : BkoTheme.goldAccent.withValues(alpha: 0.35),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: isRead
-                                                ? const Color(0xFF222226)
-                                                : BkoTheme.goldAccent.withValues(alpha: 0.15),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            isRead
-                                                ? IconsaxPlusLinear.notification
-                                                : IconsaxPlusLinear.notification_bing,
-                                            color: isRead ? textSec : BkoTheme.goldAccent,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Expanded(
-                                                    child: Text(
-                                                      title,
-                                                      style: BkoTheme.fontPoppins(
-                                                        fontSize: 13.5,
-                                                        fontWeight: isRead ? FontWeight.w500 : FontWeight.w700,
-                                                        color: textPri,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  if (!isRead)
-                                                    Container(
-                                                      width: 8,
-                                                      height: 8,
-                                                      margin: const EdgeInsets.only(left: 6),
-                                                      decoration: const BoxDecoration(
-                                                        color: BkoTheme.goldAccent,
-                                                        shape: BoxShape.circle,
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                              if (body.isNotEmpty) ...[
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  body,
-                                                  style: BkoTheme.fontLato(
-                                                    fontSize: 12,
-                                                    color: textSec,
-                                                    height: 1.35,
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
+              const SizedBox(height: 16),
+              Text(
+                'Vous êtes à jour',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontPoppins(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: textPri,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Aucune notification pour le moment. Vos alertes de nouveaux épisodes s\'afficheront ici.',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontLato(
+                  fontSize: 13,
+                  color: textSec,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  Widget _buildErrorState(BuildContext context) {
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final surface = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.red.withValues(alpha: 0.12),
+                  border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: Icon(
+                    IconsaxPlusLinear.warning_2,
+                    size: 24,
+                    color: Colors.redAccent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                _isSessionExpired ? 'Session expirée' : 'Impossible de charger les notifications',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontPoppins(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: textPri,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _error ?? 'Une erreur est survenue.',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontLato(
+                  fontSize: 12.5,
+                  color: textSec,
+                ),
+              ),
+              const SizedBox(height: 18),
+              BkoBounceable(
+                onTap: () {
+                  if (_isSessionExpired) {
+                    context.push('/login?redirect=/notifications');
+                  } else {
+                    _fetch(isRefresh: false);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: BkoTheme.goldAccent,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _isSessionExpired ? 'Se reconnecter' : 'Réessayer',
+                    style: BkoTheme.fontPoppins(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUnauthenticatedState(BuildContext context) {
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final surface = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: BkoTheme.goldAccent.withValues(alpha: 0.12),
+                  border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: Icon(
+                    IconsaxPlusLinear.user,
+                    size: 26,
+                    color: BkoTheme.goldAccent,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Connectez-vous',
+                style: BkoTheme.fontPoppins(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: textPri,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Connectez-vous pour retrouver vos alertes de nouveaux épisodes et vos notifications d\'écoute.',
+                textAlign: TextAlign.center,
+                style: BkoTheme.fontLato(
+                  fontSize: 13,
+                  color: textSec,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              BkoBounceable(
+                onTap: () => context.push('/login?redirect=/notifications'),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: BkoTheme.goldAccent,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Se connecter',
+                      style: BkoTheme.fontPoppins(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSkeletonLoader(BuildContext context) {
+    final surface = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+
+    return ListView.separated(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: 6,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
+      itemBuilder: (context, index) {
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: border.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 180,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: border.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'À l\'instant';
+    if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Il y a ${diff.inHours} h';
+    if (diff.inDays < 7) return 'Il y a ${diff.inDays} j';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 }

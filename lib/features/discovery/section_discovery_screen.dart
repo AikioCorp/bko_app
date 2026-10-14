@@ -27,6 +27,7 @@ class SectionDiscoveryScreen extends ConsumerStatefulWidget {
   final String? initialSubtitle;
   final String? initialType;
   final String? category;
+  final String? country;
   final String? batchId;
 
   const SectionDiscoveryScreen({
@@ -37,6 +38,7 @@ class SectionDiscoveryScreen extends ConsumerStatefulWidget {
     this.initialSubtitle,
     this.initialType,
     this.category,
+    this.country,
     this.batchId,
   });
 
@@ -154,6 +156,7 @@ class _SectionDiscoveryScreenState
   Future<SectionPage> _requestPage(int offset) async {
     final parameters = <String, String>{'offset': '$offset', 'limit': '$_limit'};
     if (widget.category != null && widget.category != 'all') parameters['category'] = widget.category!;
+    if (widget.country != null) parameters['country'] = widget.country!;
     if (widget.batchId != null) parameters['batchId'] = widget.batchId!;
     final token = ref.read(authProvider).token;
     final slug = widget.initialSlug ?? widget.sectionId;
@@ -340,7 +343,7 @@ class _SectionDiscoveryScreenState
                                     child: _buildSectionHeader(
                                       title: title,
                                       subtitle: subtitle,
-                                      totalCount: _total,
+                                      totalCount: _serverPageLoaded ? _total : 0,
                                       isPodcast: isPodcastRow,
                                       textPri: textPri,
                                       textSec: textSec,
