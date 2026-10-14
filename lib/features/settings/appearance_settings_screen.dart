@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -24,6 +25,7 @@ class AppearanceSettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         leading: const AppBackButton(),
         title: Text(
           'Apparence',

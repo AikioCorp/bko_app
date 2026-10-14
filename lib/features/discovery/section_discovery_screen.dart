@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'section_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -496,6 +497,7 @@ class _SectionDiscoveryScreenState
               ),
             ),
           ),
+          const AppHeaderActions(),
           BkoBounceable(
             onTap: () {
               BkoHaptics.light();

@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -62,6 +63,7 @@ class _StudioPodcastScreenState extends ConsumerState<StudioPodcastScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
             leading: const AppBackButton(),
             title: Text('${_podcast?['name'] ?? 'Mon émission'}')),
         body: ListView(

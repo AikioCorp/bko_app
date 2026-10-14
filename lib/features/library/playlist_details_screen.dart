@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -278,6 +279,7 @@ class _PlaylistDetailsScreenState
               fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
         actions: [
+          const AppHeaderActions(),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert_rounded, color: textPri),
             color: const Color(0xFF1E1E24),

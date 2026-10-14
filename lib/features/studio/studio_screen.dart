@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -89,6 +90,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
       return Scaffold(
         backgroundColor: bgSurf,
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
           backgroundColor: bgSurf,
           elevation: 0,
           leading: const AppBackButton(),
@@ -179,6 +181,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
               fontSize: 18, fontWeight: FontWeight.w800, color: textPri),
         ),
         actions: [
+          const AppHeaderActions(),
           BkoBounceable(
             onTap: () {
               BkoHaptics.light();
@@ -456,6 +459,16 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                       icon: IconsaxPlusLinear.routing,
                       color: BkoTheme.goldAccent,
                       onTap: () => context.push('/studio/import-rss'),
+                    ),
+                    const SizedBox(height: 12),
+                    _actionCard(
+                      context,
+                      title: 'Connecter une chaîne YouTube',
+                      subtitle:
+                          'Importer et synchroniser automatiquement vos vidéos officielles',
+                      icon: IconsaxPlusLinear.video,
+                      color: Colors.redAccent,
+                      onTap: () => context.push('/studio/import-youtube'),
                     ),
 
                     const SizedBox(height: 24),

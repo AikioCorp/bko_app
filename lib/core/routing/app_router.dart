@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../../features/studio/studio_podcast_screen.dart';
 import '../../features/studio/studio_access_gate.dart';
 import '../../features/studio/claim_podcast_screen.dart';
@@ -20,6 +21,7 @@ import '../../features/studio/studio_screen.dart';
 import '../../features/studio/create_podcast_screen.dart';
 import '../../features/studio/create_episode_screen.dart';
 import '../../features/studio/rss_import_screen.dart';
+import '../../features/studio/youtube_channel_import_screen.dart';
 import '../../features/auth/forgot_password_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/library/playlist_details_screen.dart';
@@ -37,7 +39,13 @@ import '../../features/settings/about_screen.dart';
 import '../../features/settings/become_creator_screen.dart';
 import '../../features/auth/suspended_screen.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'rootNav');
+final GlobalKey<NavigatorState> shellNavigatorKey =
+    GlobalKey<NavigatorState>(debugLabel: 'shellNav');
+
 final appRouter = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/splash',
   routes: [
     GoRoute(
@@ -150,6 +158,8 @@ final appRouter = GoRouter(
 
     // Sub-screens wrapped in SubpageAudioShell to keep mini-player persistent across navigation
     ShellRoute(
+      navigatorKey: shellNavigatorKey,
+      parentNavigatorKey: rootNavigatorKey,
       builder: (context, state, child) => SubpageAudioShell(child: child),
       routes: [
         GoRoute(
@@ -231,6 +241,12 @@ final appRouter = GoRouter(
           path: '/studio/import-rss',
           builder: (context, state) => StudioAccessGate(
               child: RssImportScreen(
+                  initialPodcastId: state.uri.queryParameters['podcastId'])),
+        ),
+        GoRoute(
+          path: '/studio/import-youtube',
+          builder: (context, state) => StudioAccessGate(
+              child: YoutubeChannelImportScreen(
                   initialPodcastId: state.uri.queryParameters['podcastId'])),
         ),
         GoRoute(

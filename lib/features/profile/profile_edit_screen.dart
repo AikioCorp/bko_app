@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:country_picker/country_picker.dart';
 import 'package:flutter/material.dart';
@@ -586,6 +587,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         title: Text(
           'Modifier mon profil',
           style: BkoTheme.fontLato(fontSize: 17, fontWeight: FontWeight.w800, color: textPri),

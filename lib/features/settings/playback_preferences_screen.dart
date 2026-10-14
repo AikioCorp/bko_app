@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -193,6 +194,7 @@ class _PlaybackPreferencesScreenState extends ConsumerState<PlaybackPreferencesS
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: const AppBackButton(),

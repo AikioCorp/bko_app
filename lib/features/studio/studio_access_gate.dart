@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -33,6 +34,7 @@ class StudioAccessGate extends ConsumerWidget {
         }
         return Scaffold(
           appBar: AppBar(
+        actions: const [AppHeaderActions()],
               leading: const AppBackButton(),
               title: const Text('Votre Studio')),
           body: Center(
@@ -55,6 +57,7 @@ class StudioAccessGate extends ConsumerWidget {
       },
       error: (error, stack) => Scaffold(
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
             leading: const AppBackButton(), title: const Text('Votre Studio')),
         body: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [

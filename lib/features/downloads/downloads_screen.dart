@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -49,6 +50,7 @@ class DownloadsScreen extends ConsumerWidget {
           ),
         ),
         actions: [
+          const AppHeaderActions(),
           IconButton(
             icon: Icon(IconsaxPlusLinear.refresh_2, color: textPri, size: 20),
             tooltip: 'Synchroniser avec le compte',

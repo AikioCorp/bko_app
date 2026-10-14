@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/network/bko_api.dart';
@@ -86,6 +87,7 @@ class _ClaimPodcastScreenState extends ConsumerState<ClaimPodcastScreen> {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
             leading: const AppBackButton(),
             title: const Text('Revendiquer une émission')),
         body: ListView(

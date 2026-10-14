@@ -171,6 +171,23 @@ void main() {
       expect(find.text('Connectez-vous'), findsOneWidget);
       expect(find.text('Se connecter'), findsOneWidget);
     });
+
+    test('markAsReadLocally et décrémentation lors de la suppression d une notification non lue', () {
+      final container = ProviderContainer();
+      try {
+        final notifier = container.read(unreadNotificationsProvider.notifier);
+        notifier.setCount(3);
+        expect(container.read(unreadNotificationsProvider), 3);
+
+        notifier.markAsReadLocally(1);
+        expect(container.read(unreadNotificationsProvider), 2);
+
+        notifier.markAsReadLocally(5);
+        expect(container.read(unreadNotificationsProvider), 0);
+      } finally {
+        container.dispose();
+      }
+    });
   });
 }
 

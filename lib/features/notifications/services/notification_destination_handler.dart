@@ -29,6 +29,8 @@ class NotificationDestinationHandler {
     final dest = _pendingDestination;
     if (dest == null) return false;
     _pendingDestination = null;
+    // Si la destination en attente est l'accueil, l'utilisateur s'y trouve déjà
+    if (dest == '/' || dest.isEmpty) return true;
     return navigate(context, dest, ref: ref);
   }
 
@@ -104,8 +106,11 @@ class NotificationDestinationHandler {
       return false;
     }
 
+    final uri = Uri.tryParse(path);
+    final basePath = uri?.path ?? path;
+
     // Contrôle d'accès au Studio
-    if (path.startsWith('/studio')) {
+    if (basePath.startsWith('/studio')) {
       final isCreatorOrAdmin = ref?.read(authProvider).isCreatorOrAdmin ?? false;
       if (!isCreatorOrAdmin) {
         _showFeedback(context, "Cet espace requiert un compte créateur ou administrateur.");
@@ -116,10 +121,19 @@ class NotificationDestinationHandler {
     BkoHaptics.light();
 
     try {
+      // Éviter la navigation si l'application est déjà exactement sur cette route
+      final navContext = rootNavigatorKey.currentContext;
+      if (navContext != null) {
+        final currentLoc = GoRouter.of(navContext).routerDelegate.currentConfiguration.uri.toString();
+        if (currentLoc == path) {
+          return true;
+        }
+      }
+
       if (context.mounted) {
-        context.push(path);
+        context.go(path);
       } else {
-        appRouter.push(path);
+        appRouter.go(path);
       }
       return true;
     } catch (_) {

@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -118,6 +119,7 @@ class _BecomeCreatorScreenState extends ConsumerState<BecomeCreatorScreen> {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
           leading: const AppBackButton(),
           title: Text(
             'Espace Créateur',
@@ -203,6 +205,7 @@ class _BecomeCreatorScreenState extends ConsumerState<BecomeCreatorScreen> {
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         leading: const AppBackButton(),
         title: Text(
           'Devenir créateur',

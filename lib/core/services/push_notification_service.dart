@@ -27,7 +27,7 @@ class PushNotificationService {
   static VoidCallback? onForegroundMessageReceived;
 
   /// Clé globale de contexte pour afficher les toasts au premier plan.
-  static BuildContext? get _currentContext => appRouter.routerDelegate.navigatorKey.currentContext;
+  static BuildContext? get _currentContext => rootNavigatorKey.currentContext;
 
   /// Initialise Firebase et configure les écouteurs de notifications.
   Future<void> initialize() async {

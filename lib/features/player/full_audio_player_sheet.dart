@@ -49,6 +49,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
   List<Map<String, String>> _chapters = [];
   bool _loadingChapters = false;
   String? _lastLoadedEpisodeId;
+  double? _dragValue;
+  bool _isDragging = false;
 
   @override
   void initState() {
@@ -58,6 +60,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
 
   @override
   void dispose() {
+    _dragValue = null;
+    _isDragging = false;
     super.dispose();
   }
 
@@ -105,6 +109,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
     if (parts.length == 2) {
       final minutes = int.tryParse(parts[0]) ?? 0;
       final seconds = int.tryParse(parts[1]) ?? 0;
+      if (_isDragging) {
+        setState(() {
+          _isDragging = false;
+          _dragValue = null;
+        });
+      }
       ref
           .read(activeEpisodeProvider.notifier)
           .seek(Duration(minutes: minutes, seconds: seconds));
@@ -267,6 +277,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
       activeEpisodeProvider.select((s) => s.episodeId),
       (prev, next) {
         if (next.isNotEmpty && next != _lastLoadedEpisodeId) {
+          if (_isDragging) {
+            setState(() {
+              _isDragging = false;
+              _dragValue = null;
+            });
+          }
           _loadChaptersIfAvailable();
         }
       },
@@ -281,10 +297,24 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
     const textPri = Colors.white;
     const textSec = Colors.white70;
 
-    final elapsedStr = _formatDuration(active.currentPosition);
-    final remainingStr = active.totalDuration > active.currentPosition
-        ? '-${_formatDuration(active.totalDuration - active.currentPosition)}'
-        : _formatDuration(active.totalDuration);
+    final totalDuration = active.totalDuration;
+    final effectivePos = _isDragging &&
+            _dragValue != null &&
+            totalDuration.inMilliseconds > 0
+        ? Duration(
+            milliseconds:
+                (_dragValue! * totalDuration.inMilliseconds).round(),
+          )
+        : active.currentPosition;
+
+    final elapsedStr = _formatDuration(effectivePos);
+    final remainingStr = totalDuration > effectivePos
+        ? '-${_formatDuration(totalDuration - effectivePos)}'
+        : _formatDuration(totalDuration);
+
+    final double sliderValue = _isDragging && _dragValue != null
+        ? _dragValue!.clamp(0.0, 1.0)
+        : active.progress.clamp(0.0, 1.0);
 
     final episodeMap = {
       'id': active.episodeId,
@@ -551,20 +581,35 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
 
                   // Scrubber Slider
                   SliderTheme(
-                    data: const SliderThemeData(
+                    data: SliderThemeData(
                       trackHeight: 3.5,
-                      thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6),
+                      thumbShape: RoundSliderThumbShape(
+                        enabledThumbRadius: _isDragging ? 8 : 6,
+                        elevation: 0,
+                        pressedElevation: 0,
+                      ),
+                      overlayShape:
+                          const RoundSliderOverlayShape(overlayRadius: 16),
                       activeTrackColor: BkoTheme.goldAccent,
                       inactiveTrackColor: Colors.white24,
                       thumbColor: BkoTheme.goldAccent,
-                      overlayColor: Color(0x33FFBF00),
+                      overlayColor: const Color(0x33FFBF00),
                     ),
                     child: Slider(
-                      value: active.progress.clamp(0.0, 1.0),
-                      onChangeStart: (_) {
+                      value: sliderValue,
+                      onChangeStart: (val) {
                         BkoHaptics.light();
+                        setState(() {
+                          _isDragging = true;
+                          _dragValue = val;
+                        });
                       },
                       onChanged: (val) {
+                        setState(() {
+                          _dragValue = val;
+                        });
+                      },
+                      onChangeEnd: (val) {
                         final total = active.totalDuration;
                         if (total.inMilliseconds > 0) {
                           final newPos = Duration(
@@ -575,8 +620,10 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                               .read(activeEpisodeProvider.notifier)
                               .seek(newPos);
                         }
-                      },
-                      onChangeEnd: (_) {
+                        setState(() {
+                          _isDragging = false;
+                          _dragValue = null;
+                        });
                         BkoHaptics.select();
                       },
                     ),
@@ -928,34 +975,37 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     else
                       Column(
                         children: _chapters.map((ch) {
-                          return ListTile(
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            leading: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color:
-                                    BkoTheme.goldAccent.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                ch['time']!,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: BkoTheme.goldAccent,
+                          return Material(
+                            color: Colors.transparent,
+                            child: ListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              leading: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color:
+                                      BkoTheme.goldAccent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  ch['time']!,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: BkoTheme.goldAccent,
+                                  ),
                                 ),
                               ),
+                              title: Text(
+                                ch['title']!,
+                                style: BkoTheme.fontLato(
+                                    fontSize: 13, color: textPri),
+                              ),
+                              trailing: const Icon(Icons.play_circle_fill_rounded,
+                                  color: BkoTheme.goldAccent, size: 20),
+                              onTap: () => _seekToTimestamp(ch['time']!),
                             ),
-                            title: Text(
-                              ch['title']!,
-                              style: BkoTheme.fontLato(
-                                  fontSize: 13, color: textPri),
-                            ),
-                            trailing: const Icon(Icons.play_circle_fill_rounded,
-                                color: BkoTheme.goldAccent, size: 20),
-                            onTap: () => _seekToTimestamp(ch['time']!),
                           );
                         }).toList(),
                       ),

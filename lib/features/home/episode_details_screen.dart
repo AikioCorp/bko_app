@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -309,6 +310,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
       return Scaffold(
         backgroundColor: BkoTheme.getBgObsidian(context),
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
           elevation: 0,
           backgroundColor: Colors.transparent,
           leading: AppBackButton(
@@ -410,6 +412,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           fallbackLocation: '/podcasts/${widget.podcastSlug}',
         ),
         actions: [
+          const AppHeaderActions(),
           IconButton(
             icon: Icon(
               _isLiked ? IconsaxPlusBold.heart : IconsaxPlusLinear.heart,
@@ -882,37 +885,40 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                 ),
                 child: Column(
                   children: _chapters.map((ch) {
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      leading: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: BkoTheme.goldAccent.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color:
-                                  BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                    return Material(
+                      color: Colors.transparent,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        leading: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color:
+                                    BkoTheme.goldAccent.withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            ch['time']!,
+                            style: BkoTheme.fontLato(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                color: BkoTheme.goldAccent),
+                          ),
                         ),
-                        child: Text(
-                          ch['time']!,
+                        title: Text(
+                          ch['title']!,
                           style: BkoTheme.fontLato(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
-                              color: BkoTheme.goldAccent),
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                              color: textPri),
                         ),
+                        trailing: const Icon(Icons.play_circle_fill_rounded,
+                            color: BkoTheme.goldAccent, size: 24),
+                        onTap: () => _seekToTimestamp(ch['time']!),
                       ),
-                      title: Text(
-                        ch['title']!,
-                        style: BkoTheme.fontLato(
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: textPri),
-                      ),
-                      trailing: const Icon(Icons.play_circle_fill_rounded,
-                          color: BkoTheme.goldAccent, size: 24),
-                      onTap: () => _seekToTimestamp(ch['time']!),
                     );
                   }).toList(),
                 ),

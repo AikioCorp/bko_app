@@ -276,7 +276,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 8),
               _buildMenuRow(context, IconsaxPlusLinear.user, 'Mon Profil & Compte', 'Gérer vos informations personnelles', () {
                 context.pop();
-                context.push('/profile');
+                context.go('/profile');
               }),
               _buildMenuRow(context, IconsaxPlusLinear.microphone_2, 'Studio Créateur', 'Publier et administrer vos podcasts', () {
                 context.pop();

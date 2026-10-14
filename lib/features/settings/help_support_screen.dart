@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -128,6 +129,7 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         leading: const AppBackButton(),
         title: Text(
           'Aide & assistance',

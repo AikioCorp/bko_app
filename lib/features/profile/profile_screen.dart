@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -254,6 +255,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
         actions: [
+          const AppHeaderActions(),
           IconButton(
             icon: Icon(
               IconsaxPlusLinear.setting_2,
@@ -1227,6 +1229,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         title: Text(
           'Mon espace',
           style: BkoTheme.fontLato(

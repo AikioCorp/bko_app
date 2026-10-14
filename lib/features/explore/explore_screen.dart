@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -411,6 +412,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           ),
                         ),
                       ),
+                      const AppHeaderActions(),
                     ],
                   ),
                   const SizedBox(height: 12),

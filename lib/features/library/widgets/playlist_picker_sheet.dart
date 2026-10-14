@@ -436,42 +436,45 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                               final itemCount = item['_count']?['items'] ?? item['items']?.length ?? 0;
                               final isPrivate = item['visibility'] == 'PRIVATE' || item['isPublic'] == false;
 
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                leading: Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1F1F24),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: border),
-                                  ),
-                                  child: const Icon(Icons.queue_music_rounded, color: BkoTheme.goldAccent, size: 22),
-                                ),
-                                title: Text(
-                                  item['name'] ?? 'Playlist',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: BkoTheme.fontLato(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: textPri,
-                                  ),
-                                ),
-                                subtitle: Row(
-                                  children: [
-                                    if (isPrivate) ...[
-                                      const Icon(Icons.lock_rounded, size: 12, color: Colors.white54),
-                                      const SizedBox(width: 4),
-                                    ],
-                                    Text(
-                                      '$itemCount épisodes',
-                                      style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                              return Material(
+                                color: Colors.transparent,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  leading: Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1F1F24),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: border),
                                     ),
-                                  ],
+                                    child: const Icon(Icons.queue_music_rounded, color: BkoTheme.goldAccent, size: 22),
+                                  ),
+                                  title: Text(
+                                    item['name'] ?? 'Playlist',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: BkoTheme.fontLato(
+                                      fontSize: 14.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: textPri,
+                                    ),
+                                  ),
+                                  subtitle: Row(
+                                    children: [
+                                      if (isPrivate) ...[
+                                        const Icon(Icons.lock_rounded, size: 12, color: Colors.white54),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      Text(
+                                        '$itemCount épisodes',
+                                        style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: const Icon(Icons.add_circle_outline_rounded, color: BkoTheme.goldAccent, size: 24),
+                                  onTap: () => _addToPlaylist(item),
                                 ),
-                                trailing: const Icon(Icons.add_circle_outline_rounded, color: BkoTheme.goldAccent, size: 24),
-                                onTap: () => _addToPlaylist(item),
                               );
                             },
                           ),

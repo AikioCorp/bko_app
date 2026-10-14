@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -437,6 +438,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       ),
                     ),
                   ),
+                  const AppHeaderActions(),
                   // Actions contextuelles selon l'onglet
                   if (_tab == 4)
                     BkoBounceable(
@@ -1108,6 +1110,7 @@ class _LoginPrompt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(title: const Text('Bibliothèque'), actions: const [AppHeaderActions()]),
       backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
         child: Center(

@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -316,6 +317,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
       return Scaffold(
         backgroundColor: bgSurf,
         appBar: AppBar(
+        actions: const [AppHeaderActions()],
           backgroundColor: bgSurf,
           elevation: 0,
           leading: const AppBackButton(size: 18),
@@ -428,6 +430,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
               fontSize: 16, fontWeight: FontWeight.w900, color: textPri),
         ),
         actions: [
+          const AppHeaderActions(),
           IconButton(
             icon: Icon(IconsaxPlusLinear.share, color: textPri, size: 20),
             onPressed: () {

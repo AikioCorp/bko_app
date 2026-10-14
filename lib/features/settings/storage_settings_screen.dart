@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -152,6 +153,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         leading: const AppBackButton(),
         title: Text(
           'Téléchargements & stockage',

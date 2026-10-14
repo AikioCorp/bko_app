@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -249,6 +250,7 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
     return Scaffold(
       backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         leading: const AppBackButton(),
         title: Text(
           'Confidentialité & données',

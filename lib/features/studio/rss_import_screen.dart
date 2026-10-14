@@ -1,3 +1,4 @@
+import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -186,6 +187,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
     return Scaffold(
       backgroundColor: bgSurf,
       appBar: AppBar(
+        actions: const [AppHeaderActions()],
         backgroundColor: bgSurf,
         elevation: 0,
         leading: const AppBackButton(),
