@@ -49,6 +49,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
   int _commentsCount = 0;
   bool _isTogglingLike = false;
   bool _isTogglingSave = false;
+  bool _descriptionExpanded = false;
 
   List<Map<String, String>> _chapters = [];
 
@@ -792,17 +793,83 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
             const SizedBox(height: 24),
 
             // 8. Description Section
-            Text(
-              'À propos de cet épisode',
-              style: BkoTheme.fontLato(
-                  fontSize: 15, fontWeight: FontWeight.w900, color: textPri),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'À propos de cet épisode',
+                  style: BkoTheme.fontLato(
+                      fontSize: 15, fontWeight: FontWeight.w900, color: textPri),
+                ),
+                if (description.length > 140)
+                  BkoBounceable(
+                    onTap: () {
+                      BkoHaptics.light();
+                      setState(() => _descriptionExpanded = !_descriptionExpanded);
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _descriptionExpanded ? 'Réduire' : 'Déplier',
+                          style: BkoTheme.fontLato(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                            color: BkoTheme.goldAccent,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Icon(
+                          _descriptionExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: BkoTheme.goldAccent,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
-            Text(
-              description,
-              style: BkoTheme.fontLato(
-                  fontSize: 13.5, color: textSec, height: 1.5),
+            AnimatedCrossFade(
+              firstChild: Text(
+                description,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: BkoTheme.fontLato(
+                    fontSize: 13.5, color: textSec, height: 1.5),
+              ),
+              secondChild: Text(
+                description,
+                style: BkoTheme.fontLato(
+                    fontSize: 13.5, color: textSec, height: 1.5),
+              ),
+              crossFadeState: _descriptionExpanded
+                  ? CrossFadeState.showSecond
+                  : CrossFadeState.showFirst,
+              duration: const Duration(milliseconds: 200),
             ),
+            if (description.length > 140) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () {
+                  BkoHaptics.light();
+                  setState(() => _descriptionExpanded = !_descriptionExpanded);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    _descriptionExpanded ? 'Afficher moins' : 'Afficher plus...',
+                    style: BkoTheme.fontLato(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: BkoTheme.goldAccent,
+                    ),
+                  ),
+                ),
+              ),
+            ],
 
             const SizedBox(height: 24),
 

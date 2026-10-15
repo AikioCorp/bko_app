@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
@@ -24,8 +25,13 @@ class _YoutubeChannelImportScreenState
   final _includeKeywordsController = TextEditingController();
   final _excludeKeywordsController = TextEditingController();
 
-  int _step = 1; // 1: URL & Podcast, 2: Preview & Selection, 3: Settings & Confirm
+  int _step =
+      1; // 1: URL & Podcast, 2: Preview & Selection, 3: Settings & Confirm
   bool _analyzing = false;
+  bool _loadingMore = false;
+  bool _archivesMode = false;
+  bool _futureOnly = false;
+  Timer? _statusTimer;
   bool _connecting = false;
   bool _syncingNow = false;
   String? _errorMessage;
@@ -48,10 +54,16 @@ class _YoutubeChannelImportScreenState
   void initState() {
     super.initState();
     _loadInitialData();
+    _statusTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (mounted && _selectedPodcastId != null && _step == 1) {
+        _fetchChannelStatus(_selectedPodcastId!);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _statusTimer?.cancel();
     _urlController.dispose();
     _includeKeywordsController.dispose();
     _excludeKeywordsController.dispose();
@@ -108,15 +120,20 @@ class _YoutubeChannelImportScreenState
     final auth = ref.read(authProvider);
     if (auth.token == null) return;
 
-    if (mounted) setState(() => _loadingStatus = true);
+    if (mounted && _channelStatus == null) {
+      setState(() => _loadingStatus = true);
+    }
 
     try {
       final res = await BkoApi.get('/creator/podcasts/$podcastId/youtube',
           token: auth.token);
-      if (mounted) {
+      if (mounted && podcastId == _selectedPodcastId) {
         setState(() {
           if (res is Map && res['success'] == true && res['data'] != null) {
-            _channelStatus = Map<String, dynamic>.from(res['data'] as Map);
+            final data = Map<String, dynamic>.from(res['data'] as Map);
+            _channelStatus = Map<String, dynamic>.from(
+                data['channel'] is Map ? data['channel'] as Map : data);
+            _channelStatus!['counts'] = data['counts'];
             _autoPublish =
                 _channelStatus?['importSettings']?['autoPublish'] == true;
             _autoSync = _channelStatus?['syncEnabled'] == true;
@@ -129,7 +146,8 @@ class _YoutubeChannelImportScreenState
     } catch (_) {
       if (mounted) {
         setState(() {
-          _channelStatus = null;
+          _errorMessage =
+              'Impossible de charger le statut. Réessayez avant de reconnecter la chaîne.';
           _loadingStatus = false;
         });
       }
@@ -172,7 +190,10 @@ class _YoutubeChannelImportScreenState
 
         final preselected = <String>{};
         for (final item in items) {
-          if (item is Map && item['isAlreadyImported'] != true) {
+          if (item is Map &&
+              item['isAlreadyImported'] != true &&
+              item['embeddable'] != false &&
+              item['isLikelyShort'] != true) {
             preselected.add('${item['youtubeVideoId']}');
           }
         }
@@ -180,6 +201,7 @@ class _YoutubeChannelImportScreenState
         if (mounted) {
           setState(() {
             _previewData = data;
+            _archivesMode = false;
             _selectedVideoIds.clear();
             _selectedVideoIds.addAll(preselected);
             _step = 2;
@@ -204,8 +226,63 @@ class _YoutubeChannelImportScreenState
     }
   }
 
+  Future<void> _loadMoreVideos({bool archives = false}) async {
+    if (_loadingMore || _selectedPodcastId == null) return;
+    setState(() {
+      _loadingMore = true;
+      _errorMessage = null;
+    });
+    final podcastId = _selectedPodcastId;
+    try {
+      final result = await BkoApi.post(
+          '/creator/youtube/preview',
+          {
+            'url': archives
+                ? (_channelStatus?['channelId'])
+                : ((_previewData?['channel'] as Map?)?['channelId']),
+            'podcastId': podcastId,
+            if (!archives && _previewData?['nextPageToken'] != null)
+              'pageToken': _previewData!['nextPageToken'],
+          },
+          token: ref.read(authProvider).token);
+      final data = Map<String, dynamic>.from(result['data'] as Map);
+      if (!mounted || podcastId != _selectedPodcastId) return;
+      final merged = <String, dynamic>{};
+      if (!archives) {
+        for (final item in (_previewData?['items'] as List? ?? [])) {
+          merged['${item['videoId']}'] = item;
+        }
+      }
+      for (final item in (data['items'] as List? ?? [])) {
+        merged['${item['videoId']}'] = item;
+      }
+      setState(() {
+        _previewData = {...data, 'items': merged.values.toList()};
+        if (archives) {
+          _archivesMode = true;
+          _futureOnly = false;
+          _selectedVideoIds.clear();
+          _step = 2;
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = '$e');
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
   Future<void> _connectYoutubeChannel() async {
     if (_previewData == null || _selectedPodcastId == null) return;
+    if (_selectedVideoIds.length > 500) {
+      setState(() =>
+          _errorMessage = "Sélectionnez au maximum 500 vidéos par import.");
+      return;
+    }
+    if (!_futureOnly && _selectedVideoIds.isEmpty) {
+      setState(() => _errorMessage = "Sélectionnez au moins une vidéo.");
+      return;
+    }
 
     final auth = ref.read(authProvider);
     if (!auth.isAuthenticated || auth.token == null) return;
@@ -239,17 +316,22 @@ class _YoutubeChannelImportScreenState
         'selectedVideoIds': _selectedVideoIds.toList(),
         'settings': {
           'autoPublish': _autoPublish,
+          'initialImportMode': _futureOnly ? 'FUTURE_ONLY' : 'SELECT',
           'keepManualEdits': _keepManualEdits,
           'autoSyncFuture': _autoSync,
-          'includeKeywords': inc,
+          'filterKeywords': inc,
           'excludeKeywords': exc,
           'importScope': _selectedVideoIds.isNotEmpty ? 'SELECT' : 'ALL',
         },
       };
 
       final res = await BkoApi.post(
-        '/creator/podcasts/$_selectedPodcastId/youtube/connect',
-        payload,
+        _archivesMode
+            ? '/creator/podcasts/$_selectedPodcastId/youtube/historical-import'
+            : '/creator/podcasts/$_selectedPodcastId/youtube/connect',
+        _archivesMode
+            ? {'selectedVideoIds': _selectedVideoIds.toList()}
+            : payload,
         token: auth.token,
       );
 
@@ -260,8 +342,9 @@ class _YoutubeChannelImportScreenState
             _step = 1;
             _previewData = null;
             _urlController.clear();
-            _infoMessage =
-                'Chaîne connectée ! Vos épisodes sont en cours d’importation en tâche de fond.';
+            _infoMessage = _futureOnly && !_archivesMode
+                ? 'Chaîne connectée sans import des anciennes vidéos.'
+                : 'Import placé en file d’attente. Consultez le suivi pour voir le résultat.';
           });
           BkoHaptics.light();
           await _fetchChannelStatus(_selectedPodcastId!);
@@ -347,7 +430,8 @@ class _YoutubeChannelImportScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler', style: TextStyle(color: Colors.white60)),
+            child:
+                const Text('Annuler', style: TextStyle(color: Colors.white60)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -390,16 +474,15 @@ class _YoutubeChannelImportScreenState
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D1117) : const Color(0xFFF8F9FA),
+      backgroundColor:
+          isDark ? const Color(0xFF0D1117) : const Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF161A22) : Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: AppBackButton(
           fallbackLocation: '/studio',
-          onPressed: _step > 1
-              ? () => setState(() => _step = _step - 1)
-              : null,
+          onPressed: _step > 1 ? () => setState(() => _step = _step - 1) : null,
         ),
         title: Text(
           _step == 1
@@ -422,7 +505,8 @@ class _YoutubeChannelImportScreenState
           : SafeArea(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -434,7 +518,6 @@ class _YoutubeChannelImportScreenState
                       _buildErrorBanner(_errorMessage!),
                       const SizedBox(height: 14),
                     ],
-
                     if (_channelStatus != null && _step == 1)
                       _buildConnectedChannelView(isDark)
                     else if (_step == 1)
@@ -456,7 +539,8 @@ class _YoutubeChannelImportScreenState
       decoration: BoxDecoration(
         color: const Color(0xFF10B981).withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+        border:
+            Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -536,6 +620,19 @@ class _YoutubeChannelImportScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          TextButton(
+              onPressed:
+                  _loadingMore ? null : () => _loadMoreVideos(archives: true),
+              child: const Text('Parcourir et importer les anciennes vidéos')),
+          if (_channelStatus?['errorMessage'] != null)
+            Text(_channelStatus!['errorMessage'].toString(),
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ...((_channelStatus?['syncRuns'] as List?) ?? []).take(3).map((run) =>
+              Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                      "${run['status']} · ${run['videosImported'] ?? 0} importées · ${run['videosFailed'] ?? 0} erreurs",
+                      style: Theme.of(context).textTheme.bodySmall))),
           Row(
             children: [
               if (thumb != null && thumb.toString().isNotEmpty)
@@ -589,7 +686,8 @@ class _YoutubeChannelImportScreenState
                               horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
                             color: isSyncEnabled
-                                ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                ? const Color(0xFF10B981)
+                                    .withValues(alpha: 0.15)
                                 : Colors.grey.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -637,7 +735,9 @@ class _YoutubeChannelImportScreenState
                 ),
                 _buildStatColumn(
                   'WebSub',
-                  _channelStatus?['webSubActive'] == true ? 'Actif' : 'Polling',
+                  _channelStatus?['webSubStatus'] == 'ACTIVE'
+                      ? 'Actif'
+                      : 'Polling',
                   isDark,
                 ),
               ],
@@ -812,7 +912,13 @@ class _YoutubeChannelImportScreenState
                     );
                   }).toList(),
                   onChanged: (val) {
-                    setState(() => _selectedPodcastId = val);
+                    setState(() {
+                      _selectedPodcastId = val;
+                      _previewData = null;
+                      _selectedVideoIds.clear();
+                      _channelStatus = null;
+                      _step = 1;
+                    });
                     if (val != null) _fetchChannelStatus(val);
                   },
                 ),
@@ -865,8 +971,8 @@ class _YoutubeChannelImportScreenState
                   fillColor: isDark
                       ? const Color(0xFF0D1117)
                       : const Color(0xFFF1F5F9),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -993,7 +1099,11 @@ class _YoutubeChannelImportScreenState
                 setState(() {
                   for (final item in items) {
                     if (item is Map) {
-                      _selectedVideoIds.add('${item['youtubeVideoId']}');
+                      if (item['isAlreadyImported'] != true &&
+                          item['embeddable'] != false &&
+                          item['isLikelyShort'] != true) {
+                        _selectedVideoIds.add('${item['youtubeVideoId']}');
+                      }
                     }
                   }
                 });
@@ -1046,9 +1156,7 @@ class _YoutubeChannelImportScreenState
                 decoration: BoxDecoration(
                   color: isSelected
                       ? BkoTheme.goldAccent.withValues(alpha: 0.08)
-                      : (isDark
-                          ? const Color(0xFF161A22)
-                          : Colors.white),
+                      : (isDark ? const Color(0xFF161A22) : Colors.white),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: isSelected
@@ -1104,7 +1212,8 @@ class _YoutubeChannelImportScreenState
                                     ? '${((item['duration'] as num) / 60).floor()} min'
                                     : 'Durée inconnue',
                                 style: TextStyle(
-                                  color: isDark ? Colors.white38 : Colors.black38,
+                                  color:
+                                      isDark ? Colors.white38 : Colors.black38,
                                   fontSize: 10,
                                 ),
                               ),
@@ -1136,11 +1245,28 @@ class _YoutubeChannelImportScreenState
           },
         ),
         const SizedBox(height: 18),
+        Text(_previewData?['note']?.toString() ?? '',
+            style: Theme.of(context).textTheme.bodySmall),
+        if (_previewData?['nextPageToken'] != null)
+          TextButton(
+              onPressed: _loadingMore ? null : () => _loadMoreVideos(),
+              child: Text(_loadingMore
+                  ? 'Chargement…'
+                  : 'Charger les vidéos suivantes / anciennes')),
+        if (!_archivesMode)
+          SwitchListTile.adaptive(
+              value: _futureOnly,
+              onChanged: (v) => setState(() => _futureOnly = v),
+              title:
+                  const Text('Suivre uniquement les prochaines publications'),
+              subtitle: const Text('Aucune ancienne vidéo ne sera importée.')),
         BkoBounceable(
-          onTap: () {
-            setState(() => _step = 3);
-            BkoHaptics.light();
-          },
+          onTap: _selectedVideoIds.isEmpty && !_futureOnly
+              ? null
+              : () {
+                  setState(() => _step = 3);
+                  BkoHaptics.light();
+                },
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1164,6 +1290,21 @@ class _YoutubeChannelImportScreenState
   }
 
   Widget _buildSettingsStep(bool isDark) {
+    if (_archivesMode) {
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text("Importer ${_selectedVideoIds.length} vidéos sélectionnées",
+            style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+        const Text(
+            "Les réglages actuels de votre chaîne seront conservés. Les épisodes déjà importés ne seront pas dupliqués."),
+        const SizedBox(height: 20),
+        FilledButton(
+            onPressed: _connecting ? null : _connectYoutubeChannel,
+            child: Text(_connecting
+                ? "Mise en file…"
+                : "Confirmer l’import des archives"))
+      ]);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
