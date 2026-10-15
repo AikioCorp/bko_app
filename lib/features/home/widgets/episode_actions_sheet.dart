@@ -280,10 +280,14 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     final isDownloading =
         downloadTask?.status == DownloadStatus.downloading;
 
-    const bgSurface = Color(0xFF141416);
-    const border = Color(0xFF262626);
-    const textPri = Colors.white;
-    const textSec = Colors.white70;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = BkoTheme.getBgSurface(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final handleColor = isDark ? Colors.white24 : Colors.black12;
+    final goldContrast = isDark ? BkoTheme.goldAccent : const Color(0xFFB45309);
 
     return Container(
       decoration: BoxDecoration(
@@ -304,7 +308,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -324,9 +328,9 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
                           width: 52,
                           height: 52,
                           fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => _fallbackCover(),
+                          errorWidget: (_, __, ___) => _fallbackCover(bgElevated),
                         )
-                      : _fallbackCover(),
+                      : _fallbackCover(bgElevated),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -363,26 +367,35 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           ),
 
           const SizedBox(height: 16),
-          const Divider(height: 1, color: Color(0xFF242428)),
+          Divider(height: 1, color: border),
           const SizedBox(height: 8),
 
           // Action Items
           _buildActionTile(
             icon: IconsaxPlusLinear.play_add,
+            iconColor: textPri,
             title: 'Lire ensuite',
             subtitle: 'Placer juste après le contenu en cours',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handlePlayNext,
           ),
           _buildActionTile(
             icon: IconsaxPlusLinear.music_playlist,
+            iconColor: textPri,
             title: 'Ajouter à la file d’attente',
             subtitle: 'Placer à la fin de la session de lecture',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleAddToQueue,
           ),
           _buildActionTile(
             icon: IconsaxPlusLinear.folder_add,
+            iconColor: textPri,
             title: 'Ajouter à une playlist',
             subtitle: 'Organiser dans vos collections personnelles',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleOpenPlaylists,
           ),
 
@@ -393,13 +406,15 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
                 : IconsaxPlusLinear.heart,
             iconColor: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
                 ? Colors.redAccent
-                : Colors.white,
+                : textPri,
             title: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
                 ? 'Ne plus aimer'
                 : 'Aimer cet épisode',
             subtitle: (ref.watch(likedEpisodesProvider).contains(episodeId) || widget.episode['viewer']?['isLiked'] == true)
                 ? 'Retirer de vos épisodes aimés'
                 : 'Enrichir vos recommandations personnalisées',
+            textPri: textPri,
+            textSec: textSec,
             onTap: () async {
               Navigator.pop(context);
               await ref.read(likedEpisodesProvider.notifier).toggleLike(context, episodeId);
@@ -413,6 +428,8 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
               iconColor: Colors.redAccent,
               title: 'Supprimer le téléchargement',
               subtitle: 'Libérer de l’espace sur votre téléphone',
+              textPri: textPri,
+              textSec: textSec,
               onTap: () {
                 ref
                     .read(downloadProvider.notifier)
@@ -429,9 +446,11 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           else if (isDownloading)
             _buildActionTile(
               icon: IconsaxPlusLinear.arrow_circle_down,
-              iconColor: BkoTheme.goldAccent,
+              iconColor: goldContrast,
               title: 'Téléchargement en cours...',
               subtitle: '${((downloadTask?.progress ?? 0) * 100).toInt()}%',
+              textPri: textPri,
+              textSec: textSec,
               onTap: () {
                 ref
                     .read(downloadProvider.notifier)
@@ -442,8 +461,11 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
           else
             _buildActionTile(
               icon: IconsaxPlusLinear.arrow_circle_down,
+              iconColor: textPri,
               title: 'Télécharger l’épisode',
               subtitle: 'Disponible pour l’écoute hors connexion',
+              textPri: textPri,
+              textSec: textSec,
               onTap: () {
                 Navigator.pop(context);
                 try {
@@ -466,44 +488,56 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
             icon: _isSaved == true
                 ? IconsaxPlusBold.archive_add
                 : IconsaxPlusLinear.archive_add,
-            iconColor: _isSaved == true ? BkoTheme.goldAccent : Colors.white,
+            iconColor: _isSaved == true ? goldContrast : textPri,
             title: _isSaved == true
                 ? 'Retirer des enregistrés'
                 : 'Enregistrer dans la bibliothèque',
             subtitle: 'Retrouvez cet épisode dans vos Enregistrés',
             isLoading: _isSaving,
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleToggleSave,
           ),
 
           _buildActionTile(
             icon: IconsaxPlusLinear.share,
+            iconColor: textPri,
             title: 'Partager l’épisode',
             subtitle: 'Envoyer à un ami ou sur les réseaux',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleShare,
           ),
 
           _buildActionTile(
             icon: IconsaxPlusLinear.radio,
+            iconColor: textPri,
             title: 'Accéder à l’émission',
             subtitle: 'Voir tous les épisodes de $podcastName',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleGoToPodcast,
           ),
 
-          const Divider(color: Color(0xFF262626), height: 16),
+          Divider(color: border, height: 16),
 
           _buildActionTile(
             icon: IconsaxPlusLinear.dislike,
-            iconColor: Colors.white70,
+            iconColor: textSec,
             title: 'Pas intéressé',
             subtitle: 'Moins de recommandations de ce type',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleNotInterested,
           ),
 
           _buildActionTile(
             icon: IconsaxPlusLinear.eye_slash,
-            iconColor: Colors.white70,
+            iconColor: textSec,
             title: 'Masquer cette émission',
             subtitle: 'Ne plus recommander $podcastName',
+            textPri: textPri,
+            textSec: textSec,
             onTap: _handleHidePodcast,
           ),
 
@@ -515,9 +549,11 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
 
   Widget _buildActionTile({
     required IconData icon,
-    Color iconColor = Colors.white,
+    required Color iconColor,
     required String title,
     required String subtitle,
+    required Color textPri,
+    required Color textSec,
     required VoidCallback onTap,
     bool isLoading = false,
   }) {
@@ -527,7 +563,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
       child: InkWell(
         onTap: isLoading ? null : onTap,
         splashColor: BkoTheme.goldAccent.withValues(alpha: 0.1),
-        highlightColor: Colors.white.withValues(alpha: 0.05),
+        highlightColor: textPri.withValues(alpha: 0.05),
         child: Container(
           constraints: const BoxConstraints(minHeight: 52),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -557,14 +593,14 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
                       style: BkoTheme.fontLato(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: textPri,
                       ),
                     ),
                     Text(
                       subtitle,
                       style: BkoTheme.fontLato(
                         fontSize: 11.5,
-                        color: Colors.white60,
+                        color: textSec,
                       ),
                     ),
                   ],
@@ -577,11 +613,11 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     );
   }
 
-  Widget _fallbackCover() => Container(
+  Widget _fallbackCover([Color? bgColor]) => Container(
         width: 52,
         height: 52,
-        color: const Color(0xFF1F1F24),
-        child: const Icon(Icons.podcasts_rounded,
+        color: bgColor ?? const Color(0xFF1F1F24),
+        child: const Icon(IconsaxPlusLinear.music,
             color: BkoTheme.goldAccent, size: 24),
       );
 }

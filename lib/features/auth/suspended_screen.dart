@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
-import '../../core/widgets/bko_toast.dart';
 import 'auth_controller.dart';
 
 class SuspendedScreen extends StatelessWidget {
@@ -28,23 +26,7 @@ class SuspendedScreen extends StatelessWidget {
 
   Future<void> _contactSupport(BuildContext context) async {
     BkoHaptics.light();
-    final uri = Uri.parse(
-      'mailto:support@bamakopodcast.com?subject=Demande%20d%27assistance%20-%20Compte%20suspendu',
-    );
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        if (context.mounted) {
-          BkoToast.showInfo(
-            context,
-            title: 'Support',
-            message: 'support@bamakopodcast.com',
-            icon: IconsaxPlusBold.sms,
-          );
-        }
-      }
-    } catch (_) {}
+    context.push('/support');
   }
 
   void _returnHome(BuildContext context) {
@@ -67,8 +49,10 @@ class SuspendedScreen extends StatelessWidget {
         ? details!['reason'].toString()
         : 'Non-respect des conditions d\'utilisation de la plateforme.';
     final isPermanent = details?['isPermanent'] ?? true;
-    final suspendedAtFormatted = _formatDate(details?['suspendedAt']?.toString());
-    final suspendedUntilFormatted = _formatDate(details?['suspendedUntil']?.toString());
+    final suspendedAtFormatted =
+        _formatDate(details?['suspendedAt']?.toString());
+    final suspendedUntilFormatted =
+        _formatDate(details?['suspendedUntil']?.toString());
 
     return PopScope(
       canPop: false,
@@ -173,7 +157,9 @@ class SuspendedScreen extends StatelessWidget {
                             height: 1.4,
                           ),
                         ),
-                        if (suspendedAtFormatted.isNotEmpty || (!isPermanent && suspendedUntilFormatted.isNotEmpty)) ...[
+                        if (suspendedAtFormatted.isNotEmpty ||
+                            (!isPermanent &&
+                                suspendedUntilFormatted.isNotEmpty)) ...[
                           const SizedBox(height: 12),
                           Divider(color: borderSubtle, height: 1),
                           const SizedBox(height: 10),
@@ -188,7 +174,8 @@ class SuspendedScreen extends StatelessWidget {
                                     color: textMuted,
                                   ),
                                 ),
-                              if (!isPermanent && suspendedUntilFormatted.isNotEmpty)
+                              if (!isPermanent &&
+                                  suspendedUntilFormatted.isNotEmpty)
                                 Text(
                                   'Fin prévue le : $suspendedUntilFormatted',
                                   style: const TextStyle(

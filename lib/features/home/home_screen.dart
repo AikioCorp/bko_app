@@ -22,6 +22,7 @@ import '../../core/widgets/equalizer_loader.dart';
 import '../../core/widgets/skeleton_loaders.dart';
 import '../discovery/widgets/discovery_promotion_modal.dart';
 import '../notifications/services/notification_destination_handler.dart';
+import '../onboarding/widgets/preferences_catch_up_sheet.dart';
 import 'home_providers.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -43,8 +44,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(homeDataProvider.notifier).fetchInitial();
       _checkDiscoveryPromotion();
+      _checkPreferencesCatchUp();
       NotificationDestinationHandler.consumePending(context, ref: ref);
     });
+  }
+
+  Future<void> _checkPreferencesCatchUp() async {
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (!mounted) return;
+    PreferencesCatchUpSheet.checkAndShow(context, ref);
   }
 
   Future<void> _checkDiscoveryPromotion() async {

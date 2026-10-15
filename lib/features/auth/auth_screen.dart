@@ -11,6 +11,7 @@ import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/capitalize_words_input_formatter.dart';
 import 'auth_controller.dart';
+import '../../core/routing/auth_navigation.dart';
 import 'widgets/auth_legal_sheets.dart';
 
 class PhoneNumberTextInputFormatter extends TextInputFormatter {
@@ -374,24 +375,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     super.dispose();
   }
 
-  String? _sanitizeRedirect(String? raw) {
-    if (raw == null || raw.trim().isEmpty) return null;
-    final decoded = Uri.decodeComponent(raw).trim();
-    if (decoded.contains('://') || decoded.startsWith('//') || decoded.contains('\\')) {
-      return null;
-    }
-    if (!decoded.startsWith('/')) return null;
-    if (decoded.startsWith('/login') || decoded.startsWith('/register')) return null;
-    return decoded;
-  }
-
-  void _navigatePostLogin() {
-    final clean = _sanitizeRedirect(widget.redirect);
-    if (clean != null && clean != '/') {
-      context.go(clean);
-    } else {
-      context.go('/');
-    }
+  void _navigatePostLogin({Map<String, dynamic>? user, bool isNewUser = false}) {
+    final currentUser = user ?? ref.read(authProvider).user;
+    final decision = resolvePostAuthDecision(
+      currentUser,
+      explicitTarget: widget.redirect,
+      isNewUser: isNewUser,
+    );
+    context.go(decision.path);
   }
 
   void _switchTab(AuthTab tab) {
@@ -436,7 +427,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() => _isSubmitting = false);
 
     if (res.ok) {
-      _navigatePostLogin();
+      _navigatePostLogin(isNewUser: !res.onboardingCompleted);
     } else if (res.isNotVerified) {
       // Compte non vérifié -> proposer de valider l'OTP
       setState(() {
@@ -503,7 +494,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     if (res.ok) {
       BkoHaptics.success();
-      _navigatePostLogin();
+      _navigatePostLogin(isNewUser: !res.onboardingCompleted);
     } else {
       BkoHaptics.error();
       setState(() {
@@ -521,7 +512,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() => _isSubmitting = false);
 
     if (res.ok) {
-      _navigatePostLogin();
+      _navigatePostLogin(isNewUser: !res.onboardingCompleted);
     } else if (res.error != null) {
       setState(() => _localError = res.error);
     }
@@ -609,8 +600,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     setState(() => _isSubmitting = false);
 
     if (res.ok) {
-      final cleanRedirect = _sanitizeRedirect(widget.redirect);
-      final queryRedirect = cleanRedirect != null ? '&redirect=${Uri.encodeQueryComponent(cleanRedirect)}' : '';
+      final cleanRedirect = sanitizeRedirect(widget.redirect);
+      final queryRedirect = cleanRedirect.isNotEmpty ? '&redirect=${Uri.encodeQueryComponent(cleanRedirect)}' : '';
       final codeParam = (res.otpCode != null && res.otpCode!.isNotEmpty)
           ? '&code=${Uri.encodeQueryComponent(res.otpCode!)}'
           : '';
@@ -1907,14 +1898,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             ),
           ),
           TextButton(
-            onPressed: () {
-              final clean = _sanitizeRedirect(widget.redirect);
-              if (clean != null && clean != '/') {
-                context.go(clean);
-              } else {
-                context.go('/');
-              }
-            },
+            onPressed: () => _navigatePostLogin(),
             style: TextButton.styleFrom(
               backgroundColor: const Color(0xFF1A1A1A),
               foregroundColor: Colors.white,

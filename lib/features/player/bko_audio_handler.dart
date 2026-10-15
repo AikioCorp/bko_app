@@ -23,7 +23,30 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
         );
       },
     );
+
+    // Mettre à jour mediaItem dès que la durée réelle est résolue par ExoPlayer/AVPlayer
+    _player.durationStream.listen((d) {
+      if (d != null && d > Duration.zero) {
+        final current = mediaItem.value;
+        if (current != null && current.duration != d) {
+          mediaItem.add(current.copyWith(duration: d));
+        }
+      }
+    });
+
+    // Mettre à jour le PlaybackState au rythme de la lecture pour le widget / lockscreen Android
+    _player.positionStream.listen((pos) {
+      if (_player.playing) {
+        final last = _lastNotifiedSec;
+        if (last == null || pos.inSeconds != last) {
+          _lastNotifiedSec = pos.inSeconds;
+          playbackState.add(_toPlaybackState());
+        }
+      }
+    });
   }
+
+  int? _lastNotifiedSec;
 
   Future<void> _initAudioSession() async {
     try {
@@ -63,6 +86,9 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
 
   final AudioPlayer _player = AudioPlayer();
 
+  Duration? get duration => _player.duration;
+  Duration get position => _player.position;
+
   Stream<Duration> get positionStream => _player.positionStream;
   Stream<Duration?> get durationStream => _player.durationStream;
   Stream<PlayerState> get playerStateStream => _player.playerStateStream;
@@ -83,7 +109,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
         debugPrint('[BkoAudioHandler] AudioSession setActive warning: $e');
       }
 
-      await _player.setAudioSource(
+      final resolvedDuration = await _player.setAudioSource(
         AudioSource.uri(
           source,
           headers: const {
@@ -95,6 +121,12 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
       );
       await _player.setVolume(1.0);
       debugPrint('[BkoAudioHandler] Loaded successfully. Duration: ${_player.duration}');
+
+      final finalDuration = resolvedDuration ?? _player.duration;
+      if (finalDuration != null && finalDuration > Duration.zero) {
+        mediaItem.add(item.copyWith(duration: finalDuration));
+      }
+
       if (autoplay) {
         await play();
       }
@@ -112,6 +144,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
         await session.setActive(true);
       } catch (_) {}
       await _player.play();
+      playbackState.add(_toPlaybackState());
     } catch (e) {
       debugPrint('[BkoAudioHandler] play error: $e');
     }
@@ -121,6 +154,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> pause() async {
     try {
       await _player.pause();
+      playbackState.add(_toPlaybackState());
     } catch (_) {}
   }
 
@@ -128,6 +162,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> seek(Duration position) async {
     try {
       await _player.seek(position);
+      playbackState.add(_toPlaybackState());
     } catch (_) {}
   }
 
@@ -152,6 +187,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> setSpeed(double speed) async {
     try {
       await _player.setSpeed(speed);
+      playbackState.add(_toPlaybackState());
     } catch (_) {}
   }
 
@@ -159,6 +195,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> stop() async {
     try {
       await _player.stop();
+      playbackState.add(_toPlaybackState());
     } catch (_) {}
   }
 
@@ -168,7 +205,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
     } catch (_) {}
   }
 
-  PlaybackState _toPlaybackState(PlaybackEvent event) {
+  PlaybackState _toPlaybackState([PlaybackEvent? event]) {
     const processingStateMap = {
       ProcessingState.idle: AudioProcessingState.idle,
       ProcessingState.loading: AudioProcessingState.loading,
@@ -188,6 +225,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
         MediaAction.seek,
         MediaAction.seekBackward,
         MediaAction.seekForward,
+        MediaAction.setSpeed,
       },
       androidCompactActionIndices: const [0, 1, 3],
       processingState:
@@ -196,6 +234,7 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
       updatePosition: _player.position,
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
+      updateTime: DateTime.now(),
     );
   }
 }

@@ -141,7 +141,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<({bool ok, String? error, bool isNotVerified})> login(
+  Future<({bool ok, String? error, bool isNotVerified, bool onboardingCompleted})> login(
     String identifier,
     String password,
   ) async {
@@ -163,7 +163,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (data is! Map) {
         const err = 'Réponse de connexion invalide du serveur.';
         state = const AuthState(error: err);
-        return (ok: false, error: err, isNotVerified: false);
+        return (ok: false, error: err, isNotVerified: false, onboardingCompleted: false);
       }
       final user = data['user'] is Map
           ? Map<String, dynamic>.from(data['user'] as Map)
@@ -173,7 +173,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (token == null || token.isEmpty) {
         const err = 'Connexion incomplète. Réessayez.';
         state = const AuthState(error: err);
-        return (ok: false, error: err, isNotVerified: false);
+        return (ok: false, error: err, isNotVerified: false, onboardingCompleted: false);
       }
       await TokenStorage.save(token, user, refreshToken: refreshToken);
       await BkoTelemetryService().onUserSwitched(user?['id']?.toString());
@@ -184,20 +184,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
       );
       PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
-      return (ok: true, error: null, isNotVerified: false);
+      final onboardingDone = user?['onboardingCompleted'] == true ||
+          (user?['recommendationProfile'] is Map &&
+              user?['recommendationProfile']['onboardingCompleted'] == true);
+      return (ok: true, error: null, isNotVerified: false, onboardingCompleted: onboardingDone);
     } on AccountSuspendedException catch (error) {
       await handleAccountSuspended(error);
-      return (ok: false, error: error.message, isNotVerified: false);
+      return (ok: false, error: error.message, isNotVerified: false, onboardingCompleted: false);
     } on ApiException catch (error) {
       final isNotVerified = error.statusCode == 403 ||
           error.message.toLowerCase().contains('non vérifié') ||
           error.message.toLowerCase().contains('otp');
       state = AuthState(error: error.message);
-      return (ok: false, error: error.message, isNotVerified: isNotVerified);
+      return (ok: false, error: error.message, isNotVerified: isNotVerified, onboardingCompleted: false);
     } catch (_) {
       const err = 'Impossible de contacter le serveur. Vérifiez votre connexion.';
       state = const AuthState(error: err);
-      return (ok: false, error: err, isNotVerified: false);
+      return (ok: false, error: err, isNotVerified: false, onboardingCompleted: false);
     }
   }
 

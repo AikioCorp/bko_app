@@ -18,6 +18,12 @@ class BkoMiniPlayer extends ConsumerWidget {
     this.compact = false,
   });
 
+  String _formatDuration(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isFullPlayerOpen = ref.watch(isFullPlayerOpenProvider);
@@ -27,13 +33,18 @@ class BkoMiniPlayer extends ConsumerWidget {
     if (!active.hasActiveEpisode) return const SizedBox.shrink();
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final glassBg = isDark ? const Color(0xE6161B22) : const Color(0xECFFFFFF);
+    final glassBg = isDark ? const Color(0xE6161B22) : const Color(0xF2FFFFFF);
     final glassBorder = isDark ? const Color(0x33E6B009) : const Color(0x250F172A);
+
+    final elapsedStr = _formatDuration(active.currentPosition);
+    final totalStr = active.totalDuration > Duration.zero
+        ? _formatDuration(active.totalDuration)
+        : (active.duration.isNotEmpty ? active.duration : '--:--');
 
     return Semantics(
       label: 'Lecteur en cours : ${active.title}',
       child: Container(
-        height: 58,
+        height: 64,
         decoration: const BoxDecoration(),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(26),
@@ -42,7 +53,7 @@ class BkoMiniPlayer extends ConsumerWidget {
             child: Stack(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                   decoration: BoxDecoration(
                     color: glassBg,
                     borderRadius: BorderRadius.circular(26),
@@ -61,12 +72,12 @@ class BkoMiniPlayer extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(11),
                                 child: Image.network(
                                   active.coverUrl.isNotEmpty ? active.coverUrl : '',
-                                  width: 42,
-                                  height: 42,
+                                  width: 44,
+                                  height: 44,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) => Container(
-                                    width: 42,
-                                    height: 42,
+                                    width: 44,
+                                    height: 44,
                                     color: BkoTheme.getBgSurfaceElevated(context),
                                     child: const Icon(
                                       IconsaxPlusLinear.music,
@@ -94,20 +105,40 @@ class BkoMiniPlayer extends ConsumerWidget {
                                         color: BkoTheme.getTextPrimary(context),
                                       ),
                                     ),
-                                    const SizedBox(height: 1),
-                                    Text(
-                                      active.showName.isNotEmpty
-                                          ? (active.duration.isNotEmpty
-                                              ? '${active.showName} • ${active.duration}'
-                                              : active.showName)
-                                          : 'Épisode en cours',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: BkoTheme.fontLato(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                        color: BkoTheme.getTextSecondary(context),
-                                      ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        Flexible(
+                                          child: Text(
+                                            active.showName.isNotEmpty
+                                                ? active.showName
+                                                : 'Bamako Podcast',
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: BkoTheme.fontLato(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                              color: BkoTheme.getTextSecondary(context),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            color: isDark ? const Color(0x33FFBF00) : const Color(0x1ADB8900),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            '$elapsedStr / $totalStr',
+                                            style: BkoTheme.fontLato(
+                                              fontSize: 9.5,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark ? BkoTheme.goldAccent : const Color(0xFFB45309),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -158,16 +189,21 @@ class BkoMiniPlayer extends ConsumerWidget {
                   ),
                 ),
                 Positioned(
-                  left: 20,
-                  right: 20,
-                  bottom: 3,
+                  left: 16,
+                  right: 16,
+                  bottom: 2,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(2),
-                    child: LinearProgressIndicator(
-                      value: active.progress.clamp(0.0, 1.0),
-                      minHeight: 2.2,
-                      backgroundColor: Colors.white.withValues(alpha: 0.12),
-                      valueColor: const AlwaysStoppedAnimation<Color>(BkoTheme.goldAccent),
+                    child: Container(
+                      height: 3.5,
+                      color: isDark ? const Color(0x33FFFFFF) : const Color(0x1F000000),
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: active.progress.clamp(0.0, 1.0),
+                        child: Container(
+                          color: BkoTheme.goldAccent,
+                        ),
+                      ),
                     ),
                   ),
                 ),

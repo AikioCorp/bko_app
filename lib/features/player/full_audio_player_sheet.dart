@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:flutter/services.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/theme/bko_theme.dart';
+import '../../core/theme/theme_provider.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../../core/widgets/bko_toast.dart';
@@ -23,12 +25,20 @@ class FullAudioPlayerSheet extends ConsumerStatefulWidget {
   static Future<void> show(BuildContext context) async {
     final container = ProviderScope.containerOf(context, listen: false);
     container.read(isFullPlayerOpenProvider.notifier).state = true;
+    final themeSetting = container.read(themeSettingProvider);
+    final isDark = switch (themeSetting) {
+      AppThemeSetting.light => false,
+      AppThemeSetting.dark || AppThemeSetting.amoled => true,
+      AppThemeSetting.system => Theme.of(context).brightness == Brightness.dark,
+    };
+
     try {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-      useSafeArea: true,
+        useSafeArea: true,
         backgroundColor: Colors.transparent,
+        barrierColor: isDark ? Colors.black54 : const Color(0x33000000),
         builder: (_) => const FullAudioPlayerSheet(),
       );
     } finally {
@@ -130,10 +140,22 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
 
   void _showSpeedPicker(double currentSpeed) {
     const speeds = [0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
+    final themeSetting = ref.read(themeSettingProvider);
+    final isDark = switch (themeSetting) {
+      AppThemeSetting.light => false,
+      AppThemeSetting.dark || AppThemeSetting.amoled => true,
+      AppThemeSetting.system => Theme.of(context).brightness == Brightness.dark,
+    };
+    final bgSurface = isDark ? BkoTheme.darkBgSurface : Colors.white;
+    final borderSub = isDark ? BkoTheme.darkBorderSubtle : BkoTheme.lightBorderSubtle;
+    final textPri = isDark ? BkoTheme.darkTextPrimary : BkoTheme.lightTextPrimary;
+    final handleColor = isDark ? Colors.white24 : Colors.black12;
+    final goldContrast = isDark ? BkoTheme.goldAccent : const Color(0xFFB45309);
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF16161A),
+      backgroundColor: bgSurface,
+      barrierColor: isDark ? Colors.black54 : const Color(0x33000000),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -146,7 +168,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -156,11 +178,11 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               style: BkoTheme.fontLato(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: textPri,
               ),
             ),
             const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFF262626)),
+            Divider(height: 1, color: borderSub),
             ...speeds.map((s) {
               final isSelected = (s - currentSpeed).abs() < 0.05;
               return ListTile(
@@ -169,11 +191,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                   style: BkoTheme.fontLato(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                    color: isSelected ? BkoTheme.goldAccent : Colors.white,
+                    color: isSelected ? goldContrast : textPri,
                   ),
                 ),
                 trailing: isSelected
-                    ? const Icon(Icons.check_rounded, color: BkoTheme.goldAccent)
+                    ? Icon(IconsaxPlusBold.tick_circle,
+                        color: goldContrast, size: 20)
                     : null,
                 onTap: () {
                   ref
@@ -203,10 +226,22 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
             ref.read(activeEpisodeProvider).currentPosition
       },
     ];
+    final themeSetting = ref.read(themeSettingProvider);
+    final isDark = switch (themeSetting) {
+      AppThemeSetting.light => false,
+      AppThemeSetting.dark || AppThemeSetting.amoled => true,
+      AppThemeSetting.system => Theme.of(context).brightness == Brightness.dark,
+    };
+    final bgSurface = isDark ? BkoTheme.darkBgSurface : Colors.white;
+    final borderSub = isDark ? BkoTheme.darkBorderSubtle : BkoTheme.lightBorderSubtle;
+    final textPri = isDark ? BkoTheme.darkTextPrimary : BkoTheme.lightTextPrimary;
+    final handleColor = isDark ? Colors.white24 : Colors.black12;
+    final goldContrast = isDark ? BkoTheme.goldAccent : const Color(0xFFB45309);
 
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF16161A),
+      backgroundColor: bgSurface,
+      barrierColor: isDark ? Colors.black54 : const Color(0x33000000),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -219,7 +254,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -229,22 +264,22 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               style: BkoTheme.fontLato(
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: textPri,
               ),
             ),
             const SizedBox(height: 10),
-            const Divider(height: 1, color: Color(0xFF262626)),
+            Divider(height: 1, color: borderSub),
             ...timers.map((t) {
               final label = t['label'] as String;
               final dur = t['duration'] as Duration?;
               return ListTile(
-                leading: const Icon(Icons.bedtime_outlined,
-                    color: BkoTheme.goldAccent, size: 20),
+                leading: Icon(IconsaxPlusLinear.timer_1,
+                    color: goldContrast, size: 20),
                 title: Text(
                   label,
                   style: BkoTheme.fontLato(
                     fontSize: 14,
-                    color: Colors.white,
+                    color: textPri,
                   ),
                 ),
                 onTap: () {
@@ -293,10 +328,30 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
       return const SizedBox.shrink();
     }
 
-    const bgObsidian = Color(0xFF0B0B0B);
-    const borderSub = Color(0xFF262626);
-    const textPri = Colors.white;
-    const textSec = Colors.white70;
+    final themeSetting = ref.watch(themeSettingProvider);
+    final isDark = switch (themeSetting) {
+      AppThemeSetting.light => false,
+      AppThemeSetting.dark || AppThemeSetting.amoled => true,
+      AppThemeSetting.system => Theme.of(context).brightness == Brightness.dark,
+    };
+    final bgSheet = isDark ? BkoTheme.darkBgObsidian : Colors.white;
+    final bgElevated = isDark ? BkoTheme.darkBgSurfaceElevated : BkoTheme.lightBgSurfaceElevated;
+    final borderSub = isDark ? BkoTheme.darkBorderSubtle : BkoTheme.lightBorderSubtle;
+    final borderStrong = isDark ? BkoTheme.darkBorderStrong : BkoTheme.lightBorderStrong;
+    final textPri = isDark ? BkoTheme.darkTextPrimary : BkoTheme.lightTextPrimary;
+    final textSec = isDark ? BkoTheme.darkTextSecondary : BkoTheme.lightTextSecondary;
+    final textMut = isDark ? BkoTheme.darkTextMuted : BkoTheme.lightTextMuted;
+    final handleColor = isDark ? Colors.white24 : Colors.black12;
+    final goldContrast = isDark ? BkoTheme.goldAccent : const Color(0xFFB45309);
+    final overlayStyle = isDark
+        ? SystemUiOverlayStyle.light.copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+          )
+        : SystemUiOverlayStyle.dark.copyWith(
+            statusBarColor: Colors.transparent,
+            systemNavigationBarColor: Colors.transparent,
+          );
 
     final totalDuration = active.totalDuration;
     final effectivePos = _isDragging &&
@@ -328,12 +383,15 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
       'videoUrl': active.videoUrl,
     };
 
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.94,
-      decoration: const BoxDecoration(
-        color: bgObsidian,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: overlayStyle,
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.94,
+        decoration: BoxDecoration(
+          color: bgSheet,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+          border: Border.all(color: borderSub),
+        ),
       child: Column(
         children: [
           // Drag handle
@@ -343,7 +401,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -357,8 +415,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(IconsaxPlusLinear.arrow_down_1,
-                      color: Colors.white, size: 24),
+                  icon: Icon(IconsaxPlusLinear.arrow_down_1,
+                      color: textPri, size: 24),
                   onPressed: () {
                     BkoHaptics.select();
                     Navigator.pop(context);
@@ -372,12 +430,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     fontSize: 11,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 2.0,
-                    color: BkoTheme.goldAccent,
+                    color: goldContrast,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(IconsaxPlusLinear.more,
-                      color: Colors.white, size: 22),
+                  icon: Icon(IconsaxPlusLinear.more,
+                      color: textPri, size: 22),
                   onPressed: () {
                     BkoHaptics.select();
                     EpisodeActionsSheet.show(context, episodeMap);
@@ -402,7 +460,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A1E),
+                        color: bgElevated,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(color: borderSub),
                       ),
@@ -425,11 +483,11 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    Icons.headphones_rounded,
+                                    IconsaxPlusLinear.headphone,
                                     size: 14,
                                     color: active.mode == 'AUDIO'
                                         ? Colors.black
-                                        : Colors.white70,
+                                        : textSec,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -439,7 +497,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                       fontWeight: FontWeight.w800,
                                       color: active.mode == 'AUDIO'
                                           ? Colors.black
-                                          : Colors.white70,
+                                          : textSec,
                                     ),
                                   ),
                                 ],
@@ -462,11 +520,11 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    Icons.videocam_rounded,
+                                    IconsaxPlusLinear.video,
                                     size: 14,
                                     color: active.mode == 'VIDEO'
                                         ? Colors.black
-                                        : Colors.white70,
+                                        : textSec,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -476,7 +534,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                       fontWeight: FontWeight.w800,
                                       color: active.mode == 'VIDEO'
                                           ? Colors.black
-                                          : Colors.white70,
+                                          : textSec,
                                     ),
                                   ),
                                 ],
@@ -507,17 +565,10 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: borderSub),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            blurRadius: 24,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
+                        border: Border.all(color: borderSub, width: 1.5),
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(20),
                         child: AspectRatio(
                           aspectRatio: 1,
                           child: active.coverUrl.isNotEmpty &&
@@ -525,9 +576,10 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                               ? CachedNetworkImage(
                                   imageUrl: active.coverUrl,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => _fallbackCover(),
+                                  errorWidget: (_, __, ___) =>
+                                      _fallbackCover(bgElevated),
                                 )
-                              : _fallbackCover(),
+                              : _fallbackCover(bgElevated),
                         ),
                       ),
                     ),
@@ -568,12 +620,12 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           style: BkoTheme.fontLato(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
-                            color: BkoTheme.goldAccent,
+                            color: goldContrast,
                           ),
                         ),
                         const SizedBox(width: 4),
-                        const Icon(Icons.chevron_right_rounded,
-                            color: BkoTheme.goldAccent, size: 18),
+                        Icon(IconsaxPlusLinear.arrow_right_3,
+                            color: goldContrast, size: 16),
                       ],
                     ),
                   ),
@@ -592,7 +644,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       overlayShape:
                           const RoundSliderOverlayShape(overlayRadius: 16),
                       activeTrackColor: BkoTheme.goldAccent,
-                      inactiveTrackColor: Colors.white24,
+                      inactiveTrackColor: isDark ? Colors.white24 : borderStrong,
                       thumbColor: BkoTheme.goldAccent,
                       overlayColor: const Color(0x33FFBF00),
                     ),
@@ -662,8 +714,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           width: 48,
                           height: 48,
                           alignment: Alignment.center,
-                          child: const Icon(IconsaxPlusLinear.backward_15_seconds,
-                              color: Colors.white, size: 30),
+                          child: Icon(IconsaxPlusLinear.backward_15_seconds,
+                              color: textPri, size: 30),
                         ),
                       ),
                       BkoBounceable(
@@ -708,8 +760,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           width: 48,
                           height: 48,
                           alignment: Alignment.center,
-                          child: const Icon(IconsaxPlusLinear.forward_15_seconds,
-                              color: Colors.white, size: 30),
+                          child: Icon(IconsaxPlusLinear.forward_15_seconds,
+                              color: textPri, size: 30),
                         ),
                       ),
                     ],
@@ -722,7 +774,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF141418),
+                      color: bgElevated,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(color: borderSub),
                     ),
@@ -739,8 +791,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                               color: active.playbackSpeed != 1.0
-                                  ? BkoTheme.goldAccent
-                                  : Colors.white,
+                                  ? goldContrast
+                                  : textPri,
                             ),
                           ),
                         ),
@@ -750,8 +802,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           icon: Icon(
                             IconsaxPlusLinear.timer_1,
                             color: active.sleepTimerEndsAt != null
-                                ? BkoTheme.goldAccent
-                                : Colors.white70,
+                                ? goldContrast
+                                : textSec,
                             size: 20,
                           ),
                           onPressed: () {
@@ -768,7 +820,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                 : IconsaxPlusLinear.heart,
                             color: ref.watch(likedEpisodesProvider).contains(active.episodeId)
                                 ? Colors.redAccent
-                                : Colors.white70,
+                                : textSec,
                             size: 21,
                           ),
                           tooltip: ref.watch(likedEpisodesProvider).contains(active.episodeId)
@@ -788,8 +840,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           alignment: Alignment.topRight,
                           children: [
                             IconButton(
-                              icon: const Icon(IconsaxPlusLinear.music_playlist,
-                                  color: Colors.white70, size: 22),
+                              icon: Icon(IconsaxPlusLinear.music_playlist,
+                                  color: textSec, size: 22),
                               onPressed: () {
                                 BkoHaptics.select();
                                 QueueSheet.show(context);
@@ -815,10 +867,10 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                           ],
                         ),
 
-                        // 4. Comments Button
+                        // 5. Comments Button
                         IconButton(
-                          icon: const Icon(IconsaxPlusLinear.messages_2,
-                              color: Colors.white70, size: 20),
+                          icon: Icon(IconsaxPlusLinear.messages_2,
+                              color: textSec, size: 20),
                           onPressed: () {
                             BkoHaptics.select();
                             EpisodeCommentsSheet.show(
@@ -839,8 +891,22 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     spacing: 10,
                     runSpacing: 8,
                     children: [
-                      _buildTabButton('À suivre (${active.queue.length})', 0),
-                      _buildTabButton('Chapitres (${_chapters.length})', 1),
+                      _buildTabButton(
+                        'À suivre (${active.queue.length})',
+                        0,
+                        bgElevated: bgElevated,
+                        borderSub: borderSub,
+                        textPri: textPri,
+                        textMut: textMut,
+                      ),
+                      _buildTabButton(
+                        'Chapitres (${_chapters.length})',
+                        1,
+                        bgElevated: bgElevated,
+                        borderSub: borderSub,
+                        textPri: textPri,
+                        textMut: textMut,
+                      ),
                     ],
                   ),
 
@@ -853,14 +919,14 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 20, horizontal: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF141418),
+                          color: bgElevated,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: borderSub),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.playlist_play_rounded,
-                                color: Colors.white38),
+                            Icon(IconsaxPlusLinear.music_playlist,
+                                color: textMut),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
@@ -879,7 +945,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF16161A),
+                              color: bgElevated,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: borderSub),
                             ),
@@ -894,9 +960,9 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                           height: 36,
                                           fit: BoxFit.cover,
                                           errorWidget: (_, __, ___) =>
-                                              _fallbackCover(size: 36),
+                                              _fallbackCover(bgElevated, size: 36),
                                         )
-                                      : _fallbackCover(size: 36),
+                                      : _fallbackCover(bgElevated, size: 36),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
@@ -924,7 +990,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.play_arrow_rounded,
+                                const Icon(IconsaxPlusLinear.play,
                                     color: BkoTheme.goldAccent, size: 20),
                               ],
                             ),
@@ -963,7 +1029,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                         padding: const EdgeInsets.symmetric(
                             vertical: 20, horizontal: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF141418),
+                          color: bgElevated,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: borderSub),
                         ),
@@ -986,15 +1052,15 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                     horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
                                   color:
-                                      BkoTheme.goldAccent.withValues(alpha: 0.15),
+                                      BkoTheme.goldAccent.withValues(alpha: isDark ? 0.15 : 0.25),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   ch['time']!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: BkoTheme.goldAccent,
+                                    color: goldContrast,
                                   ),
                                 ),
                               ),
@@ -1003,8 +1069,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                 style: BkoTheme.fontLato(
                                     fontSize: 13, color: textPri),
                               ),
-                              trailing: const Icon(Icons.play_circle_fill_rounded,
-                                  color: BkoTheme.goldAccent, size: 20),
+                              trailing: Icon(IconsaxPlusBold.play_circle,
+                                  color: goldContrast, size: 20),
                               onTap: () => _seekToTimestamp(ch['time']!),
                             ),
                           );
@@ -1019,20 +1085,28 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildTabButton(String label, int index) {
+  Widget _buildTabButton(
+    String label,
+    int index, {
+    required Color bgElevated,
+    required Color borderSub,
+    required Color textPri,
+    required Color textMut,
+  }) {
     final isSelected = _selectedTab == index;
     return GestureDetector(
       onTap: () => setState(() => _selectedTab = index),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF222228) : Colors.transparent,
+          color: isSelected ? bgElevated : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? BkoTheme.goldAccent : const Color(0xFF262626),
+            color: isSelected ? BkoTheme.goldAccent : borderSub,
           ),
         ),
         child: Text(
@@ -1040,18 +1114,18 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
           style: BkoTheme.fontLato(
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.white60,
+            color: isSelected ? textPri : textMut,
           ),
         ),
       ),
     );
   }
 
-  Widget _fallbackCover({double size = 48}) => Container(
+  Widget _fallbackCover(Color bgColor, {double size = 48}) => Container(
         width: size,
         height: size,
-        color: const Color(0xFF1E1E24),
-        child: const Icon(Icons.podcasts_rounded,
-            color: BkoTheme.goldAccent, size: 24),
+        color: bgColor,
+        child: const Icon(IconsaxPlusLinear.music,
+            color: BkoTheme.goldAccent, size: 22),
       );
 }

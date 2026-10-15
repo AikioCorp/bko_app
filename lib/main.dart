@@ -18,6 +18,12 @@ Future<void> main() async {
     config: const AudioServiceConfig(
       androidNotificationChannelId: 'studio.bamakopodcast.app.playback',
       androidNotificationChannelName: 'Lecture Bamako Podcast',
+      androidNotificationChannelDescription: 'Contrôles de lecture audio Bamako Podcast',
+      androidNotificationClickStartsActivity: true,
+      androidStopForegroundOnPause: true,
+      notificationColor: Color(0xFFFFBF00),
+      fastForwardInterval: Duration(seconds: 30),
+      rewindInterval: Duration(seconds: 15),
     ),
   );
   runApp(

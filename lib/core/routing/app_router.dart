@@ -1,3 +1,4 @@
+import '../../features/settings/support_tickets_screen.dart';
 import 'package:flutter/material.dart';
 import '../../features/studio/studio_podcast_screen.dart';
 import '../../features/studio/studio_access_gate.dart';
@@ -49,6 +50,9 @@ final appRouter = GoRouter(
   initialLocation: '/splash',
   routes: [
     GoRoute(
+        path: "/support",
+        builder: (context, state) => const SupportTicketsScreen()),
+    GoRoute(
       path: '/suspended',
       builder: (context, state) => SuspendedScreen(
         details: state.extra as Map<String, dynamic>?,
@@ -74,14 +78,16 @@ final appRouter = GoRouter(
       path: '/forgot-password',
       builder: (context, state) => ForgotPasswordScreen(
         initialEmail: state.uri.queryParameters['email'],
-        initialCode: state.uri.queryParameters['code'] ?? state.uri.queryParameters['otpCode'],
+        initialCode: state.uri.queryParameters['code'] ??
+            state.uri.queryParameters['otpCode'],
       ),
     ),
     GoRoute(
       path: '/reset-password',
       builder: (context, state) => ForgotPasswordScreen(
         initialEmail: state.uri.queryParameters['email'],
-        initialCode: state.uri.queryParameters['code'] ?? state.uri.queryParameters['otpCode'],
+        initialCode: state.uri.queryParameters['code'] ??
+            state.uri.queryParameters['otpCode'],
       ),
     ),
     GoRoute(
@@ -188,7 +194,7 @@ final appRouter = GoRouter(
                 initialSubtitle: state.uri.queryParameters['subtitle'],
                 initialType: state.uri.queryParameters['type'],
                 category: state.uri.queryParameters['category'],
-            country: state.uri.queryParameters['country'],
+                country: state.uri.queryParameters['country'],
                 batchId: state.uri.queryParameters['batchId'],
               );
             }
@@ -327,4 +333,3 @@ final appRouter = GoRouter(
     ),
   ],
 );
-

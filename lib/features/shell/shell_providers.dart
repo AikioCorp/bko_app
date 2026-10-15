@@ -293,16 +293,29 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
   void _onPosition(Duration position) {
     if (!mounted) return;
     if (state.mode != 'AUDIO' || !state.hasActiveEpisode) return;
-    if (position.inSeconds == state.currentPosition.inSeconds) return;
+    if (position.inSeconds == state.currentPosition.inSeconds &&
+        state.currentPosition != Duration.zero) {
+      return;
+    }
+
+    var total = state.totalDuration;
+    if (total == Duration.zero) {
+      final playerDur = _audioHandler.duration;
+      if (playerDur != null && playerDur > Duration.zero) {
+        total = playerDur;
+      }
+    }
+
     state = state.copyWith(
       currentPosition: position,
-      progress: _progress(position, state.totalDuration),
+      totalDuration: total,
+      progress: _progress(position, total),
     );
   }
 
   void _onDuration(Duration? duration) {
     if (!mounted) return;
-    if (duration == null || !state.hasActiveEpisode) return;
+    if (duration == null || duration == Duration.zero || !state.hasActiveEpisode) return;
     if (duration == state.totalDuration) return;
     state = state.copyWith(
       totalDuration: duration,
@@ -886,17 +899,51 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     return null;
   }
 
-  static Duration _parseDuration(String value) {
-    final minutes =
-        RegExp(r'(\d+)\s*min', caseSensitive: false).firstMatch(value);
-    if (minutes != null) return Duration(minutes: int.parse(minutes.group(1)!));
-    final parts = value.split(':');
-    if (parts.length == 2) {
-      return Duration(
-        minutes: int.tryParse(parts.first) ?? 0,
-        seconds: int.tryParse(parts.last) ?? 0,
-      );
+  static Duration _parseDuration(dynamic value) {
+    if (value == null) return Duration.zero;
+    if (value is Duration) return value;
+    if (value is num) return Duration(seconds: value.toInt());
+
+    final str = value.toString().trim();
+    if (str.isEmpty) return Duration.zero;
+
+    final numeric = double.tryParse(str);
+    if (numeric != null && numeric > 0) {
+      return Duration(seconds: numeric.round());
     }
+
+    if (str.contains(':')) {
+      final parts = str.split(':').map((p) => int.tryParse(p.trim()) ?? 0).toList();
+      if (parts.length == 3) {
+        return Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
+      } else if (parts.length == 2) {
+        return Duration(minutes: parts[0], seconds: parts[1]);
+      }
+    }
+
+    int hours = 0;
+    int minutes = 0;
+    int seconds = 0;
+
+    final hourMatch = RegExp(r'(\d+)\s*(?:h|heure|heures)', caseSensitive: false).firstMatch(str);
+    if (hourMatch != null) {
+      hours = int.tryParse(hourMatch.group(1)!) ?? 0;
+    }
+
+    final minMatch = RegExp(r'(\d+)\s*(?:m|min|minute|minutes)', caseSensitive: false).firstMatch(str);
+    if (minMatch != null) {
+      minutes = int.tryParse(minMatch.group(1)!) ?? 0;
+    }
+
+    final secMatch = RegExp(r'(\d+)\s*(?:s|sec|seconde|secondes)', caseSensitive: false).firstMatch(str);
+    if (secMatch != null) {
+      seconds = int.tryParse(secMatch.group(1)!) ?? 0;
+    }
+
+    if (hours > 0 || minutes > 0 || seconds > 0) {
+      return Duration(hours: hours, minutes: minutes, seconds: seconds);
+    }
+
     return Duration.zero;
   }
 

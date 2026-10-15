@@ -195,13 +195,8 @@ class _UserTasteOnboardingScreenState
         'podcastIds': _selectedPodcastIds.toList(),
       }, token: auth.token);
 
-      // Mettre à jour l'état local auth
-      final currentUser = ref.read(authProvider).user;
-      if (currentUser != null) {
-        final updatedUser = Map<String, dynamic>.from(currentUser);
-        updatedUser['onboardingCompleted'] = true;
-        await ref.read(authProvider.notifier).updateUser(updatedUser);
-      }
+      // Recharger complètement le profil canonique avec les vraies préférences
+      await ref.read(authProvider.notifier).fetchMe();
 
       if (!mounted) return;
       if (widget.isEditing) {
@@ -216,7 +211,8 @@ class _UserTasteOnboardingScreenState
         if (!mounted) return;
         final target = (widget.redirect != null &&
                 widget.redirect!.isNotEmpty &&
-                widget.redirect != '/login')
+                widget.redirect != '/login' &&
+                widget.redirect != '/taste-onboarding')
             ? widget.redirect!
             : '/';
         context.go(target);
@@ -231,6 +227,43 @@ class _UserTasteOnboardingScreenState
                 : e.message)
             : 'Impossible d\'enregistrer vos préférences. Réessayez.';
       });
+    }
+  }
+
+  Future<void> _skip() async {
+    if (_isSubmitting) return;
+    setState(() {
+      _isSubmitting = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated && auth.token != null && auth.token!.isNotEmpty) {
+        try {
+          await BkoApi.post('/recommendations/onboarding/state', {
+            'state': 'DISMISSED',
+          }, token: auth.token);
+        } catch (_) {}
+        await ref.read(authProvider.notifier).fetchMe();
+      }
+
+      if (!mounted) return;
+      if (widget.isEditing) {
+        context.pop();
+      } else {
+        final target = (widget.redirect != null &&
+                widget.redirect!.isNotEmpty &&
+                widget.redirect != '/login' &&
+                widget.redirect != '/taste-onboarding')
+            ? widget.redirect!
+            : '/';
+        context.go(target);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -263,9 +296,9 @@ class _UserTasteOnboardingScreenState
         actions: [
           if (!widget.isEditing)
             TextButton(
-              onPressed: _isSubmitting ? null : _complete,
+              onPressed: _isSubmitting ? null : _skip,
               child: Text(
-                'Passer',
+                'Plus tard',
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

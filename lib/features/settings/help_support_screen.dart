@@ -1,3 +1,4 @@
+import 'package:go_router/go_router.dart';
 import '../../core/widgets/app_header_actions.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -68,7 +69,10 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
   Future<void> _handleSubmitTicket() async {
     if (!_formKey.currentState!.validate()) return;
     final token = ref.read(authProvider).token;
-    if (token == null) return;
+    if (token == null) {
+      context.push('/support');
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
@@ -91,7 +95,7 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
       if (mounted) {
         setState(() {
           _isSubmitting = false;
-          _submittedTicketId = ticketId ?? 'BKO-${DateTime.now().millisecondsSinceEpoch}';
+          _submittedTicketId = ticketId;
           _subjectController.clear();
           _descriptionController.clear();
         });
@@ -112,7 +116,8 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
   }
 
   void _copyEmail() {
-    Clipboard.setData(const ClipboardData(text: 'support@bamakopodcast.studio'));
+    Clipboard.setData(
+        const ClipboardData(text: 'support@bamakopodcast.studio'));
     BkoHaptics.light();
     BkoToast.showSuccess(
       context,
@@ -142,6 +147,10 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         children: [
+          FilledButton(
+              onPressed: () => context.push('/support'),
+              child: const Text('Mes demandes et réponses')),
+          const SizedBox(height: 16),
           // Carte contact direct
           Container(
             padding: const EdgeInsets.all(18),
@@ -198,7 +207,8 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                     decoration: BoxDecoration(
                       color: BkoTheme.getBgSurfaceElevated(context),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: BkoTheme.getBorderSubtle(context)),
+                      border:
+                          Border.all(color: BkoTheme.getBorderSubtle(context)),
                     ),
                     child: Icon(
                       IconsaxPlusLinear.copy,
@@ -239,9 +249,11 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                 return Column(
                   children: [
                     Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                      data: Theme.of(context)
+                          .copyWith(dividerColor: Colors.transparent),
                       child: ExpansionTile(
-                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
                         title: Text(
                           item['question']!,
                           style: BkoTheme.fontLato(
@@ -250,7 +262,8 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                             color: BkoTheme.getTextPrimary(context),
                           ),
                         ),
-                        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                        childrenPadding:
+                            const EdgeInsets.fromLTRB(16, 0, 16, 14),
                         children: [
                           Text(
                             item['answer']!,
@@ -264,7 +277,10 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                       ),
                     ),
                     if (!isLast)
-                      Divider(height: 1, thickness: 1, color: BkoTheme.getBorderSubtle(context)),
+                      Divider(
+                          height: 1,
+                          thickness: 1,
+                          color: BkoTheme.getBorderSubtle(context)),
                   ],
                 );
               }).toList(),
@@ -298,7 +314,8 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(IconsaxPlusLinear.tick_circle, color: Colors.green, size: 22),
+                      const Icon(IconsaxPlusLinear.tick_circle,
+                          color: Colors.green, size: 22),
                       const SizedBox(width: 10),
                       Text(
                         'Demande enregistrée !',
@@ -377,19 +394,32 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                         fillColor: BkoTheme.getBgSurfaceElevated(context),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+                          borderSide: BorderSide(
+                              color: BkoTheme.getBorderSubtle(context)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'Général', child: Text('Question générale')),
-                        DropdownMenuItem(value: 'Lecture', child: Text('Problème de lecture ou audio')),
-                        DropdownMenuItem(value: 'Téléchargement', child: Text('Téléchargement hors-ligne')),
-                        DropdownMenuItem(value: 'Compte', child: Text('Mon compte ou connexion')),
-                        DropdownMenuItem(value: 'Studio', child: Text('Espace créateur / Studio')),
+                        DropdownMenuItem(
+                            value: 'Général', child: Text('Question générale')),
+                        DropdownMenuItem(
+                            value: 'Lecture',
+                            child: Text('Problème de lecture ou audio')),
+                        DropdownMenuItem(
+                            value: 'Téléchargement',
+                            child: Text('Téléchargement hors-ligne')),
+                        DropdownMenuItem(
+                            value: 'Compte',
+                            child: Text('Mon compte ou connexion')),
+                        DropdownMenuItem(
+                            value: 'Studio',
+                            child: Text('Espace créateur / Studio')),
                       ],
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedCategory = val);
+                        if (val != null) {
+                          setState(() => _selectedCategory = val);
+                        }
                       },
                     ),
                     const SizedBox(height: 14),
@@ -404,18 +434,26 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                     const SizedBox(height: 6),
                     TextFormField(
                       controller: _subjectController,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Indiquez un sujet' : null,
-                      style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextPrimary(context)),
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Indiquez un sujet'
+                          : null,
+                      style: BkoTheme.fontLato(
+                          fontSize: 13,
+                          color: BkoTheme.getTextPrimary(context)),
                       decoration: InputDecoration(
                         hintText: 'Ex: Difficulté à télécharger l\'épisode...',
-                        hintStyle: BkoTheme.fontLato(fontSize: 12, color: BkoTheme.getTextMuted(context)),
+                        hintStyle: BkoTheme.fontLato(
+                            fontSize: 12,
+                            color: BkoTheme.getTextMuted(context)),
                         filled: true,
                         fillColor: BkoTheme.getBgSurfaceElevated(context),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+                          borderSide: BorderSide(
+                              color: BkoTheme.getBorderSubtle(context)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -434,17 +472,23 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                       validator: (v) => (v == null || v.trim().length < 10)
                           ? 'Veuillez préciser votre demande (min. 10 caractères)'
                           : null,
-                      style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextPrimary(context)),
+                      style: BkoTheme.fontLato(
+                          fontSize: 13,
+                          color: BkoTheme.getTextPrimary(context)),
                       decoration: InputDecoration(
                         hintText: 'Décrivez ce que vous rencontrez...',
-                        hintStyle: BkoTheme.fontLato(fontSize: 12, color: BkoTheme.getTextMuted(context)),
+                        hintStyle: BkoTheme.fontLato(
+                            fontSize: 12,
+                            color: BkoTheme.getTextMuted(context)),
                         filled: true,
                         fillColor: BkoTheme.getBgSurfaceElevated(context),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+                          borderSide: BorderSide(
+                              color: BkoTheme.getBorderSubtle(context)),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                       ),
                     ),
                     const SizedBox(height: 18),
@@ -464,7 +508,8 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation(Colors.black),
+                                    valueColor:
+                                        AlwaysStoppedAnimation(Colors.black),
                                   ),
                                 )
                               : Text(

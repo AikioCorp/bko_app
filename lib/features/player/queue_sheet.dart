@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../core/theme/bko_theme.dart';
 import '../shell/shell_providers.dart';
 
@@ -21,10 +22,15 @@ class QueueSheet extends ConsumerWidget {
     final activeEpisode = ref.watch(activeEpisodeProvider);
     final queue = activeEpisode.queue;
 
-    const bgSurface = Color(0xFF141416);
-    const border = Color(0xFF262626);
-    const textPri = Colors.white;
-    const textSec = Colors.white70;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgSurface = BkoTheme.getBgSurface(context);
+    final bgElevated = BkoTheme.getBgSurfaceElevated(context);
+    final border = BkoTheme.getBorderSubtle(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final textMut = BkoTheme.getTextMuted(context);
+    final handleColor = isDark ? Colors.white24 : Colors.black12;
+    final goldContrast = isDark ? BkoTheme.goldAccent : const Color(0xFFB45309);
 
     return Container(
       constraints: BoxConstraints(
@@ -48,7 +54,7 @@ class QueueSheet extends ConsumerWidget {
               width: 38,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: handleColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -63,8 +69,8 @@ class QueueSheet extends ConsumerWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.queue_music_rounded,
-                        color: BkoTheme.goldAccent, size: 22),
+                    Icon(IconsaxPlusLinear.music_playlist,
+                        color: goldContrast, size: 22),
                     const SizedBox(width: 8),
                     Text(
                       'File d’attente',
@@ -95,8 +101,8 @@ class QueueSheet extends ConsumerWidget {
                         ),
                       ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded,
-                          color: Colors.white70),
+                      icon: Icon(IconsaxPlusLinear.close_circle,
+                          color: textSec, size: 20),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -105,7 +111,7 @@ class QueueSheet extends ConsumerWidget {
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFF242428)),
+          Divider(height: 1, color: border),
 
           Expanded(
             child: ListView(
@@ -119,14 +125,14 @@ class QueueSheet extends ConsumerWidget {
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.5,
-                      color: BkoTheme.goldAccent,
+                      color: goldContrast,
                     ),
                   ),
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C22),
+                      color: bgElevated,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: BkoTheme.goldAccent.withValues(alpha: 0.35),
@@ -142,9 +148,10 @@ class QueueSheet extends ConsumerWidget {
                                   width: 48,
                                   height: 48,
                                   fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => _fallbackCover(),
+                                  errorWidget: (_, __, ___) =>
+                                      _fallbackCover(bgElevated),
                                 )
-                              : _fallbackCover(),
+                              : _fallbackCover(bgElevated),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -174,10 +181,10 @@ class QueueSheet extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        const Icon(
-                          Icons.graphic_eq_rounded,
-                          color: BkoTheme.goldAccent,
-                          size: 24,
+                        Icon(
+                          IconsaxPlusLinear.music_filter,
+                          color: goldContrast,
+                          size: 22,
                         ),
                       ],
                     ),
@@ -195,7 +202,7 @@ class QueueSheet extends ConsumerWidget {
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.5,
-                        color: Colors.white70,
+                        color: textSec,
                       ),
                     ),
                   ],
@@ -207,14 +214,14 @@ class QueueSheet extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(
                         vertical: 28, horizontal: 16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF18181C),
+                      color: bgElevated,
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFF242428)),
+                      border: Border.all(color: border),
                     ),
                     child: Column(
                       children: [
-                        const Icon(Icons.playlist_play_rounded,
-                            size: 38, color: Colors.white38),
+                        Icon(IconsaxPlusLinear.music_playlist,
+                            size: 38, color: textMut),
                         const SizedBox(height: 8),
                         Text(
                           'Aucun épisode en attente',
@@ -256,7 +263,7 @@ class QueueSheet extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1F),
+                          color: bgElevated,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: border),
                         ),
@@ -265,10 +272,10 @@ class QueueSheet extends ConsumerWidget {
                             // Drag handle
                             ReorderableDragStartListener(
                               index: index,
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
                                 child: Icon(Icons.drag_handle_rounded,
-                                    color: Colors.white38, size: 20),
+                                    color: textMut, size: 20),
                               ),
                             ),
                             const SizedBox(width: 6),
@@ -283,9 +290,9 @@ class QueueSheet extends ConsumerWidget {
                                       height: 40,
                                       fit: BoxFit.cover,
                                       errorWidget: (_, __, ___) =>
-                                          _fallbackCover(size: 40),
+                                          _fallbackCover(bgElevated, size: 40),
                                     )
-                                  : _fallbackCover(size: 40),
+                                  : _fallbackCover(bgElevated, size: 40),
                             ),
                             const SizedBox(width: 12),
 
@@ -343,8 +350,8 @@ class QueueSheet extends ConsumerWidget {
 
                             // Delete button
                             IconButton(
-                              icon: const Icon(Icons.close_rounded,
-                                  color: Colors.white54, size: 18),
+                              icon: Icon(IconsaxPlusLinear.close_circle,
+                                  color: textMut, size: 18),
                               onPressed: () {
                                 ref
                                     .read(activeEpisodeProvider.notifier)
@@ -364,11 +371,11 @@ class QueueSheet extends ConsumerWidget {
     );
   }
 
-  Widget _fallbackCover({double size = 48}) => Container(
+  Widget _fallbackCover(Color bgColor, {double size = 48}) => Container(
         width: size,
         height: size,
-        color: const Color(0xFF222228),
-        child: const Icon(Icons.podcasts_rounded,
+        color: bgColor,
+        child: const Icon(IconsaxPlusLinear.music,
             color: BkoTheme.goldAccent, size: 20),
       );
 }
