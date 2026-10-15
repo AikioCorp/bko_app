@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
 import '../../../core/widgets/bko_bounceable.dart';
 import '../../../core/widgets/bko_haptics.dart';
@@ -155,7 +156,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                     : Map<String, dynamic>.from(slide);
                 final podcast = (ep['podcast'] is Map) ? ep['podcast'] as Map : null;
 
-                final cover = '${ep['cover'] ?? podcast?['cover'] ?? ''}';
+                final cover = BkoApi.extractCoverUrl(ep) ?? '${ep['cover'] ?? podcast?['cover'] ?? ''}';
                 final label = '${slide['label'] ?? 'À LA UNE'}'.toUpperCase();
                 final podcastName = '${podcast?['name'] ?? ''}';
                 final podcastSlug = '${podcast?['slug'] ?? ''}';

@@ -93,7 +93,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
   Future<void> _fetchPodcastDetails() => _loadPodcastFromApi();
 
   Widget _episodeGridCard(Map<String, dynamic> ep) {
-    final cover = '${ep['cover'] ?? _podcast?['cover'] ?? ''}';
+    final cover = BkoApi.extractCoverUrl(ep, podcast: _podcast) ?? '${ep['cover'] ?? _podcast?['cover'] ?? ''}';
     final seconds = ep['durationSeconds'] as num? ?? 0;
     return Container(
       decoration: BoxDecoration(
@@ -168,7 +168,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
         _episodeOffset = (podcast?['episodesPage']?['nextOffset'] as num?)?.toInt() ?? _episodes.length;
       });
 
-      _loadSimilarPodcasts(categorySlug: categorySlug);
+      final similarFromApi = podcast?['similarPodcasts'] as List?;
+      if (similarFromApi != null && similarFromApi.isNotEmpty) {
+        setState(() {
+          _similarPodcasts = List<dynamic>.from(similarFromApi);
+        });
+      } else {
+        _loadSimilarPodcasts(categorySlug: categorySlug);
+      }
     } catch (_) {
       if (mounted && generation == _episodeGeneration) {
         setState(() {
@@ -207,8 +214,14 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
   Future<void> _loadSimilarPodcasts({String? categorySlug}) async {
     try {
       dynamic res;
-      if (categorySlug != null && categorySlug.isNotEmpty) {
-        res = await BkoApi.get('/podcasts?categorySlug=${Uri.encodeComponent(categorySlug)}&limit=8');
+      try {
+        res = await BkoApi.get('/podcasts/${Uri.encodeComponent(widget.slug)}/similar?limit=8');
+      } catch (_) {}
+
+      if (res == null && categorySlug != null && categorySlug.isNotEmpty) {
+        try {
+          res = await BkoApi.get('/podcasts?category=${Uri.encodeComponent(categorySlug)}&limit=8');
+        } catch (_) {}
       }
 
       List<dynamic> list = [];
@@ -251,6 +264,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
     final videoUrl = BkoApi.extractVideoUrl(ep);
     final durationSeconds = ep['durationSeconds'] as num? ?? 0;
     final episodeId = '${ep['id'] ?? ''}';
+    final cover = BkoApi.extractCoverUrl(ep, podcast: _podcast) ?? '${ep['cover'] ?? _podcast?['cover'] ?? ''}';
 
     final active = ref.read(activeEpisodeProvider);
     final isAlreadyPlayingThis = active.hasActiveEpisode &&
@@ -263,7 +277,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
           duration: durationSeconds > 0
               ? '${(durationSeconds / 60).round()} min'
               : '',
-          coverUrl: '${ep['cover'] ?? _podcast?['cover'] ?? ''}',
+          coverUrl: cover,
           audioUrl: audioUrl,
           videoUrl: videoUrl,
           hasAudio: audioUrl != null,

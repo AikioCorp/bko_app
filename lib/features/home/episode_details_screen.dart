@@ -144,7 +144,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           duration: durationSeconds > 0
               ? '${(durationSeconds / 60).round()} min'
               : '',
-          coverUrl: '${episode['cover'] ?? _podcast?['cover'] ?? ''}',
+          coverUrl: BkoApi.extractCoverUrl(episode, podcast: _podcast) ?? '${episode['cover'] ?? _podcast?['cover'] ?? ''}',
           audioUrl: localAudio ?? audioUrl,
           videoUrl: videoUrl,
           hasAudio: audioUrl != null || localAudio != null,
@@ -371,7 +371,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
     final title = _episode?['title'] ?? 'Détail Épisode';
     final description = _episode?['description'] ??
         'Aucune description disponible pour cet épisode.';
-    final cover = _episode?['cover'] ?? _podcast?['cover'] ?? '';
+    final cover = BkoApi.extractCoverUrl(_episode ?? const {}, podcast: _podcast) ?? (_episode?['cover'] ?? _podcast?['cover'] ?? '');
     final podcastName = _podcast?['name'] ?? 'Podcast';
     final durationSec = _episode?['durationSeconds'] ?? 2400;
     final minutes = (durationSec / 60).round();

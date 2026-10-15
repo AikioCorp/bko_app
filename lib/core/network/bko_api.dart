@@ -400,4 +400,51 @@ class BkoApi {
     }
     return null;
   }
+
+  /// Résout l'URL de pochette selon la directive éditoriale :
+  /// - Si audio ET vidéo sont disponibles, la pochette audio est dominante.
+  /// - Le cas échéant (si absence de pochette audio), la pochette vidéo s'affiche.
+  /// - Si seul audio ou seule vidéo existe, sa pochette respective s'applique.
+  static String? extractCoverUrl(Map<String, dynamic> episode, {Map<String, dynamic>? podcast}) {
+    // 1. Pochette effective pré-calculée par le backend
+    final effective = episode['effectiveCover'] ?? episode['dominantCover'];
+    if (effective != null && effective.toString().trim().isNotEmpty) {
+      final sanitized = sanitizeMediaUrl(effective.toString());
+      if (sanitized != null) return sanitized;
+    }
+
+    final hasAudio = episode['hasAudio'] == true ||
+        episode['audioAvailable'] == true ||
+        extractAudioUrl(episode) != null;
+    final hasVideo = episode['hasVideo'] == true ||
+        episode['videoAvailable'] == true ||
+        extractVideoUrl(episode) != null;
+
+    final audioCover = episode['audioCover'] ?? episode['audio_cover'];
+    final videoCover = episode['videoCover'] ?? episode['video_cover'];
+    final directCover = episode['cover'] ?? episode['imageUrl'] ?? episode['image_url'];
+
+    final podcastMap = episode['podcast'] is Map
+        ? (episode['podcast'] as Map<String, dynamic>)
+        : podcast;
+    final podcastCover = podcastMap?['cover'] ?? podcastMap?['imageUrl'];
+
+    if (hasAudio && hasVideo) {
+      // Audio cover est dominant. Le cas échéant, fallback sur la vidéo, puis cover direct, puis podcast
+      final chosen = audioCover ?? videoCover ?? directCover ?? podcastCover;
+      final sanitized = sanitizeMediaUrl(chosen);
+      if (sanitized != null) return sanitized;
+    } else if (hasAudio) {
+      final chosen = audioCover ?? directCover ?? podcastCover ?? videoCover;
+      final sanitized = sanitizeMediaUrl(chosen);
+      if (sanitized != null) return sanitized;
+    } else if (hasVideo) {
+      final chosen = videoCover ?? directCover ?? podcastCover ?? audioCover;
+      final sanitized = sanitizeMediaUrl(chosen);
+      if (sanitized != null) return sanitized;
+    }
+
+    final fallback = directCover ?? audioCover ?? videoCover ?? podcastCover;
+    return sanitizeMediaUrl(fallback);
+  }
 }

@@ -114,7 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final podcastName = ep['podcast']?['name']?.toString() ?? ep['showName']?.toString() ?? '';
     final durationSeconds = ep['durationSeconds'] ?? 1800;
     final duration = '${(durationSeconds / 60).round()} min';
-    final cover = ep['cover'] ?? ep['podcast']?['cover'] ?? '';
+    final cover = BkoApi.extractCoverUrl(ep) ?? '${ep['cover'] ?? ep['podcast']?['cover'] ?? ''}';
     final audioUrl = BkoApi.extractAudioUrl(ep);
     final videoUrl = BkoApi.extractVideoUrl(ep);
     final episodeId = '${ep['id'] ?? ''}';

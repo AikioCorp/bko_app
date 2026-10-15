@@ -710,7 +710,8 @@ class _UserTasteOnboardingScreenState
                 final id = p['id']?.toString() ?? '';
                 final name = p['name']?.toString() ?? 'Émission';
                 final desc = p['description']?.toString() ?? '';
-                final cover = p['cover']?.toString();
+                final cover = BkoApi.sanitizeMediaUrl(
+                    p['cover'] ?? p['coverUrl'] ?? p['imageUrl']);
                 final isFollowed = _selectedPodcastIds.contains(id);
                 final epCount = ((p['_count']?['episodes'] as num?)?.toInt()) ??
                     (p['episodes'] is List ? (p['episodes'] as List).length : null);

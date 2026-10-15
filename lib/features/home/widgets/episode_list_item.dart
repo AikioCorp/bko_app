@@ -55,7 +55,7 @@ class EpisodeListItem extends ConsumerWidget {
     final podcastSlug = '${podcast?['slug'] ?? ''}';
     final episodeSlug = '${ep['slug'] ?? ''}';
     final title = '${ep['title'] ?? 'Épisode'}';
-    final coverUrl = '${ep['cover'] ?? podcast?['cover'] ?? ''}';
+    final coverUrl = BkoApi.extractCoverUrl(ep) ?? '${ep['cover'] ?? podcast?['cover'] ?? ''}';
 
     final durationSec = ep['durationSeconds'] as num? ?? 0;
     final durationLabel =

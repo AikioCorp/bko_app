@@ -74,7 +74,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
       title: '${ep['title'] ?? 'Épisode'}',
       showName: '${podcast?['name'] ?? ''}',
       duration: durationLabel,
-      coverUrl: '${ep['cover'] ?? podcast?['cover'] ?? ''}',
+      coverUrl: BkoApi.extractCoverUrl(ep) ?? '${ep['cover'] ?? podcast?['cover'] ?? ''}',
       audioUrl: audioUrl,
       videoUrl: videoUrl,
       hasAudio: audioUrl != null && audioUrl.isNotEmpty,
@@ -266,7 +266,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     final podcastName = (rawPodcastName.isNotEmpty && rawPodcastName.toLowerCase() != 'bamako podcast')
         ? rawPodcastName
         : '';
-    final coverUrl = '${ep['cover'] ?? podcast?['cover'] ?? ''}';
+    final coverUrl = BkoApi.extractCoverUrl(ep) ?? '${ep['cover'] ?? podcast?['cover'] ?? ''}';
     final episodeId = '${ep['id'] ?? ''}';
 
     final downloads = ref.watch(downloadProvider);
