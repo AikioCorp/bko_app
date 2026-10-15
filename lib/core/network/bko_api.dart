@@ -21,6 +21,11 @@ class AccountSuspendedException extends ApiException {
   final bool isPermanent;
   final DateTime? suspendedAt;
   final DateTime? suspendedUntil;
+  final String? userId;
+  final String? email;
+  final String? fullName;
+  final String? avatar;
+  final String? supportToken;
 
   const AccountSuspendedException({
     required String message,
@@ -28,6 +33,11 @@ class AccountSuspendedException extends ApiException {
     this.isPermanent = true,
     this.suspendedAt,
     this.suspendedUntil,
+    this.userId,
+    this.email,
+    this.fullName,
+    this.avatar,
+    this.supportToken,
     int? statusCode = 403,
   }) : super(message, statusCode: statusCode);
 }
@@ -164,12 +174,22 @@ class BkoApi {
         final isPermanent = details is Map ? (details['isPermanent'] ?? true) as bool : true;
         final suspendedAtStr = details is Map ? details['suspendedAt']?.toString() : null;
         final suspendedUntilStr = details is Map ? details['suspendedUntil']?.toString() : null;
+        final userId = details is Map ? details['userId']?.toString() : null;
+        final email = details is Map ? details['email']?.toString() : null;
+        final fullName = details is Map ? details['fullName']?.toString() : null;
+        final avatar = details is Map ? details['avatar']?.toString() : null;
+        final supportToken = details is Map ? details['supportToken']?.toString() : null;
         final exc = AccountSuspendedException(
           message: message,
           reason: reason,
           isPermanent: isPermanent,
           suspendedAt: suspendedAtStr != null ? DateTime.tryParse(suspendedAtStr) : null,
           suspendedUntil: suspendedUntilStr != null ? DateTime.tryParse(suspendedUntilStr) : null,
+          userId: userId,
+          email: email,
+          fullName: fullName,
+          avatar: avatar,
+          supportToken: supportToken,
           statusCode: response.statusCode ?? 403,
         );
         onAccountSuspended?.call(exc);
@@ -206,6 +226,11 @@ class BkoApi {
         final isPermanent = details is Map ? (details['isPermanent'] ?? true) as bool : true;
         final suspendedAtStr = details is Map ? details['suspendedAt']?.toString() : null;
         final suspendedUntilStr = details is Map ? details['suspendedUntil']?.toString() : null;
+        final userId = details is Map ? details['userId']?.toString() : null;
+        final email = details is Map ? details['email']?.toString() : null;
+        final fullName = details is Map ? details['fullName']?.toString() : null;
+        final avatar = details is Map ? details['avatar']?.toString() : null;
+        final supportToken = details is Map ? details['supportToken']?.toString() : null;
         final exc = AccountSuspendedException(
           message: (apiError is Map && apiError['message'] is String)
               ? apiError['message'] as String
@@ -214,6 +239,11 @@ class BkoApi {
           isPermanent: isPermanent,
           suspendedAt: suspendedAtStr != null ? DateTime.tryParse(suspendedAtStr) : null,
           suspendedUntil: suspendedUntilStr != null ? DateTime.tryParse(suspendedUntilStr) : null,
+          userId: userId,
+          email: email,
+          fullName: fullName,
+          avatar: avatar,
+          supportToken: supportToken,
           statusCode: statusCode ?? 403,
         );
         onAccountSuspended?.call(exc);

@@ -51,7 +51,10 @@ final appRouter = GoRouter(
   routes: [
     GoRoute(
         path: "/support",
-        builder: (context, state) => const SupportTicketsScreen()),
+        builder: (context, state) => SupportTicketsScreen(
+              contextMode: state.uri.queryParameters['context'],
+              appealDetails: state.extra as Map<String, dynamic>?,
+            )),
     GoRoute(
       path: '/suspended',
       builder: (context, state) => SuspendedScreen(

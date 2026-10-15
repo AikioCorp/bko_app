@@ -43,6 +43,8 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final Ref? _ref;
   static bool _isSuspensionHandled = false;
+  static Map<String, dynamic>? lastSuspendedDetails;
+  static String? supportToken;
 
   static void resetSuspensionHandled() {
     _isSuspensionHandled = false;
@@ -90,7 +92,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'suspendedAt': exception!.suspendedAt!.toIso8601String(),
       if (exception?.suspendedUntil != null)
         'suspendedUntil': exception!.suspendedUntil!.toIso8601String(),
+      if (exception?.userId != null) 'userId': exception!.userId,
+      if (exception?.email != null) 'email': exception!.email,
+      if (exception?.fullName != null) 'fullName': exception!.fullName,
+      if (exception?.avatar != null) 'avatar': exception!.avatar,
+      if (exception?.supportToken != null) 'supportToken': exception!.supportToken,
     };
+
+    lastSuspendedDetails = extra;
+    supportToken = exception?.supportToken;
 
     try {
       appRouter.go('/suspended', extra: extra);
