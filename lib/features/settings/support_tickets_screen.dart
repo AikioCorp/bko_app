@@ -941,16 +941,16 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
             BkoHaptics.selection();
             setState(() => _ticket = null);
           },
-          child: Row(
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 IconsaxPlusLinear.arrow_left_1,
                 size: 16,
                 color: BkoTheme.goldAccent,
               ),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 'Toutes mes demandes',
                 style: TextStyle(
                   fontSize: 13,
