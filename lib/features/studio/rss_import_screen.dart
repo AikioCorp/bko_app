@@ -25,6 +25,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
   final _podcastDescController = TextEditingController();
   String _targetMode = 'new';
   String? _createdPodcastId;
+  String _countryId = 'ML';
+  String _primaryLanguageCode = 'fr';
 
   int _step = 1; // 1: URL & podcast, 2: Preview & mapping, 3: Confirm & sync
   bool _analyzing = false;
@@ -73,10 +75,13 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
           : (res is Map && res['data'] is List ? res['data'] : [])) as List;
       if (mounted) {
         String? chosenId;
-        if (list.isNotEmpty) {
-          chosenId = list.any((p) => '${p['id']}' == widget.initialPodcastId)
-              ? widget.initialPodcastId
-              : '${list.first['id']}';
+        if (widget.initialPodcastId != null &&
+            list.any((p) => '${p['id']}' == widget.initialPodcastId)) {
+          chosenId = widget.initialPodcastId;
+          _targetMode = 'existing';
+        } else {
+          chosenId = null;
+          _targetMode = 'new';
         }
         setState(() {
           _podcasts = list;
@@ -262,7 +267,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
 
     try {
       final res = await BkoApi.post(
-        _selectedPodcastId != null
+        (widget.initialPodcastId != null || _targetMode == 'existing') && _selectedPodcastId != null
             ? '/creator/podcasts/$_selectedPodcastId/rss/preview'
             : '/creator/rss/preview',
         {'feedUrl': url},
@@ -277,8 +282,16 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
         if (_previewData != null) {
           _podcastNameController.text = _previewData!['title']?.toString() ?? '';
           _podcastDescController.text = _previewData!['description']?.toString() ?? '';
-          if (_selectedPodcastId == null || _podcasts.isEmpty) {
-            _targetMode = 'new';
+          if (_previewData!['language'] != null && '${_previewData!['language']}'.isNotEmpty) {
+            final lang = '${_previewData!['language']}'.trim().substring(0, 2).toLowerCase();
+            if (['fr', 'bm', 'en'].contains(lang)) {
+              _primaryLanguageCode = lang;
+            }
+          }
+          if (widget.initialPodcastId == null) {
+            if (_selectedPodcastId == null || _podcasts.isEmpty) {
+              _targetMode = 'new';
+            }
           }
           _step = 2;
         } else {
@@ -330,8 +343,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
             'name': title,
             'description': _podcastDescController.text.trim(),
             'cover': _previewData?['image']?.toString() ?? '',
-            'countryId': 'ML',
-            'primaryLanguageCode': 'fr',
+            'countryId': _countryId,
+            'primaryLanguageCode': _primaryLanguageCode,
             'status': 'DRAFT',
           },
           token: auth.token,
@@ -438,55 +451,33 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Sélecteur d'émission
-                  if (_podcasts.isNotEmpty) ...[
-                    Text(
-                      'ÉMISSION DU STUDIO',
-                      style: BkoTheme.fontLato(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        color: textSec,
+                  if (widget.initialPodcastId != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: bgElevated,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: borderSub),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(IconsaxPlusLinear.microphone_2,
+                              color: BkoTheme.goldAccent, size: 18),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Émission : ${_podcasts.firstWhere((p) => '${p['id']}' == widget.initialPodcastId, orElse: () => {'name': 'Émission'})['name']}',
+                              style: BkoTheme.fontLato(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: textPri),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedPodcastId,
-                      dropdownColor: bgElevated,
-                      style: BkoTheme.fontLato(fontSize: 14, color: textPri),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: bgElevated,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: borderSub),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: BkoTheme.goldAccent),
-                        ),
-                      ),
-                      items: _podcasts.map<DropdownMenuItem<String>>((p) {
-                        return DropdownMenuItem<String>(
-                          value: '${p['id']}',
-                          child: Text(p['name'] ?? 'Émission', overflow: TextOverflow.ellipsis),
-                        );
-                      }).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          setState(() {
-                            _selectedPodcastId = val;
-                            _showReconfigure = false;
-                            _step = 1;
-                            _previewData = null;
-                            _errorMessage = null;
-                          });
-                          _loadExistingRssFeed(val);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
                   ],
 
                   if (_loadingFeed)
@@ -1059,7 +1050,34 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          if (_podcasts.isNotEmpty) ...[
+          if (widget.initialPodcastId != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: bgElevated,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: borderSub),
+              ),
+              child: Row(
+                children: [
+                  const Icon(IconsaxPlusLinear.microphone_2,
+                      color: BkoTheme.goldAccent, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Destination : ${_podcasts.firstWhere((p) => '${p['id']}' == widget.initialPodcastId, orElse: () => {'name': 'Émission'})['name']}',
+                      style: BkoTheme.fontLato(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textPri),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+          ] else if (_podcasts.isNotEmpty) ...[
             Text(
               'DESTINATION DE L’ÉMISSION',
               style: BkoTheme.fontLato(
@@ -1105,7 +1123,14 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: BkoBounceable(
-                    onTap: () => setState(() => _targetMode = 'existing'),
+                    onTap: () {
+                      setState(() {
+                        _targetMode = 'existing';
+                        if (_selectedPodcastId == null && _podcasts.isNotEmpty) {
+                          _selectedPodcastId = '${_podcasts.first['id']}';
+                        }
+                      });
+                    },
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       alignment: Alignment.center,
@@ -1137,7 +1162,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
             ),
             const SizedBox(height: 14),
           ],
-          if (_targetMode == 'new' || _podcasts.isEmpty) ...[
+          if (widget.initialPodcastId == null &&
+              (_targetMode == 'new' || _podcasts.isEmpty)) ...[
             Text(
               'TITRE DE L’ÉMISSION',
               style: BkoTheme.fontLato(
@@ -1196,7 +1222,99 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                 ),
               ),
             ),
-          ] else ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'PAYS',
+                        style: BkoTheme.fontLato(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: textSec,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        initialValue: _countryId,
+                        dropdownColor: bgElevated,
+                        style: BkoTheme.fontLato(fontSize: 13, color: textPri),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: bgElevated,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderSub),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'ML', child: Text('Mali (ML)')),
+                          DropdownMenuItem(value: 'SN', child: Text('Sénégal (SN)')),
+                          DropdownMenuItem(value: 'CI', child: Text('Côte d\'Ivoire (CI)')),
+                          DropdownMenuItem(value: 'GN', child: Text('Guinée (GN)')),
+                          DropdownMenuItem(value: 'BF', child: Text('Burkina Faso (BF)')),
+                          DropdownMenuItem(value: 'FR', child: Text('France (FR)')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _countryId = val);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'LANGUE',
+                        style: BkoTheme.fontLato(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                          color: textSec,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      DropdownButtonFormField<String>(
+                        initialValue: _primaryLanguageCode,
+                        dropdownColor: bgElevated,
+                        style: BkoTheme.fontLato(fontSize: 13, color: textPri),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: bgElevated,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: borderSub),
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'fr', child: Text('Français')),
+                          DropdownMenuItem(value: 'bm', child: Text('Bambara')),
+                          DropdownMenuItem(value: 'en', child: Text('Anglais')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _primaryLanguageCode = val);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+          ] else if (widget.initialPodcastId == null &&
+              _targetMode == 'existing' &&
+              _podcasts.isNotEmpty) ...[
             Text(
               'ÉMISSION DU STUDIO',
               style: BkoTheme.fontLato(
@@ -1208,7 +1326,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
             ),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              initialValue: _selectedPodcastId,
+              initialValue: _selectedPodcastId ?? '${_podcasts.first['id']}',
               dropdownColor: bgElevated,
               style: BkoTheme.fontLato(fontSize: 13.5, color: textPri),
               decoration: InputDecoration(

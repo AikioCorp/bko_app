@@ -29,6 +29,8 @@ class _YoutubeChannelImportScreenState
   final _excludeKeywordsController = TextEditingController();
   String _targetMode = 'new';
   String? _createdPodcastId;
+  String _countryId = 'ML';
+  String _primaryLanguageCode = 'fr';
 
   int _step =
       1; // 1: URL & Podcast, 2: Preview & Selection, 3: Settings & Confirm
@@ -109,11 +111,13 @@ class _YoutubeChannelImportScreenState
       if (!mounted) return;
       setState(() {
         _podcasts = list;
-        if (_podcasts.isNotEmpty) {
-          _selectedPodcastId =
-              _podcasts.any((p) => '${p['id']}' == widget.initialPodcastId)
-                  ? widget.initialPodcastId
-                  : '${_podcasts.first['id']}';
+        if (widget.initialPodcastId != null &&
+            _podcasts.any((p) => '${p['id']}' == widget.initialPodcastId)) {
+          _selectedPodcastId = widget.initialPodcastId;
+          _targetMode = 'existing';
+        } else {
+          _selectedPodcastId = null;
+          _targetMode = 'new';
         }
         _loadingPodcasts = false;
       });
@@ -244,7 +248,8 @@ class _YoutubeChannelImportScreenState
         '/creator/youtube/preview',
         {
           'url': input,
-          if (_selectedPodcastId != null) 'podcastId': _selectedPodcastId,
+          if (widget.initialPodcastId != null || _targetMode == 'existing')
+            if (_selectedPodcastId != null) 'podcastId': _selectedPodcastId,
           'mode': _discoveryMode,
         },
         token: auth.token,
@@ -433,7 +438,12 @@ class _YoutubeChannelImportScreenState
   }
 
   Future<void> _connectYoutubeChannel() async {
-    if (_previewData == null || _selectedPodcastId == null) return;
+    if (_previewData == null) return;
+    if (_targetMode == 'existing' && _selectedPodcastId == null) {
+      setState(() =>
+          _errorMessage = 'Veuillez sélectionner une émission existante.');
+      return;
+    }
     if (_selectedVideoIds.length > 500) {
       setState(() =>
           _errorMessage = 'Sélectionnez au maximum 500 vidéos par import.');
@@ -488,8 +498,8 @@ class _YoutubeChannelImportScreenState
             'name': title,
             'description': _podcastDescController.text.trim(),
             'cover': channel['thumbnailUrl']?.toString() ?? '',
-            'countryId': 'ML',
-            'primaryLanguageCode': 'fr',
+            'countryId': _countryId,
+            'primaryLanguageCode': _primaryLanguageCode,
             'status': 'DRAFT',
           },
           token: auth.token,
@@ -1306,88 +1316,34 @@ class _YoutubeChannelImportScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: bgSurface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderSub),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Émission d’accueil',
-                style: TextStyle(
-                  color: textPri,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Choisissez l’émission qui recevra les épisodes vidéo de YouTube.',
-                style: TextStyle(
-                  color: textSec,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 12),
-              if (_podcasts.isEmpty)
-                const Text(
-                  'Aucune émission disponible. Créez d’abord une émission dans le Studio.',
-                  style: TextStyle(
-                    color: BkoTheme.errorColor,
-                    fontSize: 12,
+        if (widget.initialPodcastId != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: bgSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderSub),
+            ),
+            child: Row(
+              children: [
+                const Icon(IconsaxPlusLinear.microphone_2,
+                    color: BkoTheme.goldAccent, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Importation pour l\'émission : ${_podcasts.firstWhere((p) => '${p['id']}' == widget.initialPodcastId, orElse: () => {'name': 'Émission'})['name']}',
+                    style: TextStyle(
+                        color: textPri,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
                   ),
-                )
-              else
-                DropdownButtonFormField<String>(
-                  initialValue: _selectedPodcastId,
-                  dropdownColor: bgSurface,
-                  decoration: InputDecoration(
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
-                    filled: true,
-                    fillColor: bgObsidian,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: borderSub),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: borderSub),
-                    ),
-                  ),
-                  items: _podcasts.map<DropdownMenuItem<String>>((p) {
-                    return DropdownMenuItem<String>(
-                      value: '${p['id']}',
-                      child: Text(
-                        '${p['name']}',
-                        style: TextStyle(
-                          color: textPri,
-                          fontSize: 13,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    setState(() {
-                      _selectedPodcastId = val;
-                      _previewData = null;
-                      _selectedVideoIds.clear();
-                      _channelStatus = null;
-                      _errorMessage = null;
-                      _infoMessage = null;
-                      _step = 1;
-                    });
-                    if (val != null) _fetchChannelStatus(val);
-                  },
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
+        ],
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1617,7 +1573,34 @@ class _YoutubeChannelImportScreenState
           ),
         ),
         const SizedBox(height: 14),
-        if (_podcasts.isNotEmpty) ...[
+        if (widget.initialPodcastId != null) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: bgSurface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderSub),
+            ),
+            child: Row(
+              children: [
+                const Icon(IconsaxPlusLinear.microphone_2,
+                    color: BkoTheme.goldAccent, size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Destination : ${_podcasts.firstWhere((p) => '${p['id']}' == widget.initialPodcastId, orElse: () => {'name': 'Émission'})['name']}',
+                    style: TextStyle(
+                        color: textPri,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+        ] else if (_podcasts.isNotEmpty) ...[
           Text(
             'DESTINATION DE L’ÉMISSION',
             style: TextStyle(
@@ -1663,7 +1646,14 @@ class _YoutubeChannelImportScreenState
               const SizedBox(width: 10),
               Expanded(
                 child: BkoBounceable(
-                  onTap: () => setState(() => _targetMode = 'existing'),
+                  onTap: () {
+                    setState(() {
+                      _targetMode = 'existing';
+                      if (_selectedPodcastId == null && _podcasts.isNotEmpty) {
+                        _selectedPodcastId = '${_podcasts.first['id']}';
+                      }
+                    });
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     alignment: Alignment.center,
@@ -1695,7 +1685,8 @@ class _YoutubeChannelImportScreenState
           ),
           const SizedBox(height: 14),
         ],
-        if (_targetMode == 'new' || _podcasts.isEmpty) ...[
+        if (widget.initialPodcastId == null &&
+            (_targetMode == 'new' || _podcasts.isEmpty)) ...[
           Text(
             'TITRE DE L’ÉMISSION',
             style: TextStyle(
@@ -1754,8 +1745,99 @@ class _YoutubeChannelImportScreenState
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PAYS',
+                      style: TextStyle(
+                        color: textSec,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: _countryId,
+                      dropdownColor: bgSurface,
+                      style: TextStyle(fontSize: 13, color: textPri),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: bgSurface,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderSub),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'ML', child: Text('Mali (ML)')),
+                        DropdownMenuItem(value: 'SN', child: Text('Sénégal (SN)')),
+                        DropdownMenuItem(value: 'CI', child: Text('Côte d\'Ivoire (CI)')),
+                        DropdownMenuItem(value: 'GN', child: Text('Guinée (GN)')),
+                        DropdownMenuItem(value: 'BF', child: Text('Burkina Faso (BF)')),
+                        DropdownMenuItem(value: 'FR', child: Text('France (FR)')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _countryId = val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'LANGUE',
+                      style: TextStyle(
+                        color: textSec,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<String>(
+                      initialValue: _primaryLanguageCode,
+                      dropdownColor: bgSurface,
+                      style: TextStyle(fontSize: 13, color: textPri),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: bgSurface,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: borderSub),
+                        ),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'fr', child: Text('Français')),
+                        DropdownMenuItem(value: 'bm', child: Text('Bambara')),
+                        DropdownMenuItem(value: 'en', child: Text('Anglais')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => _primaryLanguageCode = val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 14),
-        ] else ...[
+        ] else if (widget.initialPodcastId == null &&
+            _targetMode == 'existing' &&
+            _podcasts.isNotEmpty) ...[
           Text(
             'ÉMISSION DE DESTINATION',
             style: TextStyle(
@@ -1767,7 +1849,7 @@ class _YoutubeChannelImportScreenState
           ),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
-            initialValue: _selectedPodcastId,
+            initialValue: _selectedPodcastId ?? '${_podcasts.first['id']}',
             dropdownColor: bgSurface,
             style: TextStyle(fontSize: 13.5, color: textPri),
             decoration: InputDecoration(
