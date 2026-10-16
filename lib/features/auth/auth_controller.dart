@@ -50,6 +50,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _isSuspensionHandled = false;
   }
 
+  AuthNotifier.withInitialState(super.initialState) : _ref = null;
+
   AuthNotifier({Ref? ref}) : _ref = ref, super(const AuthState()) {
     BkoApi.tokenRefreshHandler = () async {
       final success = await refreshSession();

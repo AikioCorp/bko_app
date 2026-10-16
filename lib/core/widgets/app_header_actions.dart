@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import '../../features/notifications/notification_providers.dart';
+import '../../features/shell/shell_providers.dart';
 import '../theme/bko_theme.dart';
 
 /// Shared shortcuts for page headers. Full-screen players do not include this widget.
@@ -11,6 +12,9 @@ class AppHeaderActions extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(isFullPlayerOpenProvider)) {
+      return const SizedBox.shrink();
+    }
     final path = GoRouter.maybeOf(context)?.routeInformationProvider.value.uri.path;
     final unread = ref.watch(unreadNotificationsProvider);
     final foreground = BkoTheme.getTextPrimary(context);

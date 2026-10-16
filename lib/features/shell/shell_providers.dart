@@ -85,6 +85,8 @@ class ActiveEpisodeState {
   final DateTime? sleepTimerEndsAt;
   final List<QueueItem> queue;
   final String? errorMessage;
+  final int videoSeekRequestId;
+  final Duration? videoSeekTarget;
 
   bool get isLoading => isBuffering;
   bool get isBuffering => playbackStatus == PlaybackStatus.loading;
@@ -113,6 +115,8 @@ class ActiveEpisodeState {
     this.sleepTimerEndsAt,
     this.queue = const [],
     this.errorMessage,
+    this.videoSeekRequestId = 0,
+    this.videoSeekTarget,
   });
 
   ActiveEpisodeState copyWith({
@@ -140,6 +144,9 @@ class ActiveEpisodeState {
     List<QueueItem>? queue,
     String? errorMessage,
     bool clearError = false,
+    int? videoSeekRequestId,
+    Duration? videoSeekTarget,
+    bool clearVideoSeekTarget = false,
   }) {
     return ActiveEpisodeState(
       hasActiveEpisode: hasActiveEpisode ?? this.hasActiveEpisode,
@@ -166,6 +173,10 @@ class ActiveEpisodeState {
           : (sleepTimerEndsAt ?? this.sleepTimerEndsAt),
       queue: queue ?? this.queue,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
+      videoSeekRequestId: videoSeekRequestId ?? this.videoSeekRequestId,
+      videoSeekTarget: clearVideoSeekTarget
+          ? null
+          : (videoSeekTarget ?? this.videoSeekTarget),
     );
   }
 
@@ -435,10 +446,8 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
 
     state = ActiveEpisodeState(
       hasActiveEpisode: true,
-      isPlaying: targetMode == 'VIDEO',
-      playbackStatus: targetMode == 'VIDEO'
-          ? PlaybackStatus.playing
-          : PlaybackStatus.loading,
+      isPlaying: false,
+      playbackStatus: PlaybackStatus.loading,
       title: title,
       showName: showName,
       duration: duration,
@@ -642,14 +651,23 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     if (newMode == 'VIDEO' && !state.hasVideo) return false;
     if (newMode == 'AUDIO' && !state.hasAudio) return false;
 
+    final wasPlaying = state.isPlaying;
+    final currentPos = state.currentPosition;
+    final targetEpisodeId = state.episodeId;
+
     if (newMode == 'AUDIO') {
       final source = _validUri(state.audioUrl);
       if (source == null) return false;
-      state = state.copyWith(mode: 'AUDIO', clearError: true);
+      state = state.copyWith(
+        mode: 'AUDIO',
+        isPlaying: false,
+        playbackStatus: PlaybackStatus.loading,
+        clearError: true,
+      );
       try {
         await _audioHandler.load(
           item: MediaItem(
-            id: source.toString(),
+            id: targetEpisodeId.isNotEmpty ? targetEpisodeId : source.toString(),
             album: state.showName,
             title: state.title,
             artist: state.showName,
@@ -659,14 +677,18 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
             artUri: _validUri(state.coverUrl),
           ),
           source: source,
-          initialPosition: state.currentPosition,
+          initialPosition: currentPos,
         );
         if (state.playbackSpeed != 1.0) {
           await _audioHandler.setSpeed(state.playbackSpeed);
         }
+        if (wasPlaying) {
+          await _audioHandler.play();
+        }
       } catch (_) {
         state = state.copyWith(
           isPlaying: false,
+          playbackStatus: PlaybackStatus.error,
           errorMessage:
               'La piste audio n’a pas pu être chargée. Réessayez plus tard.',
         );
@@ -674,18 +696,73 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
       }
     } else {
       await _audioHandler.pause();
-      state = state.copyWith(mode: 'VIDEO', isPlaying: true, clearError: true);
+      final newSeekReqId = state.videoSeekRequestId + 1;
+      state = state.copyWith(
+        mode: 'VIDEO',
+        isPlaying: false,
+        playbackStatus: PlaybackStatus.loading,
+        videoSeekRequestId: newSeekReqId,
+        videoSeekTarget: currentPos,
+        clearError: true,
+      );
     }
     return true;
   }
 
   void pauseVideo() {
     if (state.mode == 'VIDEO' && state.isPlaying) {
+      _lastTickTime = null;
       state = state.copyWith(
         isPlaying: false,
         playbackStatus: PlaybackStatus.paused,
       );
     }
+  }
+
+  void onVideoProgress(Duration current, Duration? total) {
+    if (!mounted || state.mode != 'VIDEO' || !state.hasActiveEpisode) return;
+    final effectiveTotal = (total != null && total > Duration.zero)
+        ? total
+        : (state.totalDuration > Duration.zero ? state.totalDuration : Duration.zero);
+    state = state.copyWith(
+      currentPosition: current,
+      totalDuration: effectiveTotal,
+      progress: _progress(current, effectiveTotal),
+    );
+  }
+
+  void onVideoStateChanged({required bool isPlaying, PlaybackStatus? status}) {
+    if (!mounted || state.mode != 'VIDEO' || !state.hasActiveEpisode) return;
+    final newStatus = status ?? (isPlaying ? PlaybackStatus.playing : PlaybackStatus.paused);
+    if (isPlaying) {
+      _lastTickTime ??= DateTime.now();
+    } else {
+      _lastTickTime = null;
+    }
+    state = state.copyWith(
+      isPlaying: isPlaying,
+      playbackStatus: newStatus,
+    );
+  }
+
+  void onVideoEnded() {
+    if (!mounted || state.mode != 'VIDEO' || !state.hasActiveEpisode) return;
+    _lastTickTime = null;
+    state = state.copyWith(
+      isPlaying: false,
+      playbackStatus: PlaybackStatus.completed,
+    );
+    playNextInQueue();
+  }
+
+  void onVideoError(String message) {
+    if (!mounted || state.mode != 'VIDEO' || !state.hasActiveEpisode) return;
+    _lastTickTime = null;
+    state = state.copyWith(
+      isPlaying: false,
+      playbackStatus: PlaybackStatus.error,
+      errorMessage: message,
+    );
   }
 
   Future<void> pause() async {
@@ -850,9 +927,12 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
         playbackRate: state.playbackSpeed,
       );
     }
+    final nextSeekId = state.videoSeekRequestId + 1;
     state = state.copyWith(
       currentPosition: bounded,
       progress: _progress(bounded, state.totalDuration),
+      videoSeekRequestId: nextSeekId,
+      videoSeekTarget: bounded,
     );
     if (state.mode == 'AUDIO') {
       await _audioHandler.seek(bounded);

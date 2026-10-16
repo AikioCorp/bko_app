@@ -208,14 +208,6 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_podcasts.isEmpty)
-                    TextButton(
-                        onPressed: () async {
-                          await context.push('/studio/podcasts/new');
-                          if (mounted) _loadCreatorPodcasts();
-                        },
-                        child: const Text(
-                            'Créer d’abord une émission pour accueillir le flux RSS')),
                   // Step Indicator
                   Row(
                     children: [
@@ -260,9 +252,10 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                             ),
                             const SizedBox(height: 20),
                             BkoBounceable(
-                              onTap: () {
+                              onTap: () async {
                                 BkoHaptics.light();
-                                context.push('/studio/podcasts/new');
+                                await context.push('/studio/podcasts/new');
+                                if (mounted) _loadCreatorPodcasts();
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -480,7 +473,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                                   size: 16, color: BkoTheme.goldAccent),
                               const SizedBox(width: 6),
                               Text(
-                                '${_previewData!['itemCount'] ?? _previewData!['episodesCount'] ?? 0} épisodes détectés',
+                                '${_previewData!['episodeCount'] ?? _previewData!['itemCount'] ?? _previewData!['episodesCount'] ?? 0} épisodes détectés',
                                 style: BkoTheme.fontLato(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w800,

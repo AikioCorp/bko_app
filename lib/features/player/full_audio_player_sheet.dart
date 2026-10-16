@@ -546,16 +546,35 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                     ),
                   ],
 
-                  // Media Container (YouTube Video or Artwork)
+                  // Media Container (YouTube Video or Hosted Video or Artwork)
                   if (active.mode == 'VIDEO')
                     BkoYoutubePlayerWidget(
                       coverUrl: active.coverUrl,
                       videoUrl: active.videoUrl,
-                      autoPlay: active.isPlaying,
+                      isPlaying: active.isPlaying,
                       startPosition: active.currentPosition,
-                      onPlaybackError: () => ref
-                          .read(activeEpisodeProvider.notifier)
-                          .pauseVideo(),
+                      videoSeekRequestId: active.videoSeekRequestId,
+                      videoSeekTarget: active.videoSeekTarget,
+                      onProgressChanged: (cur, tot) {
+                        ref
+                            .read(activeEpisodeProvider.notifier)
+                            .onVideoProgress(cur, tot);
+                      },
+                      onPlayingChanged: (playing) {
+                        ref
+                            .read(activeEpisodeProvider.notifier)
+                            .onVideoStateChanged(isPlaying: playing);
+                      },
+                      onEnded: () {
+                        ref
+                            .read(activeEpisodeProvider.notifier)
+                            .onVideoEnded();
+                      },
+                      onPlaybackError: (msg) {
+                        ref
+                            .read(activeEpisodeProvider.notifier)
+                            .onVideoError(msg);
+                      },
                     )
                   else
                     Container(

@@ -6,6 +6,8 @@ class BkoTheme {
   // Signature Gold/Yellow Accent (Exact web #FFBF00)
   static const Color goldAccent = Color(0xFFFFBF00);
   static const Color goldAccentHover = Color(0xFFFFCF33);
+  static const Color successColor = Color(0xFF10B981);
+  static const Color errorColor = Color(0xFFEF4444);
 
   // Dark Theme Tokens (Exact match with bko_web globals.css)
   static const Color darkBgObsidian = Color(0xFF0B0B0B); // Pure dark neutral

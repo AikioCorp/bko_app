@@ -421,67 +421,69 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
             },
           ),
 
-          // Offline Download Action
-          if (isDownloaded)
-            _buildActionTile(
-              icon: IconsaxPlusLinear.trash,
-              iconColor: Colors.redAccent,
-              title: 'Supprimer le téléchargement',
-              subtitle: 'Libérer de l’espace sur votre téléphone',
-              textPri: textPri,
-              textSec: textSec,
-              onTap: () {
-                ref
-                    .read(downloadProvider.notifier)
-                    .deleteTask(episodeId);
-                Navigator.pop(context);
-                BkoToast.showInfo(
-                  context,
-                  title: 'Téléchargement supprimé',
-                  message: '${widget.episode['title'] ?? ''}',
-                  icon: IconsaxPlusBold.document_download,
-                );
-              },
-            )
-          else if (isDownloading)
-            _buildActionTile(
-              icon: IconsaxPlusLinear.arrow_circle_down,
-              iconColor: goldContrast,
-              title: 'Téléchargement en cours...',
-              subtitle: '${((downloadTask?.progress ?? 0) * 100).toInt()}%',
-              textPri: textPri,
-              textSec: textSec,
-              onTap: () {
-                ref
-                    .read(downloadProvider.notifier)
-                    .cancelDownload(episodeId);
-                Navigator.pop(context);
-              },
-            )
-          else
-            _buildActionTile(
-              icon: IconsaxPlusLinear.arrow_circle_down,
-              iconColor: textPri,
-              title: 'Télécharger l’épisode',
-              subtitle: 'Disponible pour l’écoute hors connexion',
-              textPri: textPri,
-              textSec: textSec,
-              onTap: () {
-                Navigator.pop(context);
-                try {
+          // Offline Download Action (uniquement pour les épisodes disposant d'une source audio téléchargeable, jamais pour une vidéo YouTube seule)
+          if (BkoApi.extractAudioUrl(ep) != null) ...[
+            if (isDownloaded)
+              _buildActionTile(
+                icon: IconsaxPlusLinear.trash,
+                iconColor: Colors.redAccent,
+                title: 'Supprimer le téléchargement',
+                subtitle: 'Libérer de l’espace sur votre téléphone',
+                textPri: textPri,
+                textSec: textSec,
+                onTap: () {
                   ref
                       .read(downloadProvider.notifier)
-                      .startDownload(widget.episode);
-                  BkoDownloadToast.show(
+                      .deleteTask(episodeId);
+                  Navigator.pop(context);
+                  BkoToast.showInfo(
                     context,
-                    title: title,
-                    podcastName: podcastName,
+                    title: 'Téléchargement supprimé',
+                    message: '${widget.episode['title'] ?? ''}',
+                    icon: IconsaxPlusBold.document_download,
                   );
-                } on DownloadLimitException {
-                  DownloadLimitDialog.show(context);
-                }
-              },
-            ),
+                },
+              )
+            else if (isDownloading)
+              _buildActionTile(
+                icon: IconsaxPlusLinear.arrow_circle_down,
+                iconColor: goldContrast,
+                title: 'Téléchargement en cours...',
+                subtitle: '${((downloadTask?.progress ?? 0) * 100).toInt()}%',
+                textPri: textPri,
+                textSec: textSec,
+                onTap: () {
+                  ref
+                      .read(downloadProvider.notifier)
+                      .cancelDownload(episodeId);
+                  Navigator.pop(context);
+                },
+              )
+            else
+              _buildActionTile(
+                icon: IconsaxPlusLinear.arrow_circle_down,
+                iconColor: textPri,
+                title: 'Télécharger l’épisode',
+                subtitle: 'Disponible pour l’écoute hors connexion',
+                textPri: textPri,
+                textSec: textSec,
+                onTap: () {
+                  Navigator.pop(context);
+                  try {
+                    ref
+                        .read(downloadProvider.notifier)
+                        .startDownload(widget.episode);
+                    BkoDownloadToast.show(
+                      context,
+                      title: title,
+                      podcastName: podcastName,
+                    );
+                  } on DownloadLimitException {
+                    DownloadLimitDialog.show(context);
+                  }
+                },
+              ),
+          ],
 
           // Save / Bookmark Action
           _buildActionTile(

@@ -1,4 +1,6 @@
 import '../../core/widgets/app_header_actions.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +8,7 @@ import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:country_picker/country_picker.dart';
 
 import '../../core/network/bko_api.dart';
+import '../../core/services/media_upload_service.dart';
 import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/app_back_button.dart';
 import '../../core/widgets/bko_bounceable.dart';
@@ -32,15 +35,113 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
   bool _submitting = false;
   Country? _country;
 
+  // Cover upload state
+  bool _uploadingCover = false;
+  double _coverUploadProgress = 0.0;
+  MediaTransferStage _coverTransferStage = MediaTransferStage.idle;
+  String? _coverError;
+  CancelToken? _coverCancelToken;
+
   @override
   void dispose() {
+    _coverCancelToken?.cancel('Disposed');
     _nameController.dispose();
     _descriptionController.dispose();
     _coverUrlController.dispose();
     super.dispose();
   }
 
+  Future<void> _pickAndUploadCover() async {
+    final auth = ref.read(authProvider);
+    if (!auth.isAuthenticated || auth.token == null) return;
+
+    final picked = await MediaUploadService.pickImage();
+    if (picked == null) return;
+
+    setState(() {
+      _uploadingCover = true;
+      _coverError = null;
+      _coverUploadProgress = 0.0;
+      _coverTransferStage = MediaTransferStage.validating;
+    });
+
+    final cancelToken = CancelToken();
+    _coverCancelToken = cancelToken;
+
+    try {
+      final bytes = await picked.readAsBytes();
+      final ext = picked.name.split('.').last.toLowerCase();
+      final mimeType = ext == 'png'
+          ? 'image/png'
+          : ext == 'webp'
+              ? 'image/webp'
+              : ext == 'gif'
+                  ? 'image/gif'
+                  : 'image/jpeg';
+
+      final publicUrl = await MediaUploadService.uploadImage(
+        bytes: bytes,
+        mimeType: mimeType,
+        folder: 'covers',
+        token: auth.token!,
+        cancelToken: cancelToken,
+        onStageChanged: (stage) {
+          if (mounted) setState(() => _coverTransferStage = stage);
+        },
+        onProgress: (sent, total) {
+          if (mounted && total > 0) {
+            setState(() => _coverUploadProgress = sent / total);
+          }
+        },
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _coverUrlController.text = publicUrl;
+        _uploadingCover = false;
+        _coverTransferStage = MediaTransferStage.ready;
+      });
+      BkoHaptics.success();
+      BkoToast.showSuccess(
+        context,
+        title: 'Pochette prête',
+        message: 'L\'image de couverture a été téléversée.',
+      );
+    } on DioException catch (e) {
+      if (!mounted) return;
+      if (CancelToken.isCancel(e)) {
+        setState(() {
+          _uploadingCover = false;
+          _coverTransferStage = MediaTransferStage.cancelled;
+          _coverError = 'Téléversement annulé.';
+        });
+        return;
+      }
+      setState(() {
+        _uploadingCover = false;
+        _coverTransferStage = MediaTransferStage.error;
+        _coverError = 'Erreur réseau lors de l\'envoi de la pochette.';
+      });
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _uploadingCover = false;
+        _coverTransferStage = MediaTransferStage.error;
+        _coverError = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _uploadingCover = false;
+        _coverTransferStage = MediaTransferStage.error;
+        _coverError = 'Impossible de téléverser l\'image de couverture.';
+      });
+    }
+  }
+
   Future<void> _submit({bool isDraft = false}) async {
+    if (_submitting || _uploadingCover) return;
+    setState(() => _coverError = null);
     if (!_formKey.currentState!.validate()) return;
     if (_country == null) {
       BkoToast.showError(
@@ -50,6 +151,17 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
       );
       return;
     }
+
+    final coverText = _coverUrlController.text.trim();
+    if (coverText.isNotEmpty) {
+      final uri = Uri.tryParse(coverText);
+      if (uri == null || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+        setState(() =>
+            _coverError = 'Veuillez saisir une URL HTTP(S) valide ou téléverser une image.');
+        return;
+      }
+    }
+
     final auth = ref.read(authProvider);
     if (!auth.isAuthenticated || auth.token == null) return;
 
@@ -62,9 +174,7 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
         'format': _format,
         'primaryLanguageCode': _language,
         'countryId': _country!.countryCode,
-        'cover': _coverUrlController.text.trim().isNotEmpty
-            ? _coverUrlController.text.trim()
-            : '',
+        'cover': coverText,
         'status': 'DRAFT',
       };
 
@@ -208,23 +318,171 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
 
               const SizedBox(height: 20),
 
-              // Cover URL
-              Text(
-                'URL DE LA POCHETTE',
-                style: BkoTheme.fontLato(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                  color: textSec,
-                ),
+              // Cover Image Upload & URL
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'POCHETTE DE L\'ÉMISSION',
+                    style: BkoTheme.fontLato(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                      color: textSec,
+                    ),
+                  ),
+                  BkoBounceable(
+                    onTap: _uploadingCover ? null : _pickAndUploadCover,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: BkoTheme.goldAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: BkoTheme.goldAccent.withValues(alpha: 0.5)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(IconsaxPlusLinear.gallery_export,
+                              size: 15, color: BkoTheme.goldAccent),
+                          const SizedBox(width: 6),
+                          Text(
+                            _uploadingCover
+                                ? 'Envoi (${(_coverUploadProgress * 100).round()}%)...'
+                                : 'Téléverser une image',
+                            style: BkoTheme.fontLato(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                              color: BkoTheme.goldAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
+              if (_uploadingCover) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: bgElevated,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: borderSub),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _coverTransferStage ==
+                                    MediaTransferStage.validating
+                                ? 'Validation de l\'image...'
+                                : 'Transfert (${(_coverUploadProgress * 100).round()}%)...',
+                            style: BkoTheme.fontLato(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: textPri),
+                          ),
+                          BkoBounceable(
+                            onTap: () =>
+                                _coverCancelToken?.cancel('Cancelled by user'),
+                            child: Text(
+                              'Annuler',
+                              style: BkoTheme.fontLato(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: _coverUploadProgress > 0
+                              ? _coverUploadProgress
+                              : null,
+                          backgroundColor: borderSub,
+                          valueColor: const AlwaysStoppedAnimation(
+                              BkoTheme.goldAccent),
+                          minHeight: 5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              if (_coverUrlController.text.trim().isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: CachedNetworkImage(
+                          imageUrl: _coverUrlController.text.trim(),
+                          width: 56,
+                          height: 56,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, __, ___) => Container(
+                            width: 56,
+                            height: 56,
+                            color: bgElevated,
+                            child: Icon(IconsaxPlusLinear.image,
+                                color: textSec, size: 22),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Image de couverture associée',
+                          style: BkoTheme.fontLato(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: textPri),
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(IconsaxPlusLinear.trash,
+                            size: 18,
+                            color: Theme.of(context).colorScheme.error),
+                        onPressed: () =>
+                            setState(() => _coverUrlController.clear()),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               TextFormField(
                 controller: _coverUrlController,
+                onChanged: (_) => setState(() => _coverError = null),
                 style: BkoTheme.fontLato(fontSize: 14, color: textPri),
                 decoration: _inputDecoration(
-                    'https://exemple.com/pochette.jpg', borderSub, bgElevated),
+                    'Ou collez une URL (https://exemple.com/pochette.jpg)',
+                    borderSub,
+                    bgElevated),
               ),
+              if (_coverError != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  _coverError!,
+                  style: BkoTheme.fontLato(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 

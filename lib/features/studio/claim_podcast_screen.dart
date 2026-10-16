@@ -52,8 +52,20 @@ class _ClaimPodcastScreenState extends ConsumerState<ClaimPodcastScreen> {
       _success = null;
     });
     try {
-      final slug =
-          _slug.text.trim().split('/').where((part) => part.isNotEmpty).last;
+      final rawInput = _slug.text.trim();
+      final parsedUri = Uri.tryParse(rawInput);
+      final cleanPath = parsedUri != null && parsedUri.pathSegments.isNotEmpty
+          ? parsedUri.pathSegments.lastWhere((s) => s.isNotEmpty,
+              orElse: () => rawInput)
+          : rawInput
+              .split('?')
+              .first
+              .split('#')
+              .first
+              .split('/')
+              .where((part) => part.isNotEmpty)
+              .last;
+      final slug = cleanPath.trim();
       final token = ref.read(authProvider).token;
       final podcast = await BkoApi.get('/podcasts/${Uri.encodeComponent(slug)}',
           token: token);

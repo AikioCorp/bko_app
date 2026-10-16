@@ -458,7 +458,9 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                           'Connecter et synchroniser un flux externe (Anchor, Spotify, RSS)',
                       icon: IconsaxPlusLinear.routing,
                       color: BkoTheme.goldAccent,
-                      onTap: () => context.push('/studio/import-rss'),
+                      onTap: () => context.push('/studio/import-rss').then((_) {
+                        if (mounted) _fetchStudioData();
+                      }),
                     ),
                     const SizedBox(height: 12),
                     _actionCard(
@@ -468,12 +470,18 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                           'Importer et synchroniser automatiquement vos vidéos officielles',
                       icon: IconsaxPlusLinear.video,
                       color: Colors.redAccent,
-                      onTap: () => context.push('/studio/import-youtube'),
+                      onTap: () =>
+                          context.push('/studio/import-youtube').then((_) {
+                        if (mounted) _fetchStudioData();
+                      }),
                     ),
 
                     const SizedBox(height: 24),
                     TextButton(
-                      onPressed: () => context.push('/studio/claims'),
+                      onPressed: () =>
+                          context.push('/studio/claims').then((_) {
+                        if (mounted) _fetchStudioData();
+                      }),
                       child: const Text('Revendiquer une émission existante'),
                     ),
                     // Podcasts List Header
@@ -584,7 +592,13 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                           final pod = Map<String, dynamic>.from(
                               _podcasts[index] as Map);
                           final name = pod['name'] ?? 'Émission';
-                          final format = pod['format'] ?? 'AUDIO_AND_VIDEO';
+                          final rawFormat =
+                              '${pod['format'] ?? 'AUDIO_AND_VIDEO'}';
+                          final formatLabel = rawFormat == 'AUDIO'
+                              ? 'Audio'
+                              : rawFormat == 'VIDEO'
+                                  ? 'Vidéo'
+                                  : 'Audio & Vidéo';
                           final cover = pod['cover'] ?? '';
                           final episodeCount = pod['_count']?['episodes'] ??
                               (pod['episodes'] as List?)?.length ??
@@ -595,7 +609,11 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                               BkoHaptics.light();
                               final id = pod['id'];
                               if (id != null) {
-                                context.push('/studio/podcasts/$id');
+                                context
+                                    .push('/studio/podcasts/$id')
+                                    .then((_) {
+                                  if (mounted) _fetchStudioData();
+                                });
                               }
                             },
                             child: Container(
@@ -640,7 +658,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '$format • $episodeCount épisode(s)',
+                                          '$formatLabel • $episodeCount épisode(s)',
                                           style: BkoTheme.fontLato(
                                               fontSize: 11.5, color: textSec),
                                         ),

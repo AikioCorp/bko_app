@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/widgets/app_header_actions.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -461,32 +462,113 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 1. Media Header Player/Cover
-            hasVideo
-                ? BkoYoutubePlayerWidget(
-                    coverUrl: cover,
-                    videoUrl: videoUrl,
-                    onPlaybackError: () {
-                      final active = ref.read(activeEpisodeProvider);
-                      if (active.episodeId == _episode?['id']) {
-                        ref.read(activeEpisodeProvider.notifier).pauseVideo();
-                      }
-                    },
-                  )
-                : ClipRRect(
+            () {
+              final active = ref.watch(activeEpisodeProvider);
+              final isFullPlayerOpen = ref.watch(isFullPlayerOpenProvider);
+              final bool isThisEpisodeActive =
+                  active.hasActiveEpisode && active.episodeId == episodeId;
+              final bool isVideoPlayingHere = isThisEpisodeActive &&
+                  active.mode == 'VIDEO' &&
+                  !isFullPlayerOpen;
+
+              if (isVideoPlayingHere) {
+                return BkoYoutubePlayerWidget(
+                  coverUrl: cover,
+                  videoUrl: videoUrl,
+                  isPlaying: active.isPlaying,
+                  startPosition: active.currentPosition,
+                  videoSeekRequestId: active.videoSeekRequestId,
+                  videoSeekTarget: active.videoSeekTarget,
+                  onProgressChanged: (cur, tot) {
+                    ref
+                        .read(activeEpisodeProvider.notifier)
+                        .onVideoProgress(cur, tot);
+                  },
+                  onPlayingChanged: (playing) {
+                    ref
+                        .read(activeEpisodeProvider.notifier)
+                        .onVideoStateChanged(isPlaying: playing);
+                  },
+                  onEnded: () {
+                    ref.read(activeEpisodeProvider.notifier).onVideoEnded();
+                  },
+                  onPlaybackError: (msg) {
+                    ref.read(activeEpisodeProvider.notifier).onVideoError(msg);
+                  },
+                );
+              }
+
+              return Stack(
+                children: [
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: AspectRatio(
                       aspectRatio: 16 / 9,
-                      child: Image.network(
-                        cover,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: const Color(0xFF1E2638),
-                          child: const Icon(Icons.graphic_eq_rounded,
-                              color: BkoTheme.goldAccent, size: 64),
+                      child: cover.isNotEmpty && cover.startsWith('http')
+                          ? CachedNetworkImage(
+                              imageUrl: cover,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(
+                                color: const Color(0xFF141416),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: BkoTheme.goldAccent,
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                color: const Color(0xFF141416),
+                                child: const Icon(Icons.graphic_eq_rounded,
+                                    color: BkoTheme.goldAccent, size: 64),
+                              ),
+                            )
+                          : Container(
+                              color: const Color(0xFF141416),
+                              child: const Icon(Icons.graphic_eq_rounded,
+                                  color: BkoTheme.goldAccent, size: 64),
+                            ),
+                    ),
+                  ),
+                  if (hasVideo)
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: BkoBounceable(
+                        onTap: () => _startPlayback('VIDEO'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xE60B0B0B),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: BkoTheme.goldAccent.withValues(alpha: 0.5),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(IconsaxPlusBold.video,
+                                  color: BkoTheme.goldAccent, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                'REGARDER EN VIDÉO',
+                                style: BkoTheme.fontLato(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                ],
+              );
+            }(),
 
             const SizedBox(height: 18),
 
@@ -584,21 +666,39 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                 if (hasAudio && hasVideo) const SizedBox(width: 12),
                 if (hasVideo)
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _startPlayback('VIDEO'),
-                      icon: const Icon(Icons.videocam_rounded,
-                          color: BkoTheme.goldAccent, size: 18),
-                      label: Text('REGARDER',
-                          style: BkoTheme.fontLato(
+                    child: Builder(
+                      builder: (context) {
+                        final active = ref.watch(activeEpisodeProvider);
+                        final isThisVideoPlaying = active.hasActiveEpisode &&
+                            active.episodeId == episodeId &&
+                            active.mode == 'VIDEO' &&
+                            active.isPlaying;
+                        return OutlinedButton.icon(
+                          onPressed: () => _startPlayback('VIDEO'),
+                          icon: Icon(
+                            isThisVideoPlaying
+                                ? IconsaxPlusBold.pause
+                                : IconsaxPlusBold.play,
+                            color: BkoTheme.goldAccent,
+                            size: 18,
+                          ),
+                          label: Text(
+                            isThisVideoPlaying ? 'PAUSE' : 'REGARDER',
+                            style: BkoTheme.fontLato(
                               fontSize: 13,
                               fontWeight: FontWeight.w900,
-                              color: textPri)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: BkoTheme.goldAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16)),
-                      ),
+                              color: textPri,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: BkoTheme.goldAccent),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
               ],
@@ -617,51 +717,52 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // Télécharger
-                  _buildActionButton(
-                    icon: isDownloaded
-                        ? Icons.download_done_rounded
-                        : isDownloading
-                            ? Icons.downloading_rounded
-                            : Icons.download_rounded,
-                    iconColor: isDownloaded
-                        ? BkoTheme.goldAccent
-                        : isDownloading
-                            ? BkoTheme.goldAccent
-                            : textPri,
-                    label: isDownloaded
-                        ? 'Téléchargé'
-                        : isDownloading
-                            ? '${((downloadTask?.progress ?? 0) * 100).toInt()}%'
-                            : 'Télécharger',
-                    onTap: () {
-                      if (_episode == null) return;
-                      if (isDownloaded) {
-                        ref
-                            .read(downloadProvider.notifier)
-                            .deleteTask(episodeId);
-                        BkoToast.showInfo(
-                          context,
-                          title: 'Téléchargement retiré',
-                          message: _episode?['title'],
-                          icon: IconsaxPlusBold.document_download,
-                        );
-                      } else {
-                        try {
+                  // Télécharger (uniquement si une source audio téléchargeable existe)
+                  if (hasAudio)
+                    _buildActionButton(
+                      icon: isDownloaded
+                          ? Icons.download_done_rounded
+                          : isDownloading
+                              ? Icons.downloading_rounded
+                              : Icons.download_rounded,
+                      iconColor: isDownloaded
+                          ? BkoTheme.goldAccent
+                          : isDownloading
+                              ? BkoTheme.goldAccent
+                              : textPri,
+                      label: isDownloaded
+                          ? 'Téléchargé'
+                          : isDownloading
+                              ? '${((downloadTask?.progress ?? 0) * 100).toInt()}%'
+                              : 'Télécharger',
+                      onTap: () {
+                        if (_episode == null) return;
+                        if (isDownloaded) {
                           ref
                               .read(downloadProvider.notifier)
-                              .startDownload(_episode!);
-                          BkoDownloadToast.show(
+                              .deleteTask(episodeId);
+                          BkoToast.showInfo(
                             context,
-                            title: _episode?['title'] ?? 'Épisode',
-                            podcastName: _episode?['podcast']?['name'],
+                            title: 'Téléchargement retiré',
+                            message: _episode?['title'],
+                            icon: IconsaxPlusBold.document_download,
                           );
-                        } on DownloadLimitException {
-                          DownloadLimitDialog.show(context);
+                        } else {
+                          try {
+                            ref
+                                .read(downloadProvider.notifier)
+                                .startDownload(_episode!);
+                            BkoDownloadToast.show(
+                              context,
+                              title: _episode?['title'] ?? 'Épisode',
+                              podcastName: _episode?['podcast']?['name'],
+                            );
+                          } on DownloadLimitException {
+                            DownloadLimitDialog.show(context);
+                          }
                         }
-                      }
-                    },
-                  ),
+                      },
+                    ),
 
                   // Enregistrer / Favoris
                   _buildActionButton(
