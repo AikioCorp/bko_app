@@ -36,8 +36,12 @@ class AuthState {
     return roles.contains('CREATOR') ||
         roles.contains('ADMIN') ||
         roles.contains('SUPER_ADMIN') ||
-        userMap['creatorProfile'] != null;
+        userMap['creatorProfile'] != null ||
+        userMap['hasStudioAccess'] == true ||
+        userMap['isCollaborator'] == true;
   }
+
+  bool get canAccessStudio => isCreatorOrAdmin;
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {

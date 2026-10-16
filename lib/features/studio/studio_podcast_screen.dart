@@ -223,6 +223,35 @@ class _StudioPodcastScreenState extends ConsumerState<StudioPodcastScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            BkoBounceable(
+              onTap: () => _open('/studio/podcasts/${widget.podcastId}/team'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: bgElevated,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: borderSub),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(IconsaxPlusLinear.people,
+                        size: 16, color: BkoTheme.goldAccent),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Équipe & Collaborateurs',
+                      style: BkoTheme.fontLato(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: textPri,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             Text(
               'MES ÉPISODES (${_episodes.length})',

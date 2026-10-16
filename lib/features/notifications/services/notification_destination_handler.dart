@@ -109,11 +109,16 @@ class NotificationDestinationHandler {
     final uri = Uri.tryParse(path);
     final basePath = uri?.path ?? path;
 
-    // Contrôle d'accès au Studio
+    // Contrôle d'accès au Studio (créateur, collaborateur ou administrateur)
     if (basePath.startsWith('/studio')) {
-      final isCreatorOrAdmin = ref?.read(authProvider).isCreatorOrAdmin ?? false;
-      if (!isCreatorOrAdmin) {
-        _showFeedback(context, "Cet espace requiert un compte créateur ou administrateur.");
+      var canAccessStudio = ref?.read(authProvider).canAccessStudio ?? false;
+      if (!canAccessStudio && ref != null) {
+        // En cas d'affectation récente (ex: notification "Ouvrir l'émission"), actualiser immédiatement les droits depuis /me
+        await ref.read(authProvider.notifier).fetchMe();
+        canAccessStudio = ref.read(authProvider).canAccessStudio;
+      }
+      if (!canAccessStudio) {
+        _showFeedback(context, "Cet espace requiert un profil créateur, collaborateur ou administrateur.");
         return false;
       }
     }

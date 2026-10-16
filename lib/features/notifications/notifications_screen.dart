@@ -851,6 +851,38 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
                       ),
                     ),
                   ],
+                  if (notif.actionLabel != null && notif.link != null && notif.link!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    BkoBounceable(
+                      onTap: () => _onNotificationTap(notif),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: BkoTheme.goldAccent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              notif.actionLabel!,
+                              style: BkoTheme.fontPoppins(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            const Icon(
+                              IconsaxPlusLinear.arrow_right_3,
+                              size: 13,
+                              color: Colors.black,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
 
                   // Ligne d'horodatage et statut

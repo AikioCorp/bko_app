@@ -23,6 +23,7 @@ import '../../features/studio/create_podcast_screen.dart';
 import '../../features/studio/create_episode_screen.dart';
 import '../../features/studio/rss_import_screen.dart';
 import '../../features/studio/youtube_channel_import_screen.dart';
+import '../../features/studio/podcast_team_screen.dart';
 import '../../features/auth/forgot_password_screen.dart';
 import '../../features/notifications/notifications_screen.dart';
 import '../../features/library/playlist_details_screen.dart';
@@ -263,6 +264,12 @@ final appRouter = GoRouter(
           builder: (context, state) => StudioAccessGate(
               child:
                   StudioPodcastScreen(podcastId: state.pathParameters['id']!)),
+        ),
+        GoRoute(
+          path: '/studio/podcasts/:id/team',
+          builder: (context, state) => StudioAccessGate(
+              child:
+                  PodcastTeamScreen(podcastId: state.pathParameters['id']!)),
         ),
         GoRoute(
           path: '/studio/claims',

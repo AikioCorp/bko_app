@@ -6,6 +6,7 @@ class BkoNotification {
   final String title;
   final String? body;
   final String? link;
+  final String? actionLabel;
   final DateTime? readAt;
   final DateTime createdAt;
 
@@ -15,6 +16,7 @@ class BkoNotification {
     required this.title,
     this.body,
     this.link,
+    this.actionLabel,
     this.readAt,
     required this.createdAt,
   });
@@ -47,12 +49,24 @@ class BkoNotification {
       parsedCreatedAt = DateTime.now();
     }
 
+    final parsedType = json['type']?.toString() ?? 'GENERIC';
+    final parsedLink = json['link']?.toString();
+
+    String? parsedActionLabel = json['actionLabel']?.toString();
+    if (parsedActionLabel == null && json['metadata'] is Map) {
+      parsedActionLabel = (json['metadata'] as Map)['actionLabel']?.toString();
+    }
+    if (parsedActionLabel == null && (parsedType == 'TEAM_MEMBER_ADDED' || (parsedLink != null && parsedLink.contains('/studio/podcasts')))) {
+      parsedActionLabel = 'Ouvrir l’émission';
+    }
+
     return BkoNotification(
       id: id,
-      type: json['type']?.toString() ?? 'GENERIC',
+      type: parsedType,
       title: title,
       body: json['body']?.toString(),
-      link: json['link']?.toString(),
+      link: parsedLink,
+      actionLabel: parsedActionLabel,
       readAt: parsedReadAt,
       createdAt: parsedCreatedAt,
     );
@@ -65,6 +79,7 @@ class BkoNotification {
       'title': title,
       'body': body,
       'link': link,
+      'actionLabel': actionLabel,
       'readAt': readAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
     };
@@ -76,6 +91,7 @@ class BkoNotification {
     String? title,
     String? body,
     String? link,
+    String? actionLabel,
     DateTime? readAt,
     DateTime? createdAt,
   }) {
@@ -85,6 +101,7 @@ class BkoNotification {
       title: title ?? this.title,
       body: body ?? this.body,
       link: link ?? this.link,
+      actionLabel: actionLabel ?? this.actionLabel,
       readAt: readAt ?? this.readAt,
       createdAt: createdAt ?? this.createdAt,
     );

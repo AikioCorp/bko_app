@@ -23,8 +23,12 @@ class YoutubeChannelImportScreen extends ConsumerStatefulWidget {
 class _YoutubeChannelImportScreenState
     extends ConsumerState<YoutubeChannelImportScreen> {
   final _urlController = TextEditingController();
+  final _podcastNameController = TextEditingController();
+  final _podcastDescController = TextEditingController();
   final _includeKeywordsController = TextEditingController();
   final _excludeKeywordsController = TextEditingController();
+  String _targetMode = 'new';
+  String? _createdPodcastId;
 
   int _step =
       1; // 1: URL & Podcast, 2: Preview & Selection, 3: Settings & Confirm
@@ -32,6 +36,12 @@ class _YoutubeChannelImportScreenState
   bool _loadingMore = false;
   bool _archivesMode = false;
   bool _futureOnly = false;
+  String _discoveryMode = 'STANDARD';
+  bool _matchesDiscovery(Map item) =>
+      _discoveryMode == 'ALL' ||
+      (_discoveryMode == 'SHORTS'
+          ? item['isLikelyShort'] == true
+          : item['isLikelyShort'] != true);
   Timer? _statusTimer;
   bool _connecting = false;
   bool _syncingNow = false;
@@ -66,6 +76,8 @@ class _YoutubeChannelImportScreenState
   void dispose() {
     _statusTimer?.cancel();
     _urlController.dispose();
+    _podcastNameController.dispose();
+    _podcastDescController.dispose();
     _includeKeywordsController.dispose();
     _excludeKeywordsController.dispose();
     super.dispose();
@@ -124,7 +136,8 @@ class _YoutubeChannelImportScreenState
     }
   }
 
-  Future<void> _fetchChannelStatus(String podcastId, {bool silent = false}) async {
+  Future<void> _fetchChannelStatus(String podcastId,
+      {bool silent = false}) async {
     final auth = ref.read(authProvider);
     if (auth.token == null) return;
 
@@ -217,12 +230,6 @@ class _YoutubeChannelImportScreenState
       return;
     }
 
-    if (_selectedPodcastId == null) {
-      setState(() => _errorMessage =
-          'Veuillez sélectionner une émission pour y associer cette chaîne.');
-      return;
-    }
-
     final auth = ref.read(authProvider);
     if (!auth.isAuthenticated || auth.token == null) return;
 
@@ -235,7 +242,11 @@ class _YoutubeChannelImportScreenState
     try {
       final res = await BkoApi.post(
         '/creator/youtube/preview',
-        {'url': input, 'podcastId': _selectedPodcastId},
+        {
+          'url': input,
+          if (_selectedPodcastId != null) 'podcastId': _selectedPodcastId,
+          'mode': _discoveryMode,
+        },
         token: auth.token,
       );
 
@@ -249,7 +260,8 @@ class _YoutubeChannelImportScreenState
         throw const ApiException('Impossible d’analyser cette chaîne YouTube.');
       }
 
-      final rawItems = (data['items'] as List?) ?? (data['videos'] as List?) ?? [];
+      final rawItems =
+          (data['items'] as List?) ?? (data['videos'] as List?) ?? [];
       final normalizedItems = <Map<String, dynamic>>[];
       final preselected = <String>{};
 
@@ -263,7 +275,7 @@ class _YoutubeChannelImportScreenState
             normalizedItems.add(item);
             if (item['isAlreadyImported'] != true &&
                 item['embeddable'] != false &&
-                item['isLikelyShort'] != true) {
+                _matchesDiscovery(item)) {
               preselected.add(vid);
             }
           }
@@ -273,6 +285,17 @@ class _YoutubeChannelImportScreenState
       data['items'] = normalizedItems;
 
       if (mounted) {
+        final channel = data['channel'] as Map? ?? {};
+        _podcastNameController.text = channel['title']?.toString() ??
+            channel['channelTitle']?.toString() ??
+            '';
+        _podcastDescController.text = channel['description']?.toString() ??
+            channel['channelDescription']?.toString() ??
+            '';
+        if (_selectedPodcastId == null || _podcasts.isEmpty) {
+          _targetMode = 'new';
+        }
+
         setState(() {
           _previewData = data;
           _archivesMode = false;
@@ -319,14 +342,14 @@ class _YoutubeChannelImportScreenState
         result = await BkoApi.post(
           '/creator/podcasts/$podcastId/youtube/historical-import',
           {
+            'mode': _discoveryMode,
             if (pageToken != null) 'pageToken': pageToken,
           },
           token: auth.token,
         );
       } else {
-        final channelUrl =
-            (_previewData?['channel'] as Map?)?['channelId'] ??
-                _urlController.text.trim();
+        final channelUrl = (_previewData?['channel'] as Map?)?['channelId'] ??
+            _urlController.text.trim();
         result = await BkoApi.post(
           '/creator/youtube/preview',
           {
@@ -339,12 +362,16 @@ class _YoutubeChannelImportScreenState
       }
 
       final Map<String, dynamic> data;
-      if (result is Map && result['data'] is Map && result['items'] == null && result['videos'] == null) {
+      if (result is Map &&
+          result['data'] is Map &&
+          result['items'] == null &&
+          result['videos'] == null) {
         data = Map<String, dynamic>.from(result['data'] as Map);
       } else if (result is Map) {
         data = Map<String, dynamic>.from(result);
       } else {
-        throw const ApiException('Impossible de charger les vidéos de la chaîne.');
+        throw const ApiException(
+            'Impossible de charger les vidéos de la chaîne.');
       }
 
       if (!mounted || podcastId != _selectedPodcastId) return;
@@ -413,7 +440,8 @@ class _YoutubeChannelImportScreenState
       return;
     }
     if (!_futureOnly && _selectedVideoIds.isEmpty) {
-      setState(() => _errorMessage = 'Sélectionnez au moins une vidéo à importer.');
+      setState(
+          () => _errorMessage = 'Sélectionnez au moins une vidéo à importer.');
       return;
     }
 
@@ -439,12 +467,52 @@ class _YoutubeChannelImportScreenState
           .where((s) => s.isNotEmpty)
           .toList();
 
-      final selectedList = _futureOnly ? <String>[] : _selectedVideoIds.toList();
+      final selectedList =
+          _futureOnly ? <String>[] : _selectedVideoIds.toList();
+
+      String? podcastIdToUse = _targetMode == 'existing' ? _selectedPodcastId : _createdPodcastId;
+
+      if (_targetMode == 'new' && podcastIdToUse == null) {
+        final title = _podcastNameController.text.trim();
+        if (title.isEmpty) {
+          setState(() {
+            _connecting = false;
+            _errorMessage = 'Veuillez renseigner un titre pour l\'émission.';
+          });
+          return;
+        }
+
+        final createRes = await BkoApi.post(
+          '/creator/podcasts',
+          {
+            'name': title,
+            'description': _podcastDescController.text.trim(),
+            'cover': channel['thumbnailUrl']?.toString() ?? '',
+            'countryId': 'ML',
+            'primaryLanguageCode': 'fr',
+            'status': 'DRAFT',
+          },
+          token: auth.token,
+        );
+
+        final createMap = createRes is Map ? Map<String, dynamic>.from(createRes) : <String, dynamic>{};
+        podcastIdToUse = '${createMap['id'] ?? createMap['data']?['id']}';
+        _createdPodcastId = podcastIdToUse;
+        _selectedPodcastId = podcastIdToUse;
+      }
+
+      if (podcastIdToUse == null) {
+        setState(() {
+          _connecting = false;
+          _errorMessage = 'Veuillez sélectionner une émission de destination.';
+        });
+        return;
+      }
 
       final payload = {
         'channelId': channel['channelId'],
-        'channelTitle': channel['title'],
-        'channelDescription': channel['description'],
+        'channelTitle': channel['title'] ?? _podcastNameController.text.trim(),
+        'channelDescription': channel['description'] ?? _podcastDescController.text.trim(),
         'thumbnailUrl': channel['thumbnailUrl'],
         'customUrl': channel['customUrl'],
         'uploadsPlaylistId': channel['uploadsPlaylistId'],
@@ -452,6 +520,7 @@ class _YoutubeChannelImportScreenState
         'selectedVideoIds': selectedList,
         'settings': {
           'autoPublish': _autoPublish,
+          'excludeShorts': _discoveryMode == 'STANDARD',
           'initialImportMode': _futureOnly ? 'FUTURE_ONLY' : 'SELECT',
           'keepManualEdits': _keepManualEdits,
           'autoSyncFuture': _autoSync,
@@ -464,8 +533,8 @@ class _YoutubeChannelImportScreenState
 
       final res = await BkoApi.post(
         _archivesMode
-            ? '/creator/podcasts/$_selectedPodcastId/youtube/historical-import'
-            : '/creator/podcasts/$_selectedPodcastId/youtube/connect',
+            ? '/creator/podcasts/$podcastIdToUse/youtube/historical-import'
+            : '/creator/podcasts/$podcastIdToUse/youtube/connect',
         _archivesMode ? {'selectedVideoIds': selectedList} : payload,
         token: auth.token,
       );
@@ -638,9 +707,8 @@ class _YoutubeChannelImportScreenState
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e is ApiException
-              ? e.message
-              : 'Erreur lors de la déconnexion.';
+          _errorMessage =
+              e is ApiException ? e.message : 'Erreur lors de la déconnexion.';
         });
       }
     }
@@ -727,7 +795,9 @@ class _YoutubeChannelImportScreenState
           _step == 1
               ? 'Chaîne YouTube'
               : _step == 2
-                  ? (_archivesMode ? 'Archives de la chaîne' : 'Sélection des vidéos')
+                  ? (_archivesMode
+                      ? 'Archives de la chaîne'
+                      : 'Sélection des vidéos')
                   : 'Paramètres d’import',
           style: TextStyle(
             fontSize: 16,
@@ -778,8 +848,7 @@ class _YoutubeChannelImportScreenState
       decoration: BoxDecoration(
         color: BkoTheme.successColor.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border:
-            Border.all(color: BkoTheme.successColor.withValues(alpha: 0.3)),
+        border: Border.all(color: BkoTheme.successColor.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -1446,16 +1515,53 @@ class _YoutubeChannelImportScreenState
     final textSec = BkoTheme.getTextSecondary(context);
 
     final channel = _previewData?['channel'] as Map? ?? {};
-    final title = channel['title'] ??
-        _channelStatus?['channelTitle'] ??
-        'Chaîne YouTube';
+    final title =
+        channel['title'] ?? _channelStatus?['channelTitle'] ?? 'Chaîne YouTube';
     final thumb = channel['thumbnailUrl'] ?? _channelStatus?['thumbnailUrl'];
-    final items = (_previewData?['items'] as List? ?? []);
+    final allItems = (_previewData?['items'] as List? ?? []);
+    final items = allItems
+        .where((item) => item is Map && _matchesDiscovery(item))
+        .toList();
     final note = _previewData?['note']?.toString();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DropdownButtonFormField<String>(
+          initialValue: _discoveryMode,
+          isExpanded: true,
+          decoration:
+              const InputDecoration(labelText: 'Publications recherchées'),
+          items: const [
+            DropdownMenuItem(
+                value: 'STANDARD', child: Text('Vidéos hors Shorts présumés')),
+            DropdownMenuItem(value: 'SHORTS', child: Text('Shorts présumés')),
+            DropdownMenuItem(
+                value: 'ALL', child: Text('Toutes les publications')),
+          ],
+          onChanged: _loadingMore
+              ? null
+              : (value) {
+                  if (value == null) return;
+                  setState(() {
+                    _discoveryMode = value;
+                    _selectedVideoIds.removeWhere((id) => !allItems.any(
+                        (item) =>
+                            item is Map &&
+                            _extractVideoIdFromItem(item) == id &&
+                            _matchesDiscovery(item)));
+                  });
+                },
+        ),
+        const SizedBox(height: 12),
+        Text(
+            '${allItems.length} parcourues · ${items.length} correspondantes · ${allItems.length - items.length} hors filtre · ${items.where((i) => i['embeddable'] != false && i['isAlreadyImported'] != true).length} admissibles · ${_selectedVideoIds.length} sélectionnées',
+            style: TextStyle(color: textSec, fontSize: 12)),
+        const SizedBox(height: 8),
+        Text(
+            'Shorts identifiés à titre indicatif. Chaque chargement parcourt au maximum 5 pages pour trouver 20 vidéos correspondantes.',
+            style: TextStyle(color: textSec, fontSize: 12)),
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -1510,6 +1616,183 @@ class _YoutubeChannelImportScreenState
             ],
           ),
         ),
+        const SizedBox(height: 14),
+        if (_podcasts.isNotEmpty) ...[
+          Text(
+            'DESTINATION DE L’ÉMISSION',
+            style: TextStyle(
+              color: textSec,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: BkoBounceable(
+                  onTap: () => setState(() => _targetMode = 'new'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _targetMode == 'new'
+                          ? BkoTheme.goldAccent.withValues(alpha: 0.15)
+                          : bgSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _targetMode == 'new'
+                            ? BkoTheme.goldAccent
+                            : borderSub,
+                      ),
+                    ),
+                    child: Text(
+                      'Créer une émission',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: _targetMode == 'new'
+                            ? BkoTheme.goldAccent
+                            : textPri,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: BkoBounceable(
+                  onTap: () => setState(() => _targetMode = 'existing'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: _targetMode == 'existing'
+                          ? BkoTheme.goldAccent.withValues(alpha: 0.15)
+                          : bgSurface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: _targetMode == 'existing'
+                            ? BkoTheme.goldAccent
+                            : borderSub,
+                      ),
+                    ),
+                    child: Text(
+                      'Associer existante',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: _targetMode == 'existing'
+                            ? BkoTheme.goldAccent
+                            : textPri,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+        ],
+        if (_targetMode == 'new' || _podcasts.isEmpty) ...[
+          Text(
+            'TITRE DE L’ÉMISSION',
+            style: TextStyle(
+              color: textSec,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _podcastNameController,
+            style: TextStyle(fontSize: 13.5, color: textPri),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: bgSurface,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderSub),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: BkoTheme.goldAccent),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'DESCRIPTION',
+            style: TextStyle(
+              color: textSec,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          TextField(
+            controller: _podcastDescController,
+            maxLines: 2,
+            style: TextStyle(fontSize: 13, color: textPri),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: bgSurface,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderSub),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: BkoTheme.goldAccent),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ] else ...[
+          Text(
+            'ÉMISSION DE DESTINATION',
+            style: TextStyle(
+              color: textSec,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedPodcastId,
+            dropdownColor: bgSurface,
+            style: TextStyle(fontSize: 13.5, color: textPri),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: bgSurface,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: borderSub),
+              ),
+            ),
+            items: _podcasts.map<DropdownMenuItem<String>>((p) {
+              return DropdownMenuItem<String>(
+                value: '${p['id']}',
+                child: Text(p['name'] ?? 'Émission',
+                    overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) setState(() => _selectedPodcastId = val);
+            },
+          ),
+          const SizedBox(height: 14),
+        ],
         const SizedBox(height: 12),
         if (!_archivesMode)
           Container(
@@ -1559,7 +1842,7 @@ class _YoutubeChannelImportScreenState
                             if (id.isNotEmpty &&
                                 raw['isAlreadyImported'] != true &&
                                 raw['embeddable'] != false &&
-                                raw['isLikelyShort'] != true) {
+                                _matchesDiscovery(raw)) {
                               _selectedVideoIds.add(id);
                             }
                           }
@@ -1692,8 +1975,8 @@ class _YoutubeChannelImportScreenState
                                 if (isShort)
                                   _buildBadge('Short', BkoTheme.goldAccent),
                                 if (isEmbedBlocked)
-                                  _buildBadge(
-                                      'Intégration désactivée', BkoTheme.errorColor),
+                                  _buildBadge('Intégration désactivée',
+                                      BkoTheme.errorColor),
                               ],
                             ),
                           ],
@@ -1719,9 +2002,8 @@ class _YoutubeChannelImportScreenState
           Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: BkoBounceable(
-              onTap: _loadingMore
-                  ? null
-                  : () => _loadMoreVideos(archives: false),
+              onTap:
+                  _loadingMore ? null : () => _loadMoreVideos(archives: false),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
