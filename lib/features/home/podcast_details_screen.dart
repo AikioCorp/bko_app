@@ -506,15 +506,15 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                           ? CachedNetworkImage(
                               imageUrl: coverUrl,
                               fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => const Icon(
+                              errorWidget: (context, url, error) => Icon(
                                 Icons.graphic_eq_rounded,
-                                color: BkoTheme.goldAccent,
+                                color: BkoTheme.getAccent(context),
                                 size: 64,
                               ),
                             )
-                          : const Icon(
+                          : Icon(
                               Icons.graphic_eq_rounded,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                               size: 64,
                             ),
                     ),
@@ -540,7 +540,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                         style: BkoTheme.fontLato(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -691,7 +691,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                   ),
                 )),
                 PopupMenuButton<String>(
@@ -800,8 +800,8 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
               const SizedBox(height: 36),
               Row(
                 children: [
-                  const Icon(IconsaxPlusBold.magic_star,
-                      color: BkoTheme.goldAccent, size: 18),
+                  Icon(IconsaxPlusBold.magic_star,
+                      color: BkoTheme.getAccent(context), size: 18),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -814,7 +814,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                         fontSize: 12,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 1.2,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ),
@@ -846,7 +846,7 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                         width: 130,
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF141416),
+                          color: BkoTheme.getBgSurface(context),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: borderSub),
                         ),
@@ -858,20 +858,20 @@ class _PodcastDetailsScreenState extends ConsumerState<PodcastDetailsScreen> {
                               child: Container(
                                 width: 114,
                                 height: 114,
-                                color: const Color(0xFF1E1E24),
+                                color: BkoTheme.getBgSurface(context),
                                 child: simCover.isNotEmpty
                                     ? CachedNetworkImage(
                                         imageUrl: simCover,
                                         fit: BoxFit.cover,
-                                        errorWidget: (_, __, ___) => const Icon(
+                                        errorWidget: (_, __, ___) => Icon(
                                           Icons.podcasts_rounded,
-                                          color: BkoTheme.goldAccent,
+                                          color: BkoTheme.getAccent(context),
                                           size: 32,
                                         ),
                                       )
-                                    : const Icon(
+                                    : Icon(
                                         Icons.podcasts_rounded,
-                                        color: BkoTheme.goldAccent,
+                                        color: BkoTheme.getAccent(context),
                                         size: 32,
                                       ),
                               ),

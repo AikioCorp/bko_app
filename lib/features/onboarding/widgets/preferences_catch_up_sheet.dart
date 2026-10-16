@@ -108,13 +108,13 @@ class _PreferencesCatchUpSheetState extends ConsumerState<PreferencesCatchUpShee
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF121212),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: BkoTheme.getBgSurface(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         border: Border(
-          top: BorderSide(color: Color(0xFF262626), width: 1),
-          left: BorderSide(color: Color(0xFF262626), width: 1),
-          right: BorderSide(color: Color(0xFF262626), width: 1),
+          top: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1),
+          left: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1),
+          right: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1),
         ),
       ),
       padding: EdgeInsets.only(
@@ -133,7 +133,7 @@ class _PreferencesCatchUpSheetState extends ConsumerState<PreferencesCatchUpShee
               width: 38,
               height: 4,
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
+                color: BkoTheme.getBorderSubtle(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -146,16 +146,16 @@ class _PreferencesCatchUpSheetState extends ConsumerState<PreferencesCatchUpShee
               width: 58,
               height: 58,
               decoration: BoxDecoration(
-                color: const Color(0xFF1E1A11),
+                color: BkoTheme.getBgSurface(context),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: BkoTheme.goldAccent.withValues(alpha: 0.35),
                   width: 1,
                 ),
               ),
-              child: const Icon(
+              child: Icon(
                 IconsaxPlusBold.headphone,
-                color: BkoTheme.goldAccent,
+                color: BkoTheme.getAccent(context),
                 size: 28,
               ),
             ),
@@ -169,7 +169,7 @@ class _PreferencesCatchUpSheetState extends ConsumerState<PreferencesCatchUpShee
             style: BkoTheme.fontPoppins(
               fontSize: 19,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
               letterSpacing: -0.3,
             ),
           ),
@@ -184,7 +184,7 @@ class _PreferencesCatchUpSheetState extends ConsumerState<PreferencesCatchUpShee
               style: BkoTheme.fontPoppins(
                 fontSize: 13.5,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFFB8B8B8),
+                color: BkoTheme.getTextSecondary(context),
                 height: 1.45,
               ),
             ),
@@ -234,16 +234,16 @@ class _PreferencesCatchUpSheetState extends ConsumerState<PreferencesCatchUpShee
               child: Container(
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: Text(
                   'Plus tard',
                   style: BkoTheme.fontPoppins(
                     fontSize: 13.5,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF888888),
+                    color: BkoTheme.getTextMuted(context),
                   ),
                 ),
               ),

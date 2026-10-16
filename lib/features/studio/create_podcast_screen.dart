@@ -345,8 +345,8 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(IconsaxPlusLinear.gallery_export,
-                              size: 15, color: BkoTheme.goldAccent),
+                          Icon(IconsaxPlusLinear.gallery_export,
+                              size: 15, color: BkoTheme.getAccent(context)),
                           const SizedBox(width: 6),
                           Text(
                             _uploadingCover
@@ -355,7 +355,7 @@ class _CreatePodcastScreenState extends ConsumerState<CreatePodcastScreen> {
                             style: BkoTheme.fontLato(
                               fontSize: 11.5,
                               fontWeight: FontWeight.w800,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                             ),
                           ),
                         ],

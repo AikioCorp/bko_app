@@ -142,10 +142,10 @@ class _BecomeCreatorScreenState extends ConsumerState<BecomeCreatorScreen> {
                     color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       IconsaxPlusLinear.crown_1,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                       size: 34,
                     ),
                   ),
@@ -238,10 +238,10 @@ class _BecomeCreatorScreenState extends ConsumerState<BecomeCreatorScreen> {
                         color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           IconsaxPlusLinear.microphone_2,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                           size: 24,
                         ),
                       ),
@@ -476,7 +476,7 @@ class _BecomeCreatorScreenState extends ConsumerState<BecomeCreatorScreen> {
   Widget _buildBenefitRow(BuildContext context, IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: BkoTheme.goldAccent),
+        Icon(icon, size: 18, color: BkoTheme.getAccent(context)),
         const SizedBox(width: 10),
         Expanded(
           child: Text(

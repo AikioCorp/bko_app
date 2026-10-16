@@ -399,15 +399,15 @@ class _PodcastTeamScreenState extends ConsumerState<PodcastTeamScreen>
   Color _roleColor(String? role) {
     switch ('$role'.toUpperCase()) {
       case 'OWNER':
-        return BkoTheme.goldAccent;
+        return BkoTheme.getAccent(context);
       case 'ADMIN':
-        return const Color(0xFF6366F1);
+        return Theme.of(context).brightness == Brightness.dark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA);
       case 'EDITOR':
-        return const Color(0xFF10B981);
+        return BkoTheme.getSuccess(context);
       case 'ANALYST':
-        return const Color(0xFF3B82F6);
+        return Theme.of(context).brightness == Brightness.dark ? const Color(0xFF93C5FD) : const Color(0xFF1D4ED8);
       default:
-        return const Color(0xFF9CA3AF);
+        return BkoTheme.getTextSecondary(context);
     }
   }
 
@@ -719,8 +719,8 @@ class _PodcastTeamScreenState extends ConsumerState<PodcastTeamScreen>
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      const Icon(IconsaxPlusLinear.sms,
-                                          size: 18, color: BkoTheme.goldAccent),
+                                      Icon(IconsaxPlusLinear.sms,
+                                          size: 18, color: BkoTheme.getAccent(context)),
                                       const SizedBox(width: 8),
                                       Text(
                                         'ENVOYER UNE INVITATION PAR E-MAIL',
@@ -772,8 +772,8 @@ class _PodcastTeamScreenState extends ConsumerState<PodcastTeamScreen>
                                     radius: 18,
                                     backgroundColor: BkoTheme.goldAccent
                                         .withValues(alpha: 0.15),
-                                    child: const Icon(IconsaxPlusLinear.sms,
-                                        size: 16, color: BkoTheme.goldAccent),
+                                    child: Icon(IconsaxPlusLinear.sms,
+                                        size: 16, color: BkoTheme.getAccent(context)),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
@@ -1014,7 +1014,7 @@ class _AddDirectMemberSheetState extends ConsumerState<_AddDirectMemberSheet> {
               child: Text(
                 'Règle métier : l’utilisateur sélectionné aura un accès actif immédiat à l’émission dans son Studio sans étape d\'acceptation. Une notification lui sera envoyée avec le bouton « Ouvrir l’émission ».',
                 style: BkoTheme.fontLato(
-                    fontSize: 12, color: BkoTheme.goldAccent, height: 1.4),
+                    fontSize: 12, color: BkoTheme.getAccent(context), height: 1.4),
               ),
             ),
             const SizedBox(height: 16),
@@ -1100,8 +1100,8 @@ class _AddDirectMemberSheetState extends ConsumerState<_AddDirectMemberSheet> {
                         style: BkoTheme.fontLato(fontSize: 11.5, color: textSec),
                       ),
                       trailing: isChosen
-                          ? const Icon(Icons.check_circle,
-                              color: BkoTheme.goldAccent, size: 18)
+                          ? Icon(Icons.check_circle,
+                              color: BkoTheme.getAccent(context), size: 18)
                           : null,
                       onTap: () {
                         setState(() {

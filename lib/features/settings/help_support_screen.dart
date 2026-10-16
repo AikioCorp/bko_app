@@ -168,10 +168,10 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                     color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       IconsaxPlusLinear.messages_2,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                       size: 22,
                     ),
                   ),
@@ -353,7 +353,7 @@ class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
                       style: BkoTheme.fontLato(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w700,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ),

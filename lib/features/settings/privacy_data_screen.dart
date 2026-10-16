@@ -57,7 +57,7 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               elevation: 0,
             ),
             child: const Text('Effacer'),
@@ -196,7 +196,7 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               elevation: 0,
             ),
             child: const Text('Supprimer mon compte'),
@@ -279,10 +279,10 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
                         color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           IconsaxPlusLinear.lock,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                           size: 20,
                         ),
                       ),

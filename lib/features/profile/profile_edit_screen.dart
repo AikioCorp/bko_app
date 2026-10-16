@@ -351,9 +351,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     color: surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     IconsaxPlusLinear.camera,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                     size: 20,
                   ),
                 ),
@@ -379,9 +379,9 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     color: surface,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     IconsaxPlusLinear.gallery,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                     size: 20,
                   ),
                 ),
@@ -633,7 +633,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                           style: BkoTheme.fontLato(
                                             fontSize: 32,
                                             fontWeight: FontWeight.w800,
-                                            color: BkoTheme.goldAccent,
+                                            color: BkoTheme.getAccent(context),
                                           ),
                                         ),
                                       ),
@@ -643,7 +643,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                           style: BkoTheme.fontLato(
                                             fontSize: 32,
                                             fontWeight: FontWeight.w800,
-                                            color: BkoTheme.goldAccent,
+                                            color: BkoTheme.getAccent(context),
                                           ),
                                         ),
                                       ),
@@ -654,7 +654,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                                         style: BkoTheme.fontLato(
                                           fontSize: 32,
                                           fontWeight: FontWeight.w800,
-                                          color: BkoTheme.goldAccent,
+                                          color: BkoTheme.getAccent(context),
                                         ),
                                       ),
                                     ),
@@ -715,7 +715,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                             style: BkoTheme.fontLato(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                             ),
                           ),
                         ),

@@ -261,10 +261,10 @@ class SuspendedScreen extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(width: 4),
-                                      const Icon(
+                                      Icon(
                                         IconsaxPlusLinear.verify,
                                         size: 13,
-                                        color: Color(0xFF10B981),
+                                        color: BkoTheme.getSuccess(context),
                                       ),
                                     ],
                                   ),
@@ -292,10 +292,10 @@ class SuspendedScreen extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            const Icon(
+                            Icon(
                               IconsaxPlusLinear.info_circle,
                               size: 16,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                             ),
                             const SizedBox(width: 8),
                             Text(
@@ -339,10 +339,10 @@ class SuspendedScreen extends StatelessWidget {
                                   suspendedUntilFormatted.isNotEmpty)
                                 Text(
                                   'Fin prévue le : $suspendedUntilFormatted',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                 ),
                             ],

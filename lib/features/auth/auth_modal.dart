@@ -19,7 +19,7 @@ class AuthRequiredModal extends StatelessWidget {
       useRootNavigator: true,
       useSafeArea: true,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: BkoTheme.getBgSurface(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(32),
@@ -45,7 +45,7 @@ class AuthRequiredModal extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white24,
+              color: BkoTheme.getBorderStrong(context),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -58,9 +58,9 @@ class AuthRequiredModal extends StatelessWidget {
               border:
                   Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.lock_outline_rounded,
-              color: BkoTheme.goldAccent,
+              color: BkoTheme.getAccent(context),
               size: 32,
             ),
           ),
@@ -70,7 +70,7 @@ class AuthRequiredModal extends StatelessWidget {
             style: BkoTheme.fontLato(
               fontSize: 20,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
             ),
           ),
           const SizedBox(height: 8),
@@ -79,7 +79,7 @@ class AuthRequiredModal extends StatelessWidget {
             textAlign: TextAlign.center,
             style: BkoTheme.fontLato(
               fontSize: 13.5,
-              color: Colors.white70,
+              color: BkoTheme.getTextSecondary(context),
               height: 1.4,
             ),
           ),
@@ -123,7 +123,7 @@ class AuthRequiredModal extends StatelessWidget {
                 context.push('/register');
               },
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.white24),
+                side: BorderSide(color: BkoTheme.getBorderStrong(context)),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
@@ -133,7 +133,7 @@ class AuthRequiredModal extends StatelessWidget {
                 style: BkoTheme.fontLato(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
-                  color: Colors.white,
+                  color: BkoTheme.getTextPrimary(context),
                   letterSpacing: 1.0,
                 ),
               ),

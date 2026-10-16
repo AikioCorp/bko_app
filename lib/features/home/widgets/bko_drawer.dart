@@ -82,7 +82,7 @@ class BkoDrawer extends ConsumerWidget {
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -145,9 +145,9 @@ class BkoDrawer extends ConsumerWidget {
                           ? CachedNetworkImage(
                               imageUrl: avatarUrl,
                               fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => _buildAvatarInitial(fullName),
+                              errorWidget: (_, __, ___) => _buildAvatarInitial(context, fullName),
                             )
-                          : _buildAvatarInitial(fullName),
+                          : _buildAvatarInitial(context, fullName),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -183,14 +183,14 @@ class BkoDrawer extends ConsumerWidget {
                                   style: BkoTheme.fontLato(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(
+                                Icon(
                                   IconsaxPlusLinear.arrow_right_3,
                                   size: 12,
-                                  color: BkoTheme.goldAccent,
+                                  color: BkoTheme.getAccent(context),
                                 ),
                               ],
                             ),
@@ -306,7 +306,7 @@ class BkoDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildAvatarInitial(String name) {
+  Widget _buildAvatarInitial(BuildContext context, String name) {
     final initial = name.trim().isNotEmpty ? name.trim().substring(0, 1).toUpperCase() : 'A';
     return Center(
       child: Text(
@@ -314,7 +314,7 @@ class BkoDrawer extends ConsumerWidget {
         style: BkoTheme.fontLato(
           fontSize: 20,
           fontWeight: FontWeight.w800,
-          color: BkoTheme.goldAccent,
+          color: BkoTheme.getAccent(context),
         ),
       ),
     );

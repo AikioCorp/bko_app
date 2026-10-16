@@ -393,33 +393,33 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF18181C),
+        backgroundColor: BkoTheme.getBgSurface(context),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0xFF28282E)),
+          side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
         ),
         title: Text(
           'Supprimer le commentaire ?',
           style: BkoTheme.fontPoppins(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
+            color: BkoTheme.getTextPrimary(context),
           ),
         ),
         content: Text(
           'Cette action est irréversible.',
-          style: BkoTheme.fontLato(fontSize: 13, color: Colors.white70),
+          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextSecondary(context)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+            child: Text('Annuler', style: TextStyle(color: BkoTheme.getTextSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent.shade700,
-              foregroundColor: Colors.white,
+              foregroundColor: BkoTheme.getTextPrimary(context),
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -475,10 +475,10 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
   @override
   Widget build(BuildContext context) {
     final currentUserId = ref.watch(authProvider).user?['id'];
-    const bgSurface = Color(0xFF141416);
-    const border = Color(0xFF262626);
-    const textPri = Colors.white;
-    const textSec = Colors.white70;
+    final bgSurface = BkoTheme.getBgSurface(context);
+    final border = BkoTheme.getBorderSubtle(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
 
     return GestureDetector(
       onTap: () {
@@ -507,7 +507,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                 width: 38,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: BkoTheme.getBorderStrong(context),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -543,22 +543,22 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                           style: BkoTheme.fontPoppins(
                             fontSize: 11.5,
                             fontWeight: FontWeight.w800,
-                            color: BkoTheme.goldAccent,
+                            color: BkoTheme.getAccent(context),
                           ),
                         ),
                       ),
                     ],
                   ),
                   IconButton(
-                    icon: const Icon(IconsaxPlusLinear.close_circle,
-                        color: Colors.white70, size: 22),
+                    icon: Icon(IconsaxPlusLinear.close_circle,
+                        color: BkoTheme.getTextSecondary(context), size: 22),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
 
-            const Divider(height: 1, color: Color(0xFF242428)),
+            Divider(height: 1, color: BkoTheme.getBgSurfaceElevated(context)),
 
             // Liste des commentaires
             Expanded(
@@ -571,12 +571,12 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(_errorMessage!,
-                                  style: const TextStyle(color: Colors.white70)),
+                                  style: TextStyle(color: BkoTheme.getTextSecondary(context))),
                               const SizedBox(height: 8),
                               TextButton(
                                 onPressed: _fetchComments,
-                                child: const Text('Réessayer',
-                                    style: TextStyle(color: BkoTheme.goldAccent)),
+                                child: Text('Réessayer',
+                                    style: TextStyle(color: BkoTheme.getAccent(context))),
                               ),
                             ],
                           ),
@@ -588,10 +588,10 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       IconsaxPlusLinear.message_text,
                                       size: 42,
-                                      color: Colors.white38,
+                                      color: BkoTheme.getTextSecondary(context),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
@@ -605,7 +605,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                             )
                           : RefreshIndicator(
                               color: BkoTheme.goldAccent,
-                              backgroundColor: const Color(0xFF1E1E22),
+                              backgroundColor: BkoTheme.getBgSurface(context),
                               onRefresh: _fetchComments,
                               child: ListView.separated(
                                 controller: _scrollCtrl,
@@ -615,7 +615,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                     horizontal: 16, vertical: 12),
                                 itemCount: _comments.length,
                                 separatorBuilder: (_, __) =>
-                                    const Divider(height: 16, color: Color(0xFF1E1E22)),
+                                    Divider(height: 16, color: BkoTheme.getBgSurface(context)),
                                 itemBuilder: (context, index) {
                                   final item = _comments[index];
                                   final commentId = '${item['id']}';
@@ -713,7 +713,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                                   style: BkoTheme.fontPoppins(
                                                     fontSize: 11.5,
                                                     fontWeight: FontWeight.w700,
-                                                    color: BkoTheme.goldAccent,
+                                                    color: BkoTheme.getAccent(context),
                                                   ),
                                                 ),
                                                 const SizedBox(width: 4),
@@ -722,7 +722,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                                       ? IconsaxPlusLinear.arrow_up_1
                                                       : IconsaxPlusLinear.arrow_down_1,
                                                   size: 13,
-                                                  color: BkoTheme.goldAccent,
+                                                  color: BkoTheme.getAccent(context),
                                                 ),
                                               ],
                                             ),
@@ -743,7 +743,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                                 bottom: 12,
                                                 child: Container(
                                                   width: 1.5,
-                                                  color: const Color(0xFF282832),
+                                                  color: BkoTheme.getBgSurfaceElevated(context),
                                                 ),
                                               ),
                                               Column(
@@ -828,17 +828,17 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
             if (_replyingTo != null)
               Container(
                 padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
-                decoration: const BoxDecoration(
-                  color: Color(0xFF1B1B20),
+                decoration: BoxDecoration(
+                  color: BkoTheme.getBgSurface(context),
                   border: Border(
-                    top: BorderSide(color: Color(0xFF28282E)),
-                    left: BorderSide(color: BkoTheme.goldAccent, width: 3.5),
+                    top: BorderSide(color: BkoTheme.getBorderSubtle(context)),
+                    left: const BorderSide(color: BkoTheme.goldAccent, width: 3.5),
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(IconsaxPlusLinear.arrow_right_3,
-                        size: 16, color: BkoTheme.goldAccent),
+                    Icon(IconsaxPlusLinear.arrow_right_3,
+                        size: 16, color: BkoTheme.getAccent(context)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Column(
@@ -850,7 +850,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                             style: BkoTheme.fontPoppins(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -860,7 +860,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                             overflow: TextOverflow.ellipsis,
                             style: BkoTheme.fontLato(
                               fontSize: 11.5,
-                              color: Colors.white70,
+                              color: BkoTheme.getTextSecondary(context),
                             ),
                           ),
                         ],
@@ -870,8 +870,8 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                       visualDensity: VisualDensity.compact,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                      icon: const Icon(IconsaxPlusLinear.close_circle,
-                          size: 18, color: Colors.white54),
+                      icon: Icon(IconsaxPlusLinear.close_circle,
+                          size: 18, color: BkoTheme.getTextSecondary(context)),
                       onPressed: _cancelReply,
                     ),
                   ],
@@ -881,8 +881,8 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
             // Barre de saisie inférieure avec bouton envoyer Iconsax
             Container(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-              decoration: const BoxDecoration(
-                color: Color(0xFF18181C),
+              decoration: BoxDecoration(
+                color: BkoTheme.getBgSurface(context),
                 border: Border(top: BorderSide(color: border)),
               ),
               child: Row(
@@ -891,9 +891,9 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF222228),
+                        color: BkoTheme.getBgSurfaceElevated(context),
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: Colors.white12),
+                        border: Border.all(color: BkoTheme.getBorderStrong(context)),
                       ),
                       child: TextField(
                         controller: _commentCtrl,
@@ -906,7 +906,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                               ? 'Répondre à @${_getAuthorName(_replyingTo!)}...'
                               : 'Participer à la discussion...',
                           hintStyle: BkoTheme.fontLato(
-                              fontSize: 13, color: Colors.white38),
+                              fontSize: 13, color: BkoTheme.getTextSecondary(context)),
                           border: InputBorder.none,
                           contentPadding:
                               const EdgeInsets.symmetric(vertical: 10),
@@ -1048,8 +1048,8 @@ class _CommentItemState extends State<_CommentItem>
 
   @override
   Widget build(BuildContext context) {
-    const textPri = Colors.white;
-    const textSec = Colors.white70;
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
 
     return Stack(
       clipBehavior: Clip.none,
@@ -1070,11 +1070,11 @@ class _CommentItemState extends State<_CommentItem>
                     shape: BoxShape.circle,
                     color: _thresholdReached
                         ? BkoTheme.goldAccent.withValues(alpha: 0.22)
-                        : const Color(0xFF222228),
+                        : BkoTheme.getBgSurfaceElevated(context),
                     border: Border.all(
                       color: _thresholdReached
                           ? BkoTheme.goldAccent
-                          : Colors.white24,
+                          : BkoTheme.getBorderStrong(context),
                       width: 1,
                     ),
                   ),
@@ -1083,7 +1083,7 @@ class _CommentItemState extends State<_CommentItem>
                     size: 16,
                     color: _thresholdReached
                         ? BkoTheme.goldAccent
-                        : Colors.white70,
+                        : BkoTheme.getTextSecondary(context),
                   ),
                 ),
               ),
@@ -1105,7 +1105,7 @@ class _CommentItemState extends State<_CommentItem>
                 // Avatar utilisateur
                 CircleAvatar(
                   radius: widget.isReply ? 13 : 17,
-                  backgroundColor: const Color(0xFF282830),
+                  backgroundColor: BkoTheme.getBgSurfaceElevated(context),
                   backgroundImage: widget.avatarUrl.isNotEmpty &&
                           widget.avatarUrl.startsWith('http')
                       ? NetworkImage(widget.avatarUrl)
@@ -1117,7 +1117,7 @@ class _CommentItemState extends State<_CommentItem>
                               ? widget.authorName[0].toUpperCase()
                               : 'A',
                           style: TextStyle(
-                            color: BkoTheme.goldAccent,
+                            color: BkoTheme.getAccent(context),
                             fontWeight: FontWeight.bold,
                             fontSize: widget.isReply ? 11 : 13,
                           ),
@@ -1149,7 +1149,7 @@ class _CommentItemState extends State<_CommentItem>
                                 widget.dateStr,
                                 style: BkoTheme.fontLato(
                                   fontSize: 11,
-                                  color: Colors.white38,
+                                  color: BkoTheme.getTextSecondary(context),
                                 ),
                               ),
                               if (widget.isAuthor) ...[
@@ -1177,7 +1177,7 @@ class _CommentItemState extends State<_CommentItem>
                         widget.text,
                         style: BkoTheme.fontLato(
                           fontSize: widget.isReply ? 12 : 13,
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: BkoTheme.getTextPrimary(context).withValues(alpha: 0.9),
                           height: 1.38,
                         ),
                       ),
@@ -1198,7 +1198,7 @@ class _CommentItemState extends State<_CommentItem>
                                       : IconsaxPlusLinear.heart,
                                   size: 15,
                                   color: widget.isLiked
-                                      ? const Color(0xFFFF4D4D)
+                                      ? BkoTheme.getError(context)
                                       : textSec,
                                 ),
                                 if (widget.likeCount > 0) ...[
@@ -1211,7 +1211,7 @@ class _CommentItemState extends State<_CommentItem>
                                           ? FontWeight.w700
                                           : FontWeight.w600,
                                       color: widget.isLiked
-                                          ? const Color(0xFFFF4D4D)
+                                          ? BkoTheme.getError(context)
                                           : textSec,
                                     ),
                                   ),
@@ -1227,7 +1227,7 @@ class _CommentItemState extends State<_CommentItem>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   IconsaxPlusLinear.messages_2,
                                   size: 14,
                                   color: textSec,
@@ -1252,7 +1252,7 @@ class _CommentItemState extends State<_CommentItem>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   IconsaxPlusLinear.emoji_happy,
                                   size: 14,
                                   color: textSec,
@@ -1292,13 +1292,13 @@ class _CommentItemState extends State<_CommentItem>
                                   color: isMyReaction
                                       ? BkoTheme.goldAccent
                                           .withValues(alpha: 0.18)
-                                      : const Color(0xFF1E1E24),
+                                      : BkoTheme.getBgSurface(context),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isMyReaction
                                         ? BkoTheme.goldAccent
                                             .withValues(alpha: 0.45)
-                                        : const Color(0xFF2C2C34),
+                                        : BkoTheme.getBorderSubtle(context),
                                     width: 1,
                                   ),
                                 ),
@@ -1345,9 +1345,9 @@ class _CommentItemState extends State<_CommentItem>
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E24),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF32323C)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1418,12 +1418,12 @@ class _CommentItemState extends State<_CommentItem>
                               shape: BoxShape.circle,
                               color: _showExtended
                                   ? BkoTheme.goldAccent.withValues(alpha: 0.22)
-                                  : const Color(0xFF282830),
+                                  : BkoTheme.getBgSurfaceElevated(context),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               IconsaxPlusLinear.add,
                               size: 15,
-                              color: Colors.white70,
+                              color: BkoTheme.getTextSecondary(context),
                             ),
                           ),
                         ),
@@ -1437,13 +1437,13 @@ class _CommentItemState extends State<_CommentItem>
 
         // Animation popup grand coeur au centre du commentaire lors d'un double tap
         if (_showFloatingHeart)
-          const Positioned.fill(
+          Positioned.fill(
             child: IgnorePointer(
               child: Center(
                 child: Icon(
                   IconsaxPlusBold.heart,
                   size: 58,
-                  color: Color(0xFFFF4D4D),
+                  color: BkoTheme.getError(context),
                 ),
               ),
             ),

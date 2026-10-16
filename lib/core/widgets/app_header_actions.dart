@@ -15,7 +15,8 @@ class AppHeaderActions extends ConsumerWidget {
     if (ref.watch(isFullPlayerOpenProvider)) {
       return const SizedBox.shrink();
     }
-    final path = GoRouter.maybeOf(context)?.routeInformationProvider.value.uri.path;
+    final path =
+        GoRouter.maybeOf(context)?.routeInformationProvider.value.uri.path;
     final unread = ref.watch(unreadNotificationsProvider);
     final foreground = BkoTheme.getTextPrimary(context);
     return Row(mainAxisSize: MainAxisSize.min, children: [
@@ -23,19 +24,22 @@ class AppHeaderActions extends ConsumerWidget {
         IconButton(
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
           tooltip: 'Téléchargements',
-          icon: Icon(IconsaxPlusLinear.document_download, size: 22, color: foreground),
+          icon: Icon(IconsaxPlusLinear.document_download,
+              size: 22, color: foreground),
           onPressed: () => context.push('/downloads'),
         ),
       if (path != '/notifications')
         IconButton(
           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-          tooltip: unread > 0 ? 'Notifications, $unread non lues' : 'Notifications',
+          tooltip:
+              unread > 0 ? 'Notifications, $unread non lues' : 'Notifications',
           icon: Badge(
             isLabelVisible: unread > 0,
             backgroundColor: BkoTheme.goldAccent,
-            textColor: Theme.of(context).colorScheme.onPrimary,
+            textColor: BkoTheme.onBrand,
             label: Text(unread > 99 ? '99+' : '$unread'),
-            child: Icon(IconsaxPlusLinear.notification, size: 22, color: foreground),
+            child: Icon(IconsaxPlusLinear.notification,
+                size: 22, color: foreground),
           ),
           onPressed: () => context.push('/notifications'),
         ),

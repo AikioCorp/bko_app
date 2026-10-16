@@ -18,19 +18,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _OnboardingSlideData(
       badge: 'DÉCOUVRIR',
       title: 'Des voix à découvrir. Des histoires à partager.',
-      description: 'Explorez des podcasts, des idées et des conversations selon vos envies.',
+      description:
+          'Explorez des podcasts, des idées et des conversations selon vos envies.',
       type: _VisualType.discover,
     ),
     _OnboardingSlideData(
       badge: 'ÉCOUTER OU REGARDER',
       title: 'Votre écoute, à votre façon.',
-      description: 'Découvrez des épisodes audio et vidéo, et retrouvez vos contenus préférés.',
+      description:
+          'Découvrez des épisodes audio et vidéo, et retrouvez vos contenus préférés.',
       type: _VisualType.listenOrWatch,
     ),
     _OnboardingSlideData(
       badge: 'COMMENCER',
       title: 'Trouvez votre prochaine découverte.',
-      description: 'Parcourez les émissions, suivez celles qui vous plaisent et composez votre bibliothèque.',
+      description:
+          'Parcourez les émissions, suivez celles qui vous plaisent et composez votre bibliothèque.',
       type: _VisualType.start,
     ),
   ];
@@ -83,7 +86,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
         child: Column(
           children: [
@@ -101,7 +104,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       child: TextButton(
                         onPressed: _skipOnboarding,
                         style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFFB8B8B8),
+                          foregroundColor: BkoTheme.getTextSecondary(context),
                           minimumSize: const Size(48, 48),
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
@@ -110,7 +113,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           style: BkoTheme.fontPoppins(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFFB8B8B8),
+                            color: BkoTheme.getTextSecondary(context),
                           ),
                         ),
                       ),
@@ -139,7 +142,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         return SingleChildScrollView(
                           physics: const ClampingScrollPhysics(),
                           child: ConstrainedBox(
-                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight),
                             child: IntrinsicHeight(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,10 +152,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
                                   // Offline Geometric Visual Container
                                   Center(
-                                    child: ConstrainedBox(
-                                      constraints: const BoxConstraints(maxHeight: 220),
-                                      child: _VisualContainer(type: slide.type),
-                                    ),
+                                    child: _VisualContainer(type: slide.type),
                                   ),
 
                                   const SizedBox(height: 24),
@@ -163,7 +164,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       fontSize: 11,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 2.0,
-                                      color: BkoTheme.goldAccent,
+                                      color: BkoTheme.getAccent(context),
                                     ),
                                   ),
 
@@ -177,7 +178,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: -0.4,
                                       height: 1.25,
-                                      color: Colors.white,
+                                      color: BkoTheme.getTextPrimary(context),
                                     ),
                                   ),
 
@@ -190,7 +191,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                       fontSize: 15,
                                       fontWeight: FontWeight.w400,
                                       height: 1.5,
-                                      color: const Color(0xFFB8B8B8),
+                                      color: BkoTheme.getTextSecondary(context),
                                     ),
                                   ),
 
@@ -231,7 +232,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           decoration: BoxDecoration(
                             color: _currentIndex == index
                                 ? BkoTheme.goldAccent
-                                : const Color(0xFF383838),
+                                : BkoTheme.getBorderSubtle(context),
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -303,9 +304,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           child: OutlinedButton(
                             onPressed: _finishAndLogin,
                             style: OutlinedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1A1A1A),
-                              foregroundColor: Colors.white,
-                              side: const BorderSide(color: Color(0xFF262626)),
+                              backgroundColor: BkoTheme.getBgSurface(context),
+                              foregroundColor: BkoTheme.getTextPrimary(context),
+                              side: BorderSide(
+                                  color: BkoTheme.getBorderSubtle(context)),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
@@ -316,7 +318,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               style: BkoTheme.fontPoppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                                color: BkoTheme.getTextPrimary(context),
                               ),
                             ),
                           ),
@@ -361,25 +363,26 @@ class _VisualContainer extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF121212),
+        color: BkoTheme.getBgSurface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF262626)),
+        border: Border.all(color: BkoTheme.getBorderSubtle(context)),
       ),
       child: switch (type) {
-        _VisualType.discover => _buildDiscoverVisual(),
-        _VisualType.listenOrWatch => _buildListenOrWatchVisual(),
-        _VisualType.start => _buildStartVisual(),
+        _VisualType.discover => _buildDiscoverVisual(context),
+        _VisualType.listenOrWatch => _buildListenOrWatchVisual(context),
+        _VisualType.start => _buildStartVisual(context),
       },
     );
   }
 
-  Widget _buildDiscoverVisual() {
+  Widget _buildDiscoverVisual(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Row(
           children: [
             _buildMiniCover(
+              context: context,
               icon: Icons.podcasts_rounded,
               category: 'Société',
               tag: 'Idées',
@@ -387,13 +390,15 @@ class _VisualContainer extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             _buildMiniCover(
+              context: context,
               icon: Icons.record_voice_over_rounded,
               category: 'Débats',
               tag: 'Direct',
-              iconColor: Colors.white,
+              iconColor: BkoTheme.getTextPrimary(context),
             ),
             const SizedBox(width: 10),
             _buildMiniCover(
+              context: context,
               icon: Icons.menu_book_rounded,
               category: 'Récits',
               tag: 'Culture',
@@ -405,22 +410,22 @@ class _VisualContainer extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: BkoTheme.getBgSurface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF262626)),
+            border: Border.all(color: BkoTheme.getBorderSubtle(context)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.explore_rounded,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                   size: 18,
                 ),
               ),
@@ -435,7 +440,7 @@ class _VisualContainer extends StatelessWidget {
                       style: BkoTheme.fontPoppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
                     Text(
@@ -443,15 +448,15 @@ class _VisualContainer extends StatelessWidget {
                       style: BkoTheme.fontPoppins(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFFB8B8B8),
+                        color: BkoTheme.getTextSecondary(context),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_rounded,
-                color: Color(0xFFB8B8B8),
+                color: BkoTheme.getTextSecondary(context),
                 size: 16,
               ),
             ],
@@ -462,6 +467,7 @@ class _VisualContainer extends StatelessWidget {
   }
 
   Widget _buildMiniCover({
+    required BuildContext context,
     required IconData icon,
     required String category,
     required String tag,
@@ -471,31 +477,34 @@ class _VisualContainer extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          color: BkoTheme.getBgSurface(context),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFF262626)),
+          border: Border.all(color: BkoTheme.getBorderSubtle(context)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
               children: [
                 Icon(icon, color: iconColor, size: 22),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF121212),
+                    color: BkoTheme.getBgSurface(context),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0xFF262626)),
+                    border:
+                        Border.all(color: BkoTheme.getBorderSubtle(context)),
                   ),
                   child: Text(
                     tag,
                     style: BkoTheme.fontPoppins(
                       fontSize: 8,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFFB8B8B8),
+                      color: BkoTheme.getTextSecondary(context),
                     ),
                   ),
                 ),
@@ -509,7 +518,7 @@ class _VisualContainer extends StatelessWidget {
               style: BkoTheme.fontPoppins(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: BkoTheme.getTextPrimary(context),
               ),
             ),
           ],
@@ -518,7 +527,7 @@ class _VisualContainer extends StatelessWidget {
     );
   }
 
-  Widget _buildListenOrWatchVisual() {
+  Widget _buildListenOrWatchVisual(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -526,9 +535,9 @@ class _VisualContainer extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: BkoTheme.getBgSurface(context),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFF262626)),
+            border: Border.all(color: BkoTheme.getBorderSubtle(context)),
           ),
           child: Row(
             children: [
@@ -556,7 +565,7 @@ class _VisualContainer extends StatelessWidget {
                       style: BkoTheme.fontPoppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -577,7 +586,7 @@ class _VisualContainer extends StatelessWidget {
                           child: Container(
                             height: 4,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF262626),
+                              color: BkoTheme.getBorderSubtle(context),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -598,22 +607,23 @@ class _VisualContainer extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF121212),
+                        color: BkoTheme.getBgSurface(context),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF262626)),
+                        border: Border.all(
+                            color: BkoTheme.getBorderSubtle(context)),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.headphones_rounded,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                         size: 18,
                       ),
                     ),
@@ -628,7 +638,7 @@ class _VisualContainer extends StatelessWidget {
                             style: BkoTheme.fontPoppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: BkoTheme.getTextPrimary(context),
                             ),
                           ),
                           Text(
@@ -636,7 +646,7 @@ class _VisualContainer extends StatelessWidget {
                             style: BkoTheme.fontPoppins(
                               fontSize: 9,
                               fontWeight: FontWeight.w400,
-                              color: const Color(0xFFB8B8B8),
+                              color: BkoTheme.getTextSecondary(context),
                             ),
                           ),
                         ],
@@ -651,22 +661,23 @@ class _VisualContainer extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF121212),
+                        color: BkoTheme.getBgSurface(context),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFF262626)),
+                        border: Border.all(
+                            color: BkoTheme.getBorderSubtle(context)),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.play_circle_outline_rounded,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                         size: 18,
                       ),
                     ),
@@ -681,7 +692,7 @@ class _VisualContainer extends StatelessWidget {
                             style: BkoTheme.fontPoppins(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: BkoTheme.getTextPrimary(context),
                             ),
                           ),
                           Text(
@@ -689,7 +700,7 @@ class _VisualContainer extends StatelessWidget {
                             style: BkoTheme.fontPoppins(
                               fontSize: 9,
                               fontWeight: FontWeight.w400,
-                              color: const Color(0xFFB8B8B8),
+                              color: BkoTheme.getTextSecondary(context),
                             ),
                           ),
                         ],
@@ -705,7 +716,7 @@ class _VisualContainer extends StatelessWidget {
     );
   }
 
-  Widget _buildStartVisual() {
+  Widget _buildStartVisual(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -713,22 +724,22 @@ class _VisualContainer extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: BkoTheme.getBgSurface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF262626)),
+            border: Border.all(color: BkoTheme.getBorderSubtle(context)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.podcasts_rounded,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                   size: 18,
                 ),
               ),
@@ -743,14 +754,14 @@ class _VisualContainer extends StatelessWidget {
                       style: BkoTheme.fontPoppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
                     Text(
                       'Abonnements aux flux favoris',
                       style: BkoTheme.fontPoppins(
                         fontSize: 10,
-                        color: const Color(0xFFB8B8B8),
+                        color: BkoTheme.getTextSecondary(context),
                       ),
                     ),
                   ],
@@ -759,16 +770,16 @@ class _VisualContainer extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: BkoTheme.goldAccent),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.check_rounded,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                       size: 12,
                     ),
                     const SizedBox(width: 4),
@@ -777,7 +788,7 @@ class _VisualContainer extends StatelessWidget {
                       style: BkoTheme.fontPoppins(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ],
@@ -791,22 +802,22 @@ class _VisualContainer extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A1A),
+            color: BkoTheme.getBgSurface(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF262626)),
+            border: Border.all(color: BkoTheme.getBorderSubtle(context)),
           ),
           child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.bookmark_border_rounded,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                   size: 18,
                 ),
               ),
@@ -821,22 +832,22 @@ class _VisualContainer extends StatelessWidget {
                       style: BkoTheme.fontPoppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
                     Text(
                       'À écouter et retrouver dans la bibliothèque',
                       style: BkoTheme.fontPoppins(
                         fontSize: 10,
-                        color: const Color(0xFFB8B8B8),
+                        color: BkoTheme.getTextSecondary(context),
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.library_music_rounded,
-                color: Color(0xFFB8B8B8),
+                color: BkoTheme.getTextSecondary(context),
                 size: 18,
               ),
             ],

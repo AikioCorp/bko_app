@@ -862,14 +862,14 @@ class _YoutubeChannelImportScreenState
       ),
       child: Row(
         children: [
-          const Icon(IconsaxPlusLinear.tick_circle,
-              color: BkoTheme.successColor, size: 18),
+          Icon(IconsaxPlusLinear.tick_circle,
+              color: BkoTheme.getSuccess(context), size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: BkoTheme.successColor,
+              style: TextStyle(
+                color: BkoTheme.getSuccess(context),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -877,8 +877,8 @@ class _YoutubeChannelImportScreenState
           ),
           GestureDetector(
             onTap: () => setState(() => _infoMessage = null),
-            child: const Icon(IconsaxPlusLinear.close_circle,
-                color: BkoTheme.successColor, size: 16),
+            child: Icon(IconsaxPlusLinear.close_circle,
+                color: BkoTheme.getSuccess(context), size: 16),
           ),
         ],
       ),
@@ -895,14 +895,14 @@ class _YoutubeChannelImportScreenState
       ),
       child: Row(
         children: [
-          const Icon(IconsaxPlusLinear.info_circle,
-              color: BkoTheme.errorColor, size: 18),
+          Icon(IconsaxPlusLinear.info_circle,
+              color: BkoTheme.getError(context), size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: BkoTheme.errorColor,
+              style: TextStyle(
+                color: BkoTheme.getError(context),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
               ),
@@ -910,8 +910,8 @@ class _YoutubeChannelImportScreenState
           ),
           GestureDetector(
             onTap: () => setState(() => _errorMessage = null),
-            child: const Icon(IconsaxPlusLinear.close_circle,
-                color: BkoTheme.errorColor, size: 16),
+            child: Icon(IconsaxPlusLinear.close_circle,
+                color: BkoTheme.getError(context), size: 16),
           ),
         ],
       ),
@@ -970,9 +970,9 @@ class _YoutubeChannelImportScreenState
                     width: 52,
                     height: 52,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    errorBuilder: (_, __, ___) => Icon(
                       IconsaxPlusLinear.video,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                       size: 28,
                     ),
                   ),
@@ -985,8 +985,8 @@ class _YoutubeChannelImportScreenState
                     color: BkoTheme.errorColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(IconsaxPlusLinear.video,
-                      color: BkoTheme.errorColor, size: 28),
+                  child: Icon(IconsaxPlusLinear.video,
+                      color: BkoTheme.getError(context), size: 28),
                 ),
               const SizedBox(width: 14),
               Expanded(
@@ -1143,8 +1143,8 @@ class _YoutubeChannelImportScreenState
                       const SizedBox(height: 4),
                       Text(
                         err,
-                        style: const TextStyle(
-                          color: BkoTheme.errorColor,
+                        style: TextStyle(
+                          color: BkoTheme.getError(context),
                           fontSize: 11,
                         ),
                       ),
@@ -1178,9 +1178,9 @@ class _YoutubeChannelImportScreenState
                       ),
                     )
                   else
-                    const Icon(
+                    Icon(
                       IconsaxPlusLinear.archive_book,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                       size: 16,
                     ),
                   const SizedBox(width: 8),
@@ -1268,9 +1268,9 @@ class _YoutubeChannelImportScreenState
                     color: BkoTheme.errorColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     IconsaxPlusLinear.trash,
-                    color: BkoTheme.errorColor,
+                    color: BkoTheme.getError(context),
                     size: 18,
                   ),
                 ),
@@ -1327,8 +1327,8 @@ class _YoutubeChannelImportScreenState
             ),
             child: Row(
               children: [
-                const Icon(IconsaxPlusLinear.microphone_2,
-                    color: BkoTheme.goldAccent, size: 18),
+                Icon(IconsaxPlusLinear.microphone_2,
+                    color: BkoTheme.getAccent(context), size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -1395,9 +1395,9 @@ class _YoutubeChannelImportScreenState
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: borderSub),
                   ),
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     IconsaxPlusLinear.video,
-                    color: BkoTheme.errorColor,
+                    color: BkoTheme.getError(context),
                     size: 18,
                   ),
                 ),
@@ -1535,9 +1535,9 @@ class _YoutubeChannelImportScreenState
                     width: 44,
                     height: 44,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
+                    errorBuilder: (_, __, ___) => Icon(
                       IconsaxPlusLinear.video,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ),
@@ -1560,8 +1560,8 @@ class _YoutubeChannelImportScreenState
                       _futureOnly
                           ? 'Suivi des futures publications uniquement'
                           : '${items.length} vidéo(s) • ${_selectedVideoIds.length} sélectionnée(s)',
-                      style: const TextStyle(
-                        color: BkoTheme.goldAccent,
+                      style: TextStyle(
+                        color: BkoTheme.getAccent(context),
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1583,8 +1583,8 @@ class _YoutubeChannelImportScreenState
             ),
             child: Row(
               children: [
-                const Icon(IconsaxPlusLinear.microphone_2,
-                    color: BkoTheme.goldAccent, size: 18),
+                Icon(IconsaxPlusLinear.microphone_2,
+                    color: BkoTheme.getAccent(context), size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -1932,10 +1932,10 @@ class _YoutubeChannelImportScreenState
                       });
                       BkoHaptics.light();
                     },
-              child: const Text(
+              child: Text(
                 'Tout sélectionner (éligibles)',
                 style: TextStyle(
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),

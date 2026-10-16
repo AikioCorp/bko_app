@@ -286,7 +286,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     final border = BkoTheme.getBorderSubtle(context);
     final textPri = BkoTheme.getTextPrimary(context);
     final textSec = BkoTheme.getTextSecondary(context);
-    final handleColor = isDark ? Colors.white24 : Colors.black12;
+    final handleColor = isDark ? BkoTheme.getBorderStrong(context) : Colors.black12;
     final goldContrast = isDark ? BkoTheme.goldAccent : const Color(0xFFB45309);
 
     return Container(
@@ -618,8 +618,8 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
   Widget _fallbackCover([Color? bgColor]) => Container(
         width: 52,
         height: 52,
-        color: bgColor ?? const Color(0xFF1F1F24),
-        child: const Icon(IconsaxPlusLinear.music,
-            color: BkoTheme.goldAccent, size: 24),
+        color: bgColor ?? BkoTheme.getBgSurface(context),
+        child: Icon(IconsaxPlusLinear.music,
+            color: BkoTheme.getAccent(context), size: 24),
       );
 }

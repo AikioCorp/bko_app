@@ -503,8 +503,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   fontWeight: FontWeight.w800,
                   color: BkoTheme.getTextPrimary(context)))),
       if (isVerified)
-        const Icon(IconsaxPlusLinear.verify,
-            size: 18, color: BkoTheme.goldAccent),
+        Icon(IconsaxPlusLinear.verify,
+            size: 18, color: BkoTheme.getAccent(context)),
     ]);
   }
 
@@ -540,7 +540,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         style: BkoTheme.fontLato(
           fontSize: 22,
           fontWeight: FontWeight.w800,
-          color: BkoTheme.goldAccent,
+          color: BkoTheme.getAccent(context),
         ),
       ),
     );
@@ -619,7 +619,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         child: Column(
           children: [
-            Icon(icon, size: 20, color: BkoTheme.goldAccent),
+            Icon(icon, size: 20, color: BkoTheme.getAccent(context)),
             const SizedBox(height: 6),
             Text(
               '$count',
@@ -672,7 +672,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               style: BkoTheme.fontLato(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: BkoTheme.goldAccent,
+                color: BkoTheme.getAccent(context),
               ),
             ),
           ),
@@ -722,14 +722,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           fit: BoxFit.cover,
                           errorWidget: (_, __, ___) => Container(
                             color: BkoTheme.getBgSurfaceElevated(context),
-                            child: const Icon(IconsaxPlusLinear.music,
-                                color: BkoTheme.goldAccent),
+                            child: Icon(IconsaxPlusLinear.music,
+                                color: BkoTheme.getAccent(context)),
                           ),
                         )
                       : Container(
                           color: BkoTheme.getBgSurfaceElevated(context),
-                          child: const Icon(IconsaxPlusLinear.music,
-                              color: BkoTheme.goldAccent),
+                          child: Icon(IconsaxPlusLinear.music,
+                              color: BkoTheme.getAccent(context)),
                         ),
                 ),
               ),
@@ -943,7 +943,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }) {
     return Column(
       children: [
-        Icon(icon, size: 18, color: BkoTheme.goldAccent),
+        Icon(icon, size: 18, color: BkoTheme.getAccent(context)),
         const SizedBox(height: 6),
         Text(
           value,
@@ -985,10 +985,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     IconsaxPlusLinear.magicpen,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                     size: 20,
                   ),
                 ),
@@ -1159,7 +1159,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -1254,10 +1254,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     IconsaxPlusLinear.user,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                     size: 30,
                   ),
                 ),

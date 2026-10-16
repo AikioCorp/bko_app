@@ -149,9 +149,9 @@ class QueueSheet extends ConsumerWidget {
                                   height: 48,
                                   fit: BoxFit.cover,
                                   errorWidget: (_, __, ___) =>
-                                      _fallbackCover(bgElevated),
+                                      _fallbackCover(context, bgElevated),
                                 )
-                              : _fallbackCover(bgElevated),
+                              : _fallbackCover(context, bgElevated),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -290,9 +290,9 @@ class QueueSheet extends ConsumerWidget {
                                       height: 40,
                                       fit: BoxFit.cover,
                                       errorWidget: (_, __, ___) =>
-                                          _fallbackCover(bgElevated, size: 40),
+                                          _fallbackCover(context, bgElevated, size: 40),
                                     )
-                                  : _fallbackCover(bgElevated, size: 40),
+                                  : _fallbackCover(context, bgElevated, size: 40),
                             ),
                             const SizedBox(width: 12),
 
@@ -371,11 +371,11 @@ class QueueSheet extends ConsumerWidget {
     );
   }
 
-  Widget _fallbackCover(Color bgColor, {double size = 48}) => Container(
+  Widget _fallbackCover(BuildContext context, Color bgColor, {double size = 48}) => Container(
         width: size,
         height: size,
         color: bgColor,
-        child: const Icon(IconsaxPlusLinear.music,
-            color: BkoTheme.goldAccent, size: 20),
+        child: Icon(IconsaxPlusLinear.music,
+            color: BkoTheme.getAccent(context), size: 20),
       );
 }

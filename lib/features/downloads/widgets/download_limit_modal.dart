@@ -72,10 +72,10 @@ class DownloadLimitModal extends StatelessWidget {
                 width: 1.5,
               ),
             ),
-            child: const Center(
+            child: Center(
               child: Icon(
                 IconsaxPlusBold.document_download,
-                color: BkoTheme.goldAccent,
+                color: BkoTheme.getAccent(context),
                 size: 28,
               ),
             ),
@@ -199,7 +199,7 @@ class DownloadLimitModal extends StatelessWidget {
                   style: BkoTheme.fontLato(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                   ),
                 ),
               ),
@@ -243,7 +243,7 @@ class DownloadLimitModal extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
-            child: Icon(icon, color: BkoTheme.goldAccent, size: 16),
+            child: Icon(icon, color: BkoTheme.getAccent(context), size: 16),
           ),
         ),
         const SizedBox(width: 12),

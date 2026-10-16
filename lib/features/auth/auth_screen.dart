@@ -157,10 +157,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
         bottomSheetHeight: MediaQuery.of(context).size.height * 0.72,
         inputDecoration: InputDecoration(
           hintText: 'Rechercher un pays ou un indicatif...',
-          hintStyle: BkoTheme.fontPoppins(fontSize: 13, color: const Color(0xFF757575)),
-          prefixIcon: const Icon(IconsaxPlusLinear.search_normal_1, color: Color(0xFF757575), size: 18),
+          hintStyle: BkoTheme.fontPoppins(fontSize: 13, color: BkoTheme.getTextMuted(context)),
+          prefixIcon: Icon(IconsaxPlusLinear.search_normal_1, color: BkoTheme.getTextMuted(context), size: 18),
           filled: true,
-          fillColor: const Color(0xFF0E0E0E),
+          fillColor: BkoTheme.getBgObsidian(context),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
@@ -224,7 +224,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 height: 52,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0E0E0E),
+                  color: BkoTheme.getBgObsidian(context),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: error != null
@@ -245,14 +245,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       style: BkoTheme.fontPoppins(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(
+                    Icon(
                       IconsaxPlusLinear.arrow_down_1,
                       size: 14,
-                      color: Color(0xFF757575),
+                      color: BkoTheme.getTextMuted(context),
                     ),
                   ],
                 ),
@@ -264,7 +264,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0E0E0E),
+                  color: BkoTheme.getBgObsidian(context),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: error != null
@@ -288,18 +288,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white,
+                    color: BkoTheme.getTextPrimary(context),
                   ),
                   decoration: InputDecoration(
                     hintText: _getPhoneHintForCountry(_phoneCountry.countryCode),
                     hintStyle: BkoTheme.fontPoppins(
                       fontSize: 13,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFF555555),
+                      color: BkoTheme.getTextMuted(context),
                     ),
-                    prefixIcon: const Icon(
+                    prefixIcon: Icon(
                       IconsaxPlusLinear.call,
-                      color: Color(0xFF757575),
+                      color: BkoTheme.getTextMuted(context),
                       size: 18,
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
@@ -626,7 +626,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       behavior: HitTestBehavior.opaque,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0B0B0B),
+        backgroundColor: BkoTheme.getBgObsidian(context),
         body: SafeArea(
           child: Column(
             children: [
@@ -648,9 +648,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           Container(
                             padding: const EdgeInsets.all(22),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF121212),
+                              color: BkoTheme.getBgSurface(context),
                               borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: const Color(0xFF262626)),
+                              border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -722,9 +722,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     context.go('/');
                   }
                 },
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: Color(0xFFB8B8B8),
+                  color: BkoTheme.getTextSecondary(context),
                   size: 20,
                 ),
               ),
@@ -739,9 +739,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(7),
@@ -750,9 +750,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     width: 32,
                     height: 32,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
+                    errorBuilder: (context, error, stackTrace) => Icon(
                       Icons.mic_rounded,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                       size: 18,
                     ),
                   ),
@@ -765,7 +765,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.5,
-                  color: Colors.white,
+                  color: BkoTheme.getTextPrimary(context),
                 ),
               ),
             ],
@@ -782,9 +782,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: BkoTheme.getBgSurface(context),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF262626)),
+        border: Border.all(color: BkoTheme.getBorderSubtle(context)),
       ),
       child: Row(
         children: [
@@ -834,7 +834,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 Icon(
                   icon,
                   size: 16,
-                  color: isActive ? Colors.black : const Color(0xFFB8B8B8),
+                  color: isActive ? Colors.black : BkoTheme.getTextSecondary(context),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -842,7 +842,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 13,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                    color: isActive ? Colors.black : const Color(0xFFB8B8B8),
+                    color: isActive ? Colors.black : BkoTheme.getTextSecondary(context),
                   ),
                 ),
               ],
@@ -860,9 +860,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF3B1214),
+        color: Theme.of(context).colorScheme.errorContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF7F1D1D)),
+        border: Border.all(color: Theme.of(context).colorScheme.errorContainer),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -870,7 +870,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.error_outline_rounded, color: Color(0xFFF87171), size: 18),
+              Icon(Icons.error_outline_rounded, color: BkoTheme.getError(context), size: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -879,7 +879,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500,
                     height: 1.4,
-                    color: const Color(0xFFFECACA),
+                    color: BkoTheme.getError(context),
                   ),
                 ),
               ),
@@ -906,7 +906,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                   ),
                 ),
               ),
@@ -926,7 +926,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: const Color(0xFF0E0E0E),
+              color: BkoTheme.getBgObsidian(context),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: BkoTheme.getBorderSubtle(context)),
             ),
@@ -941,7 +941,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: !_isOtpLoginMode ? const Color(0xFF242424) : Colors.transparent,
+                        color: !_isOtpLoginMode ? BkoTheme.getBgSurfaceElevated(context) : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Center(
@@ -950,7 +950,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           style: BkoTheme.fontPoppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: !_isOtpLoginMode ? Colors.white : const Color(0xFF888888),
+                            color: !_isOtpLoginMode ? BkoTheme.getTextPrimary(context) : BkoTheme.getTextMuted(context),
                           ),
                         ),
                       ),
@@ -966,7 +966,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       decoration: BoxDecoration(
-                        color: _isOtpLoginMode ? const Color(0xFF242424) : Colors.transparent,
+                        color: _isOtpLoginMode ? BkoTheme.getBgSurfaceElevated(context) : Colors.transparent,
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: Center(
@@ -976,7 +976,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                             Icon(
                               IconsaxPlusBold.magicpen,
                               size: 14,
-                              color: _isOtpLoginMode ? BkoTheme.goldAccent : const Color(0xFF888888),
+                              color: _isOtpLoginMode ? BkoTheme.goldAccent : BkoTheme.getTextMuted(context),
                             ),
                             const SizedBox(width: 5),
                             Text(
@@ -984,7 +984,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                               style: BkoTheme.fontPoppins(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: _isOtpLoginMode ? BkoTheme.goldAccent : const Color(0xFF888888),
+                                color: _isOtpLoginMode ? BkoTheme.goldAccent : BkoTheme.getTextMuted(context),
                               ),
                             ),
                           ],
@@ -1030,7 +1030,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     style: BkoTheme.fontPoppins(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: Colors.white,
+                      color: BkoTheme.getTextPrimary(context),
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -1045,7 +1045,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       style: BkoTheme.fontPoppins(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ),
@@ -1064,7 +1064,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               suffixIcon: IconButton(
                 icon: Icon(
                   _showLoginPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
-                  color: const Color(0xFF757575),
+                  color: BkoTheme.getTextMuted(context),
                   size: 20,
                 ),
                 onPressed: () {
@@ -1086,14 +1086,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(IconsaxPlusLinear.key, size: 14, color: BkoTheme.goldAccent),
+                      Icon(IconsaxPlusLinear.key, size: 14, color: BkoTheme.getAccent(context)),
                       const SizedBox(width: 5),
                       Text(
                         'Mot de passe oublié ?',
                         style: BkoTheme.fontPoppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                         ),
                       ),
                     ],
@@ -1107,7 +1107,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             // Session Information Badge
             Row(
               children: [
-                const Icon(IconsaxPlusLinear.shield_tick, color: BkoTheme.goldAccent, size: 16),
+                Icon(IconsaxPlusLinear.shield_tick, color: BkoTheme.getAccent(context), size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -1115,7 +1115,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     style: BkoTheme.fontPoppins(
                       fontSize: 11.5,
                       fontWeight: FontWeight.w400,
-                      color: const Color(0xFFB8B8B8),
+                      color: BkoTheme.getTextSecondary(context),
                     ),
                   ),
                 ),
@@ -1180,7 +1180,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 'Un code sécurisé à 6 chiffres vous sera envoyé par e-mail pour vous connecter instantanément.',
                 style: BkoTheme.fontPoppins(
                   fontSize: 11.5,
-                  color: const Color(0xFF757575),
+                  color: BkoTheme.getTextMuted(context),
                   height: 1.4,
                 ),
               ),
@@ -1225,18 +1225,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF238636).withValues(alpha: 0.15),
+                  color: BkoTheme.getSuccess(context).withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF238636).withValues(alpha: 0.3)),
+                  border: Border.all(color: BkoTheme.getSuccess(context).withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(IconsaxPlusBold.tick_circle, color: Color(0xFF3FB950), size: 18),
+                    Icon(IconsaxPlusBold.tick_circle, color: BkoTheme.getSuccess(context), size: 18),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Code envoyé à ${_loginIdentifier.text.trim()}',
-                        style: BkoTheme.fontPoppins(fontSize: 12, color: const Color(0xFF3FB950), fontWeight: FontWeight.w600),
+                        style: BkoTheme.fontPoppins(fontSize: 12, color: BkoTheme.getSuccess(context), fontWeight: FontWeight.w600),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -1248,7 +1248,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       }),
                       child: Text(
                         'Modifier',
-                        style: BkoTheme.fontPoppins(fontSize: 11, color: BkoTheme.goldAccent, fontWeight: FontWeight.w700),
+                        style: BkoTheme.fontPoppins(fontSize: 11, color: BkoTheme.getAccent(context), fontWeight: FontWeight.w700),
                       ),
                     ),
                   ],
@@ -1316,7 +1316,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     style: BkoTheme.fontPoppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ),
@@ -1329,7 +1329,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           // Divider "OU"
           Row(
             children: [
-              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+              Expanded(child: Divider(color: BkoTheme.getBorderSubtle(context), thickness: 1)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
@@ -1337,11 +1337,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF757575),
+                    color: BkoTheme.getTextMuted(context),
                   ),
                 ),
               ),
-              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+              Expanded(child: Divider(color: BkoTheme.getBorderSubtle(context), thickness: 1)),
             ],
           ),
 
@@ -1428,7 +1428,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             suffixIcon: IconButton(
               icon: Icon(
                 _showRegisterPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
-                color: const Color(0xFF757575),
+                color: BkoTheme.getTextMuted(context),
                 size: 20,
               ),
               onPressed: () {
@@ -1448,7 +1448,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   height: 4,
                   margin: EdgeInsets.only(right: index < 3 ? 4 : 0),
                   decoration: BoxDecoration(
-                    color: active ? BkoTheme.goldAccent : const Color(0xFF262626),
+                    color: active ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -1461,7 +1461,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             style: BkoTheme.fontPoppins(
               fontSize: 10.5,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF757575),
+              color: BkoTheme.getTextMuted(context),
             ),
           ),
 
@@ -1488,7 +1488,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                         value: _acceptTerms,
                         activeColor: BkoTheme.goldAccent,
                         checkColor: Colors.black,
-                        side: const BorderSide(color: Color(0xFF757575), width: 1.5),
+                        side: BorderSide(color: BkoTheme.getTextMuted(context), width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         onChanged: (val) {
                           setState(() { _acceptTerms = val ?? false; _termsError = null; });
@@ -1502,7 +1502,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           style: BkoTheme.fontPoppins(
                             fontSize: 12,
                             height: 1.4,
-                            color: const Color(0xFFB8B8B8),
+                            color: BkoTheme.getTextSecondary(context),
                           ),
                           children: [
                             const TextSpan(text: 'J\'accepte les '),
@@ -1515,7 +1515,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   style: BkoTheme.fontPoppins(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                     letterSpacing: 0,
                                   ),
                                 ),
@@ -1531,7 +1531,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                   style: BkoTheme.fontPoppins(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w700,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                 ),
                               ),
@@ -1620,7 +1620,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               style: BkoTheme.fontPoppins(
                 fontSize: 11,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFF757575),
+                color: BkoTheme.getTextMuted(context),
               ),
             ),
           ),
@@ -1630,7 +1630,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           // Divider "OU"
           Row(
             children: [
-              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+              Expanded(child: Divider(color: BkoTheme.getBorderSubtle(context), thickness: 1)),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
@@ -1638,11 +1638,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF757575),
+                    color: BkoTheme.getTextMuted(context),
                   ),
                 ),
               ),
-              const Expanded(child: Divider(color: Color(0xFF262626), thickness: 1)),
+              Expanded(child: Divider(color: BkoTheme.getBorderSubtle(context), thickness: 1)),
             ],
           ),
 
@@ -1661,9 +1661,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       child: OutlinedButton(
         onPressed: _isSubmitting ? null : _handleGoogleLogin,
         style: OutlinedButton.styleFrom(
-          backgroundColor: const Color(0xFF141414),
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Color(0xFF2E2E2E), width: 1.2),
+          backgroundColor: BkoTheme.getBgSurface(context),
+          foregroundColor: BkoTheme.getTextPrimary(context),
+          side: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1.2),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
@@ -1674,8 +1674,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             Container(
               width: 24,
               height: 24,
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: BkoTheme.getTextPrimary(context),
                 shape: BoxShape.circle,
               ),
               child: const Center(
@@ -1696,7 +1696,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               style: BkoTheme.fontPoppins(
                 fontSize: 14.5,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: BkoTheme.getTextPrimary(context),
               ),
             ),
           ],
@@ -1718,14 +1718,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           style: BkoTheme.fontPoppins(
             fontSize: 12.5,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
+            color: BkoTheme.getTextPrimary(context),
           ),
         ),
         if (badge != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1A11),
+              color: BkoTheme.getBgSurface(context),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
             ),
@@ -1734,7 +1734,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               style: BkoTheme.fontPoppins(
                 fontSize: 9.5,
                 fontWeight: FontWeight.w700,
-                color: BkoTheme.goldAccent,
+                color: BkoTheme.getAccent(context),
               ),
             ),
           )
@@ -1744,7 +1744,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             style: BkoTheme.fontPoppins(
               fontSize: 10.5,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFF757575),
+              color: BkoTheme.getTextMuted(context),
             ),
           ),
       ],
@@ -1771,7 +1771,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0E0E0E),
+            color: BkoTheme.getBgObsidian(context),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: error != null
@@ -1797,16 +1797,16 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             style: BkoTheme.fontPoppins(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: BkoTheme.fontPoppins(
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
-                color: const Color(0xFF555555),
+                color: BkoTheme.getTextMuted(context),
               ),
-              prefixIcon: Icon(icon, color: const Color(0xFF757575), size: 18),
+              prefixIcon: Icon(icon, color: BkoTheme.getTextMuted(context), size: 18),
               suffixIcon: suffixIcon,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: InputBorder.none,
@@ -1853,9 +1853,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0E0E0E),
+        color: BkoTheme.getBgObsidian(context),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFF262626)),
+        border: Border.all(color: BkoTheme.getBorderSubtle(context)),
       ),
       child: Row(
         children: [
@@ -1863,13 +1863,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1A11),
+              color: BkoTheme.getBgSurface(context),
               shape: BoxShape.circle,
               border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.headphones_rounded,
-              color: BkoTheme.goldAccent,
+              color: BkoTheme.getAccent(context),
               size: 20,
             ),
           ),
@@ -1883,7 +1883,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    color: BkoTheme.getTextPrimary(context),
                   ),
                 ),
                 Text(
@@ -1891,7 +1891,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   style: BkoTheme.fontPoppins(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
-                    color: const Color(0xFF757575),
+                    color: BkoTheme.getTextMuted(context),
                   ),
                 ),
               ],
@@ -1900,12 +1900,12 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
           TextButton(
             onPressed: () => _navigatePostLogin(),
             style: TextButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A1A),
-              foregroundColor: Colors.white,
+              backgroundColor: BkoTheme.getBgSurface(context),
+              foregroundColor: BkoTheme.getTextPrimary(context),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Color(0xFF2E2E2E)),
+                side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
               ),
             ),
             child: Text(
@@ -1913,7 +1913,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               style: BkoTheme.fontPoppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: BkoTheme.getTextPrimary(context),
               ),
             ),
           ),
@@ -1928,14 +1928,14 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         _buildFooterLink('Centre d\'aide', () => AuthLegalSheets.showHelp(context)),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text('•', style: TextStyle(color: Color(0xFF555555), fontSize: 12)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text('•', style: TextStyle(color: BkoTheme.getTextMuted(context), fontSize: 12)),
         ),
         _buildFooterLink('Conditions', () => AuthLegalSheets.showTerms(context)),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8),
-          child: Text('•', style: TextStyle(color: Color(0xFF555555), fontSize: 12)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Text('•', style: TextStyle(color: BkoTheme.getTextMuted(context), fontSize: 12)),
         ),
         _buildFooterLink('Confidentialité', () => AuthLegalSheets.showPrivacy(context)),
       ],
@@ -1956,7 +1956,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
             style: BkoTheme.fontPoppins(
               fontSize: 11.5,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF888888),
+              color: BkoTheme.getTextMuted(context),
             ),
           ),
         ),
@@ -1970,7 +1970,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final displayName = (name != null && name.isNotEmpty) ? name : email;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: BkoTheme.getBgObsidian(context),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -1980,9 +1980,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: Container(
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1991,13 +1991,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E1A11),
+                        color: BkoTheme.getBgSurface(context),
                         shape: BoxShape.circle,
                         border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.4)),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.verified_user_rounded,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                         size: 32,
                       ),
                     ),
@@ -2008,7 +2008,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       style: BkoTheme.fontPoppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -2018,7 +2018,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       style: BkoTheme.fontPoppins(
                         fontSize: 13.5,
                         fontWeight: FontWeight.w400,
-                        color: const Color(0xFFB8B8B8),
+                        color: BkoTheme.getTextSecondary(context),
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -2052,9 +2052,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           await ref.read(authProvider.notifier).logout();
                         },
                         style: OutlinedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A1A1A),
-                          foregroundColor: const Color(0xFFB8B8B8),
-                          side: const BorderSide(color: Color(0xFF262626)),
+                          backgroundColor: BkoTheme.getBgSurface(context),
+                          foregroundColor: BkoTheme.getTextSecondary(context),
+                          side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         child: Text(
@@ -2062,7 +2062,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           style: BkoTheme.fontPoppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFFB8B8B8),
+                            color: BkoTheme.getTextSecondary(context),
                           ),
                         ),
                       ),

@@ -552,7 +552,7 @@ class _SectionDiscoveryScreenState
                           ? IconsaxPlusLinear.microphone
                           : IconsaxPlusLinear.play_circle,
                       size: 14,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -560,7 +560,7 @@ class _SectionDiscoveryScreenState
                       style: BkoTheme.fontLato(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ],
@@ -780,7 +780,7 @@ class _SectionDiscoveryScreenState
                       style: BkoTheme.fontLato(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ),

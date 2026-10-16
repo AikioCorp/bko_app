@@ -62,10 +62,10 @@ class AboutScreen extends StatelessWidget {
                       'assets/brand/logo_podcast.png',
                       width: 50,
                       height: 50,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorBuilder: (_, __, ___) => Icon(
                         IconsaxPlusLinear.microphone_2,
                         size: 38,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                     ),
                   ),
@@ -119,7 +119,7 @@ class AboutScreen extends StatelessWidget {
                     fontSize: 11.5,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.1,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                   ),
                 ),
                 const SizedBox(height: 8),

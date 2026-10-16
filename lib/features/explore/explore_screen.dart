@@ -370,11 +370,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: border),
                             ),
-                            child: const Center(
+                            child: Center(
                               child: Icon(
                                 IconsaxPlusLinear.arrow_left_1,
                                 size: 18,
-                                color: Colors.white,
+                                color: BkoTheme.getTextPrimary(context),
                               ),
                             ),
                           ),
@@ -583,10 +583,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isActive ? BkoTheme.goldAccent : const Color(0xFF141414),
+          color: isActive ? BkoTheme.goldAccent : BkoTheme.getBgSurface(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive ? BkoTheme.goldAccent : const Color(0xFF262626),
+            color: isActive ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
           ),
         ),
         child: Text(
@@ -594,7 +594,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
           style: BkoTheme.fontLato(
             fontSize: 12,
             fontWeight: FontWeight.w800,
-            color: isActive ? Colors.black : const Color(0xFFA0A0A0),
+            color: isActive ? Colors.black : BkoTheme.getTextMuted(context),
           ),
         ),
       ),
@@ -609,10 +609,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         setState(() => _sortOrder = value);
         _fetchCatalog(reset: true);
       },
-      color: const Color(0xFF181818),
+      color: BkoTheme.getBgSurface(context),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: Color(0xFF2C2C2C)),
+        side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
       ),
       itemBuilder: (context) => [
         _buildPopupItem('recent', 'Plus récents'),
@@ -629,7 +629,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(IconsaxPlusLinear.sort, size: 14, color: BkoTheme.goldAccent),
+            Icon(IconsaxPlusLinear.sort, size: 14, color: BkoTheme.getAccent(context)),
             const SizedBox(width: 6),
             Text(
               _sortOrder == 'popular'
@@ -663,11 +663,11 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             style: BkoTheme.fontLato(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
-              color: isSelected ? BkoTheme.goldAccent : Colors.white,
+              color: isSelected ? BkoTheme.goldAccent : BkoTheme.getTextPrimary(context),
             ),
           ),
           if (isSelected)
-            const Icon(IconsaxPlusLinear.tick_circle, size: 14, color: BkoTheme.goldAccent),
+            Icon(IconsaxPlusLinear.tick_circle, size: 14, color: BkoTheme.getAccent(context)),
         ],
       ),
     );
@@ -678,9 +678,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
       margin: const EdgeInsets.only(right: 8),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: BkoTheme.getBgSurface(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: BkoTheme.getBorderSubtle(context)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -690,7 +690,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             style: BkoTheme.fontLato(
               fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
             ),
           ),
           const SizedBox(width: 6),
@@ -699,10 +699,10 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
               BkoHaptics.light();
               onRemove();
             },
-            child: const Icon(
+            child: Icon(
               IconsaxPlusLinear.close_circle,
               size: 14,
-              color: Color(0xFF888888),
+              color: BkoTheme.getTextMuted(context),
             ),
           ),
         ],
@@ -730,7 +730,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
             const SizedBox(height: 12),
             Text(
               _errorMessage ?? 'Une erreur est survenue',
-              style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white),
+              style: BkoTheme.fontLato(fontSize: 14, fontWeight: FontWeight.w700, color: BkoTheme.getTextPrimary(context)),
             ),
             const SizedBox(height: 16),
             ElevatedButton(
@@ -869,7 +869,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                                 style: BkoTheme.fontLato(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  color: BkoTheme.onMedia,
                                 ),
                               ),
                             ),

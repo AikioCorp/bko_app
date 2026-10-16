@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class BkoTheme {
@@ -7,7 +8,21 @@ class BkoTheme {
   static const Color goldAccent = Color(0xFFFFBF00);
   static const Color goldAccentHover = Color(0xFFFFCF33);
   static const Color successColor = Color(0xFF10B981);
-  static const Color errorColor = Color(0xFFEF4444);
+  static const Color onMedia = Color(0xFFFFFFFF);
+  static const Color mediaBackground = Color(0xFF000000);
+  static const Color onBrand = Color(0xFF0B0B0B);
+  static const Color mediaScrim = Color(0xE60B0B0B);
+  static Color getAccent(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? goldAccent
+          : const Color(0xFF805B00);
+  static Color getError(BuildContext context) =>
+      Theme.of(context).colorScheme.error;
+  static Color getSuccess(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF6EE7B7)
+          : const Color(0xFF146C43);
+  static const Color errorColor = Color(0xFFBA1A1A);
 
   // Dark Theme Tokens (Exact match with bko_web globals.css)
   static const Color darkBgObsidian = Color(0xFF0B0B0B); // Pure dark neutral
@@ -17,7 +32,7 @@ class BkoTheme {
   static const Color darkBorderStrong = Color(0xFF333333);
   static const Color darkTextPrimary = Color(0xFFFFFFFF);
   static const Color darkTextSecondary = Color(0xFFB8B8B8);
-  static const Color darkTextMuted = Color(0xFF757575);
+  static const Color darkTextMuted = Color(0xFF929292);
   static const Color darkLiquidGlassBg = Color(0xCC121212);
   static const Color darkLiquidGlassBorder = Color(0x33FFBF00);
   static const Color darkLiquidGlassActive = Color(0x26FFBF00);
@@ -28,12 +43,14 @@ class BkoTheme {
   static const Color lightBgSurfaceElevated = Color(0xFFF1F3F5);
   static const Color lightBorderSubtle = Color(0xFFE2E8F0);
   static const Color lightBorderStrong = Color(0xFFCBD5E1);
-  static const Color lightTextPrimary = Color(0xFF0F172A); // Deep Obsidian Black
+  static const Color lightTextPrimary =
+      Color(0xFF0F172A); // Deep Obsidian Black
   static const Color lightTextSecondary = Color(0xFF475569);
-  static const Color lightTextMuted = Color(0xFF64748B);
+  static const Color lightTextMuted = Color(0xFF59677A);
   static const Color lightLiquidGlassBg = Color(0xF5FFFFFF);
   static const Color lightLiquidGlassBorder = Color(0x250F172A);
-  static const Color lightLiquidGlassActive = Color(0xFF0F172A); // Black Accent in Light Mode
+  static const Color lightLiquidGlassActive =
+      Color(0xFF0F172A); // Black Accent in Light Mode
 
   // Static Fallback Constants (Backward Compatibility for Const Constructors)
   static const Color bgObsidian = darkBgObsidian;
@@ -47,55 +64,81 @@ class BkoTheme {
 
   // Context-aware Dynamic Color Getters
   static Color getBgObsidian(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkBgObsidian : lightBgObsidian;
+      Theme.of(context).scaffoldBackgroundColor;
 
   static Color getBgSurface(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkBgSurface : lightBgSurface;
+      Theme.of(context).colorScheme.surface;
 
   static Color getBgSurfaceElevated(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkBgSurfaceElevated : lightBgSurfaceElevated;
+      Theme.of(context).colorScheme.surfaceContainerHighest;
 
   static Color getBorderSubtle(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkBorderSubtle : lightBorderSubtle;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkBorderSubtle
+          : lightBorderSubtle;
 
   static Color getBorderStrong(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkBorderStrong : lightBorderStrong;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkBorderStrong
+          : lightBorderStrong;
 
   static Color getTextPrimary(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkTextPrimary : lightTextPrimary;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkTextPrimary
+          : lightTextPrimary;
 
   static Color getTextSecondary(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkTextSecondary : lightTextSecondary;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkTextSecondary
+          : lightTextSecondary;
 
   static Color getTextMuted(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkTextMuted : lightTextMuted;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkTextMuted
+          : lightTextMuted;
 
   static Color getLiquidGlassBg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkLiquidGlassBg : lightLiquidGlassBg;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkLiquidGlassBg
+          : lightLiquidGlassBg;
 
   static Color getLiquidGlassBorder(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkLiquidGlassBorder : lightLiquidGlassBorder;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkLiquidGlassBorder
+          : lightLiquidGlassBorder;
 
   static Color getLiquidGlassActive(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? darkLiquidGlassActive : lightLiquidGlassActive;
+      Theme.of(context).brightness == Brightness.dark
+          ? darkLiquidGlassActive
+          : lightLiquidGlassActive;
 
   // Primary Button Color (Gold in Dark Mode, Deep Black in Light Mode)
   static Color getPrimaryButtonBg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? goldAccent : const Color(0xFF0F172A);
+      Theme.of(context).brightness == Brightness.dark
+          ? goldAccent
+          : const Color(0xFF0F172A);
 
   static Color getPrimaryButtonText(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white;
+      Theme.of(context).brightness == Brightness.dark
+          ? Colors.black
+          : Colors.white;
 
   // Active Filter Pill Background
   static Color getActivePillBg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? goldAccent : const Color(0xFF0F172A);
+      Theme.of(context).brightness == Brightness.dark
+          ? goldAccent
+          : const Color(0xFF0F172A);
 
   static Color getActivePillText(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white;
+      Theme.of(context).brightness == Brightness.dark
+          ? Colors.black
+          : Colors.white;
 
   // Active Bottom Nav Item Color
   static Color getActiveNavItemColor(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark ? goldAccent : const Color(0xFF0F172A);
+      Theme.of(context).brightness == Brightness.dark
+          ? goldAccent
+          : const Color(0xFF0F172A);
 
   // Official Brand Typography (Poppins with system fallbacks)
   static TextStyle fontPoppins({
@@ -155,16 +198,66 @@ class BkoTheme {
       scaffoldBackgroundColor: darkBgObsidian,
       primaryColor: goldAccent,
       pageTransitionsTheme: _pageTransitionsTheme,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: goldAccent,
+              foregroundColor: onBrand,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent)),
+      snackBarTheme:
+          const SnackBarThemeData(behavior: SnackBarBehavior.floating),
       colorScheme: const ColorScheme.dark(
         primary: goldAccent,
         secondary: goldAccentHover,
         surface: darkBgSurface,
+        onSurface: darkTextPrimary,
+        onSurfaceVariant: darkTextSecondary,
+        surfaceContainerHighest: darkBgSurfaceElevated,
+        onPrimary: onBrand,
+        onSecondary: onBrand,
+        outline: darkBorderStrong,
+        outlineVariant: darkBorderSubtle,
+        error: Color(0xFFFFB4AB),
+        onError: Color(0xFF690005),
+        errorContainer: Color(0xFF410002),
+        onErrorContainer: Color(0xFFFFDAD6),
       ),
       fontFamily: GoogleFonts.poppins().fontFamily,
+      iconTheme: const IconThemeData(color: darkTextPrimary),
+      textTheme: ThemeData(brightness: Brightness.dark).textTheme.apply(
+          fontFamily: GoogleFonts.poppins().fontFamily,
+          bodyColor: darkTextPrimary,
+          displayColor: darkTextPrimary),
+      dividerColor: darkBorderSubtle,
+      dialogTheme: const DialogThemeData(
+          backgroundColor: darkBgSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0),
+      bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: darkBgSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          modalElevation: 0),
+      popupMenuTheme: const PopupMenuThemeData(
+          color: darkBgSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0),
+      inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: darkBgSurfaceElevated,
+          hintStyle: const TextStyle(color: darkTextSecondary),
+          labelStyle: const TextStyle(color: darkTextSecondary),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: darkBorderSubtle))),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
+        systemOverlayStyle: SystemUiOverlayStyle.light,
         iconTheme: const IconThemeData(color: darkTextPrimary),
         titleTextStyle: fontLato(
           fontSize: 18,
@@ -191,16 +284,66 @@ class BkoTheme {
       scaffoldBackgroundColor: lightBgObsidian,
       primaryColor: const Color(0xFF0F172A),
       pageTransitionsTheme: _pageTransitionsTheme,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: goldAccent,
+              foregroundColor: onBrand,
+              elevation: 0,
+              shadowColor: Colors.transparent,
+              surfaceTintColor: Colors.transparent)),
+      snackBarTheme:
+          const SnackBarThemeData(behavior: SnackBarBehavior.floating),
       colorScheme: const ColorScheme.light(
         primary: Color(0xFF0F172A),
         secondary: goldAccent,
         surface: lightBgSurface,
+        onSurface: lightTextPrimary,
+        onSurfaceVariant: lightTextSecondary,
+        surfaceContainerHighest: lightBgSurfaceElevated,
+        onPrimary: onMedia,
+        onSecondary: onBrand,
+        outline: lightBorderStrong,
+        outlineVariant: lightBorderSubtle,
+        error: Color(0xFFBA1A1A),
+        onError: onMedia,
+        errorContainer: Color(0xFFFFDAD6),
+        onErrorContainer: Color(0xFF410002),
       ),
       fontFamily: GoogleFonts.poppins().fontFamily,
+      iconTheme: const IconThemeData(color: lightTextPrimary),
+      textTheme: ThemeData(brightness: Brightness.light).textTheme.apply(
+          fontFamily: GoogleFonts.poppins().fontFamily,
+          bodyColor: lightTextPrimary,
+          displayColor: lightTextPrimary),
+      dividerColor: lightBorderSubtle,
+      dialogTheme: const DialogThemeData(
+          backgroundColor: lightBgSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0),
+      bottomSheetTheme: const BottomSheetThemeData(
+          backgroundColor: lightBgSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          modalElevation: 0),
+      popupMenuTheme: const PopupMenuThemeData(
+          color: lightBgSurface,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0),
+      inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: lightBgSurfaceElevated,
+          hintStyle: const TextStyle(color: lightTextSecondary),
+          labelStyle: const TextStyle(color: lightTextSecondary),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: lightBorderSubtle))),
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         centerTitle: false,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
         iconTheme: const IconThemeData(color: lightTextPrimary),
         titleTextStyle: fontLato(
           fontSize: 18,

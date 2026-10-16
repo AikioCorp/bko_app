@@ -1,3 +1,4 @@
+import '../../core/theme/bko_theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -369,24 +370,17 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141416),
+                  color: BkoTheme.getBgSurface(context),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: const Color(0xFFFFBF00),
+                    color: BkoTheme.goldAccent,
                     width: 2.2,
                   ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x66000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
                 ),
                 child: const Center(
                   child: Icon(
                     IconsaxPlusLinear.headphone,
-                    color: Color(0xFFFFBF00),
+                    color: BkoTheme.goldAccent,
                     size: 24,
                   ),
                 ),
@@ -399,10 +393,10 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFBF00),
+                      color: BkoTheme.goldAccent,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: const Color(0xFF141416),
+                        color: BkoTheme.getBgSurface(context),
                         width: 2,
                       ),
                     ),
@@ -413,8 +407,8 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
                     child: Center(
                       child: Text(
                         '${chatState.unreadCount}',
-                        style: const TextStyle(
-                          color: Color(0xFF0E0E10),
+                        style: TextStyle(
+                          color: BkoTheme.getBgObsidian(context),
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
                           height: 1,
@@ -434,7 +428,7 @@ class _BkoAliDraggableBubbleState extends ConsumerState<BkoAliDraggableBubble> {
                     color: const Color(0xFF10B981),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF141416),
+                      color: BkoTheme.getBgSurface(context),
                       width: 2,
                     ),
                   ),
@@ -500,13 +494,13 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
     return Container(
       height: MediaQuery.of(context).size.height * 0.82,
       margin: EdgeInsets.only(bottom: viewInsets.bottom),
-      decoration: const BoxDecoration(
-        color: Color(0xFF121214),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: BkoTheme.getBgSurface(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
-          top: BorderSide(color: Color(0xFF27272A), width: 1),
-          left: BorderSide(color: Color(0xFF27272A), width: 1),
-          right: BorderSide(color: Color(0xFF27272A), width: 1),
+          top: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1),
+          left: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1),
+          right: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1),
         ),
       ),
       child: Column(
@@ -516,7 +510,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
             width: 36,
             height: 4,
             decoration: BoxDecoration(
-              color: const Color(0xFF3F3F46),
+              color: BkoTheme.getBorderSubtle(context),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -531,17 +525,17 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1C1C20),
+                        color: BkoTheme.getBgSurface(context),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFFFFBF00),
+                          color: BkoTheme.goldAccent,
                           width: 1.5,
                         ),
                       ),
                       child: const Center(
                         child: Icon(
                           IconsaxPlusLinear.magicpen,
-                          color: Color(0xFFFFBF00),
+                          color: BkoTheme.goldAccent,
                           size: 18,
                         ),
                       ),
@@ -556,7 +550,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                           color: const Color(0xFF10B981),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: const Color(0xFF121214),
+                            color: BkoTheme.getBgSurface(context),
                             width: 1.5,
                           ),
                         ),
@@ -571,10 +565,10 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                     children: [
                       Row(
                         children: [
-                          const Text(
+                          Text(
                             'Ali',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: BkoTheme.getTextPrimary(context),
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
@@ -584,13 +578,13 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF27272A),
+                              color: BkoTheme.getBorderSubtle(context),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: const Text(
                               'Conseiller',
                               style: TextStyle(
-                                color: Color(0xFFFFBF00),
+                                color: BkoTheme.goldAccent,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -599,10 +593,10 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                         ],
                       ),
                       const SizedBox(height: 2),
-                      const Text(
+                      Text(
                         'Bamako Podcast • Toujours là',
                         style: TextStyle(
-                          color: Color(0xFFA1A1AA),
+                          color: BkoTheme.getTextMuted(context),
                           fontSize: 11,
                         ),
                       ),
@@ -610,14 +604,14 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(IconsaxPlusLinear.close_circle,
-                      color: Color(0xFFA1A1AA), size: 22),
+                  icon: Icon(IconsaxPlusLinear.close_circle,
+                      color: BkoTheme.getTextMuted(context), size: 22),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
           ),
-          const Divider(color: Color(0xFF27272A), height: 1),
+          Divider(color: BkoTheme.getBorderSubtle(context), height: 1),
 
           Expanded(
             child: ListView.builder(
@@ -640,25 +634,25 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1C1C20),
+                    color: BkoTheme.getBgSurface(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF2E2E34)),
+                    border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      SizedBox(
+                      const SizedBox(
                         width: 12,
                         height: 12,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFFFFBF00),
+                          color: BkoTheme.goldAccent,
                         ),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'Ali réfléchit...',
-                        style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 12),
+                        style: TextStyle(color: BkoTheme.getTextMuted(context), fontSize: 12),
                       ),
                     ],
                   ),
@@ -675,9 +669,9 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                   ? MediaQuery.of(context).padding.bottom + 8
                   : 16,
             ),
-            decoration: const BoxDecoration(
-              color: Color(0xFF18181B),
-              border: Border(top: BorderSide(color: Color(0xFF27272A), width: 1)),
+            decoration: BoxDecoration(
+              color: BkoTheme.getBgSurface(context),
+              border: Border(top: BorderSide(color: BkoTheme.getBorderSubtle(context), width: 1)),
             ),
             child: Row(
               children: [
@@ -688,26 +682,26 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                       ref.read(aliChatProvider.notifier).notifyTyping();
                     },
                     onSubmitted: (_) => _submit(),
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
+                    style: TextStyle(color: BkoTheme.getTextPrimary(context), fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Demande un podcast, un thème, tes favoris...',
                       hintStyle:
-                          const TextStyle(color: Color(0xFF71717A), fontSize: 13),
+                          TextStyle(color: BkoTheme.getTextMuted(context), fontSize: 13),
                       filled: true,
-                      fillColor: const Color(0xFF121214),
+                      fillColor: BkoTheme.getBgSurface(context),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF2E2E34)),
+                        borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFF2E2E34)),
+                        borderSide: BorderSide(color: BkoTheme.getBorderSubtle(context)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: Color(0xFFFFBF00)),
+                        borderSide: const BorderSide(color: BkoTheme.goldAccent),
                       ),
                     ),
                   ),
@@ -720,13 +714,13 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFBF00),
+                      color: BkoTheme.goldAccent,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Center(
+                    child: Center(
                       child: Icon(
                         IconsaxPlusBold.send_2,
-                        color: Color(0xFF0E0E10),
+                        color: BkoTheme.getBgObsidian(context),
                         size: 20,
                       ),
                     ),
@@ -750,7 +744,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
         ),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: msg.isUser ? const Color(0xFF27272A) : const Color(0xFF1C1C20),
+          color: msg.isUser ? BkoTheme.getBorderSubtle(context) : BkoTheme.getBgSurface(context),
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -758,7 +752,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
             bottomRight: Radius.circular(msg.isUser ? 4 : 16),
           ),
           border: Border.all(
-            color: msg.isUser ? const Color(0xFF3F3F46) : const Color(0xFF2E2E34),
+            color: msg.isUser ? BkoTheme.getBorderSubtle(context) : BkoTheme.getBorderSubtle(context),
             width: 1,
           ),
         ),
@@ -776,8 +770,8 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
     if (matches.isEmpty) {
       return Text(
         content,
-        style: const TextStyle(
-          color: Color(0xFFE4E4E7),
+        style: TextStyle(
+          color: BkoTheme.getTextSecondary(context),
           fontSize: 13.5,
           height: 1.4,
         ),
@@ -791,7 +785,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
       if (match.start > currentIndex) {
         spans.add(TextSpan(
           text: content.substring(currentIndex, match.start),
-          style: const TextStyle(color: Color(0xFFE4E4E7), fontSize: 13.5, height: 1.4),
+          style: TextStyle(color: BkoTheme.getTextSecondary(context), fontSize: 13.5, height: 1.4),
         ));
       }
 
@@ -817,10 +811,10 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
                 child: Text(
                   label,
                   style: const TextStyle(
-                    color: Color(0xFFFFBF00),
+                    color: BkoTheme.goldAccent,
                     fontWeight: FontWeight.bold,
                     decoration: TextDecoration.underline,
-                    decorationColor: Color(0xFFFFBF00),
+                    decorationColor: BkoTheme.goldAccent,
                     fontSize: 13.5,
                   ),
                 ),
@@ -832,8 +826,8 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
         final boldContent = matchedText.substring(2, matchedText.length - 2);
         spans.add(TextSpan(
           text: boldContent,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: BkoTheme.getTextPrimary(context),
             fontWeight: FontWeight.bold,
             fontSize: 13.5,
             height: 1.4,
@@ -847,7 +841,7 @@ class _AliChatBottomSheetState extends ConsumerState<_AliChatBottomSheet> {
     if (currentIndex < content.length) {
       spans.add(TextSpan(
         text: content.substring(currentIndex),
-        style: const TextStyle(color: Color(0xFFE4E4E7), fontSize: 13.5, height: 1.4),
+        style: TextStyle(color: BkoTheme.getTextSecondary(context), fontSize: 13.5, height: 1.4),
       ));
     }
 

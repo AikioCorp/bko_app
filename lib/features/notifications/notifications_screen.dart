@@ -407,10 +407,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                      Icon(
                         IconsaxPlusLinear.tick_circle,
                         size: 14,
-                        color: BkoTheme.goldAccent,
+                        color: BkoTheme.getAccent(context),
                       ),
                       const SizedBox(width: 5),
                       Text(
@@ -418,7 +418,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
                         style: BkoTheme.fontPoppins(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                         ),
                       ),
                     ],
@@ -916,7 +916,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                             ),
                           ),
                         ),
@@ -1006,11 +1006,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
                   color: BkoTheme.goldAccent.withValues(alpha: 0.12),
                   border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     IconsaxPlusLinear.notification_status,
                     size: 26,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                   ),
                 ),
               ),
@@ -1190,11 +1190,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> with 
                   color: BkoTheme.goldAccent.withValues(alpha: 0.12),
                   border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
                 ),
-                child: const Center(
+                child: Center(
                   child: Icon(
                     IconsaxPlusLinear.user,
                     size: 26,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                   ),
                 ),
               ),

@@ -101,10 +101,10 @@ class AuthLegalSheets {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF121212),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        side: BorderSide(color: Color(0xFF262626)),
+      backgroundColor: BkoTheme.getBgSurface(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: BkoTheme.getBorderSubtle(context)),
       ),
       builder: (sheetContext) {
         return DraggableScrollableSheet(
@@ -122,7 +122,7 @@ class AuthLegalSheets {
                     width: 36,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF333333),
+                      color: BkoTheme.getBorderSubtle(context),
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
@@ -136,11 +136,11 @@ class AuthLegalSheets {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1A),
+                          color: BkoTheme.getBgSurface(context),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF262626)),
+                          border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                         ),
-                        child: Icon(icon, color: BkoTheme.goldAccent, size: 20),
+                        child: Icon(icon, color: BkoTheme.getAccent(context), size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -149,12 +149,12 @@ class AuthLegalSheets {
                           style: BkoTheme.fontPoppins(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: BkoTheme.getTextPrimary(context),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close_rounded, color: Color(0xFFB8B8B8)),
+                        icon: Icon(Icons.close_rounded, color: BkoTheme.getTextSecondary(context)),
                         tooltip: 'Fermer',
                         onPressed: () => Navigator.pop(sheetContext),
                       ),
@@ -162,7 +162,7 @@ class AuthLegalSheets {
                   ),
                 ),
 
-                const Divider(height: 1, color: Color(0xFF262626)),
+                Divider(height: 1, color: BkoTheme.getBorderSubtle(context)),
 
                 // Sheet Body
                 Expanded(
@@ -176,9 +176,9 @@ class AuthLegalSheets {
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1A1A1A),
+                          color: BkoTheme.getBgSurface(context),
                           borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFF262626)),
+                          border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +188,7 @@ class AuthLegalSheets {
                               style: BkoTheme.fontPoppins(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: BkoTheme.getTextPrimary(context),
                               ),
                             ),
                             const SizedBox(height: 6),
@@ -198,7 +198,7 @@ class AuthLegalSheets {
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w400,
                                 height: 1.5,
-                                color: const Color(0xFFB8B8B8),
+                                color: BkoTheme.getTextSecondary(context),
                               ),
                             ),
                           ],

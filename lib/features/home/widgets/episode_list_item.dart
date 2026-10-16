@@ -276,7 +276,7 @@ class EpisodeListItem extends ConsumerWidget {
                           ),
                           child: Icon(
                             isPlaying ? IconsaxPlusBold.pause : IconsaxPlusBold.play,
-                            color: isPlaying ? BkoTheme.bgObsidian : goldAccent,
+                            color: isPlaying ? BkoTheme.onBrand : goldAccent,
                             size: 14,
                           ),
                         ),
@@ -326,10 +326,10 @@ class EpisodeListItem extends ConsumerWidget {
         width: 50,
         height: 50,
         color: BkoTheme.getBgSurfaceElevated(context),
-        child: const Center(
+        child: Center(
           child: Icon(
             IconsaxPlusLinear.microphone_2,
-            color: BkoTheme.goldAccent,
+            color: BkoTheme.getAccent(context),
             size: 20,
           ),
         ),

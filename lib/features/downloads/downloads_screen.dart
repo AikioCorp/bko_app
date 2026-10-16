@@ -68,7 +68,7 @@ class DownloadsScreen extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.setting_4, color: BkoTheme.goldAccent, size: 20),
+            icon: Icon(IconsaxPlusLinear.setting_4, color: BkoTheme.getAccent(context), size: 20),
             tooltip: 'Téléchargements intelligents',
             onPressed: () => _openSmartSettingsSheet(context, ref, notifier),
           ),
@@ -88,7 +88,7 @@ class DownloadsScreen extends ConsumerWidget {
                     style: BkoTheme.fontPoppins(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ),
@@ -124,7 +124,7 @@ class DownloadsScreen extends ConsumerWidget {
                       color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(IconsaxPlusLinear.magicpen, color: BkoTheme.goldAccent, size: 20),
+                    child: Icon(IconsaxPlusLinear.magicpen, color: BkoTheme.getAccent(context), size: 20),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -195,7 +195,7 @@ class DownloadsScreen extends ConsumerWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(IconsaxPlusLinear.document_download, color: BkoTheme.goldAccent, size: 20),
+                  Icon(IconsaxPlusLinear.document_download, color: BkoTheme.getAccent(context), size: 20),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -319,10 +319,10 @@ class DownloadsScreen extends ConsumerWidget {
               color: BkoTheme.goldAccent.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               IconsaxPlusLinear.document_download,
               size: 40,
-              color: BkoTheme.goldAccent,
+              color: BkoTheme.getAccent(context),
             ),
           ),
           const SizedBox(height: 18),
@@ -467,7 +467,7 @@ class DownloadsScreen extends ConsumerWidget {
                 style: BkoTheme.fontPoppins(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                 ),
               ),
             ],
@@ -528,7 +528,7 @@ class DownloadsScreen extends ConsumerWidget {
           ),
           if (task.status == DownloadStatus.error)
             IconButton(
-              icon: const Icon(IconsaxPlusLinear.refresh, size: 20, color: BkoTheme.goldAccent),
+              icon: Icon(IconsaxPlusLinear.refresh, size: 20, color: BkoTheme.getAccent(context)),
               tooltip: 'Réessayer',
               onPressed: () async {
                 BkoHaptics.light();
@@ -663,7 +663,7 @@ class DownloadsScreen extends ConsumerWidget {
                                         Icon(
                                           IconsaxPlusLinear.microphone_2,
                                           size: 11,
-                                          color: BkoTheme.goldAccent.withValues(alpha: 0.8),
+                                          color: BkoTheme.getAccent(context).withValues(alpha: 0.8),
                                         ),
                                         const SizedBox(width: 4),
                                         Flexible(
@@ -1212,7 +1212,7 @@ class DownloadsScreen extends ConsumerWidget {
                         Text('Espace utilisé :', style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
                         Text(
                           notifier.formattedTotalStorage,
-                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.bold, color: BkoTheme.goldAccent),
+                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.bold, color: BkoTheme.getAccent(context)),
                         ),
                       ],
                     ),

@@ -1009,8 +1009,8 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                                     ],
                                   ),
                                 ),
-                                const Icon(IconsaxPlusLinear.play,
-                                    color: BkoTheme.goldAccent, size: 20),
+                                Icon(IconsaxPlusLinear.play,
+                                    color: BkoTheme.getAccent(context), size: 20),
                               ],
                             ),
                           );
@@ -1144,7 +1144,7 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
         width: size,
         height: size,
         color: bgColor,
-        child: const Icon(IconsaxPlusLinear.music,
-            color: BkoTheme.goldAccent, size: 22),
+        child: Icon(IconsaxPlusLinear.music,
+            color: BkoTheme.getAccent(context), size: 22),
       );
 }

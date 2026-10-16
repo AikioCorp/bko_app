@@ -160,7 +160,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                       hintText: 'Ex: Mes favoris tech...',
                       hintStyle: TextStyle(color: textSec.withValues(alpha: 0.5), fontSize: 13),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      fillColor: BkoTheme.getTextPrimary(context).withValues(alpha: 0.05),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -173,7 +173,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                       labelText: 'Description (optionnel)',
                       labelStyle: TextStyle(color: textSec, fontSize: 13),
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: 0.05),
+                      fillColor: BkoTheme.getTextPrimary(context).withValues(alpha: 0.05),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
@@ -251,10 +251,10 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    const bgSurface = Color(0xFF141416);
-    const textPri = Colors.white;
-    const textSec = Colors.white70;
-    const border = Color(0xFF262626);
+    final bgSurface = BkoTheme.getBgSurface(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+    final border = BkoTheme.getBorderSubtle(context);
 
     final filtered = _searchQuery.isEmpty
         ? _playlists
@@ -285,7 +285,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
               width: 38,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.white24,
+                color: BkoTheme.getBorderStrong(context),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -307,7 +307,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, color: Colors.white70),
+                  icon: Icon(Icons.close_rounded, color: BkoTheme.getTextSecondary(context)),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -325,7 +325,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                   child: Container(
                     height: 44,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E22),
+                      color: BkoTheme.getBgSurface(context),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: border),
                     ),
@@ -336,7 +336,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                       decoration: InputDecoration(
                         hintText: 'Rechercher une playlist...',
                         hintStyle: BkoTheme.fontLato(fontSize: 13, color: textSec),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: Colors.white54),
+                        prefixIcon: Icon(Icons.search_rounded, size: 20, color: BkoTheme.getTextSecondary(context)),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       ),
@@ -369,7 +369,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
           ),
 
           const SizedBox(height: 14),
-          const Divider(height: 1, color: Color(0xFF262626)),
+          Divider(height: 1, color: BkoTheme.getBorderSubtle(context)),
 
           // Playlists List
           Expanded(
@@ -380,11 +380,11 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(_errorMessage!, style: const TextStyle(color: Colors.white70)),
+                            Text(_errorMessage!, style: TextStyle(color: BkoTheme.getTextSecondary(context))),
                             const SizedBox(height: 8),
                             TextButton(
                               onPressed: _fetchPlaylists,
-                              child: const Text('Réessayer', style: TextStyle(color: BkoTheme.goldAccent)),
+                              child: Text('Réessayer', style: TextStyle(color: BkoTheme.getAccent(context))),
                             ),
                           ],
                         ),
@@ -396,7 +396,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.queue_music_rounded, size: 44, color: Colors.white38),
+                                  Icon(Icons.queue_music_rounded, size: 44, color: BkoTheme.getTextSecondary(context)),
                                   const SizedBox(height: 10),
                                   Text(
                                     _searchQuery.isNotEmpty
@@ -408,13 +408,13 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                                   const SizedBox(height: 16),
                                   OutlinedButton.icon(
                                     onPressed: _showCreatePlaylistDialog,
-                                    icon: const Icon(Icons.add_rounded, color: BkoTheme.goldAccent),
+                                    icon: Icon(Icons.add_rounded, color: BkoTheme.getAccent(context)),
                                     label: Text(
                                       'Créer ma première playlist',
                                       style: BkoTheme.fontLato(
                                         fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: BkoTheme.goldAccent,
+                                        color: BkoTheme.getAccent(context),
                                       ),
                                     ),
                                     style: OutlinedButton.styleFrom(
@@ -429,7 +429,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                         : ListView.separated(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             itemCount: filtered.length,
-                            separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFF222226)),
+                            separatorBuilder: (_, __) => Divider(height: 1, color: BkoTheme.getBgSurfaceElevated(context)),
                             itemBuilder: (context, index) {
                               final item = filtered[index];
                               final itemCount = item['_count']?['items'] ?? item['items']?.length ?? 0;
@@ -443,11 +443,11 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                                     width: 44,
                                     height: 44,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF1F1F24),
+                                      color: BkoTheme.getBgSurface(context),
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(color: border),
                                     ),
-                                    child: const Icon(Icons.queue_music_rounded, color: BkoTheme.goldAccent, size: 22),
+                                    child: Icon(Icons.queue_music_rounded, color: BkoTheme.getAccent(context), size: 22),
                                   ),
                                   title: Text(
                                     item['name'] ?? 'Playlist',
@@ -462,7 +462,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                                   subtitle: Row(
                                     children: [
                                       if (isPrivate) ...[
-                                        const Icon(Icons.lock_rounded, size: 12, color: Colors.white54),
+                                        Icon(Icons.lock_rounded, size: 12, color: BkoTheme.getTextSecondary(context)),
                                         const SizedBox(width: 4),
                                       ],
                                       Text(
@@ -471,7 +471,7 @@ class _PlaylistPickerSheetState extends ConsumerState<PlaylistPickerSheet> {
                                       ),
                                     ],
                                   ),
-                                  trailing: const Icon(Icons.add_circle_outline_rounded, color: BkoTheme.goldAccent, size: 24),
+                                  trailing: Icon(Icons.add_circle_outline_rounded, color: BkoTheme.getAccent(context), size: 24),
                                   onTap: () => _addToPlaylist(item),
                                 ),
                               );

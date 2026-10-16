@@ -189,10 +189,10 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                             color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Icon(
                               IconsaxPlusLinear.folder_cloud,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                               size: 22,
                             ),
                           ),
@@ -232,7 +232,7 @@ class _StorageSettingsScreenState extends ConsumerState<StorageSettingsScreen> {
                         style: BkoTheme.fontLato(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                         ),
                       ),
                     ),

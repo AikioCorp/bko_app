@@ -122,7 +122,7 @@ class DiscoveryPromotionModal extends StatelessWidget {
                     style: BkoTheme.fontLato(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ),

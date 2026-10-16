@@ -150,7 +150,7 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               elevation: 0,
             ),
             child: const Text('Déconnecter'),
@@ -199,7 +199,7 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Colors.white,
+              foregroundColor: Theme.of(context).colorScheme.onError,
               elevation: 0,
             ),
             child: const Text('Tout déconnecter'),
@@ -275,12 +275,12 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
                           color: hasPassword
-                              ? const Color(0xFF238636).withValues(alpha: 0.15)
+                              ? BkoTheme.getSuccess(context).withValues(alpha: 0.15)
                               : BkoTheme.goldAccent.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
                             color: hasPassword
-                                ? const Color(0xFF238636).withValues(alpha: 0.3)
+                                ? BkoTheme.getSuccess(context).withValues(alpha: 0.3)
                                 : BkoTheme.goldAccent.withValues(alpha: 0.3),
                           ),
                         ),
@@ -289,7 +289,7 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                           style: BkoTheme.fontLato(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
-                            color: hasPassword ? const Color(0xFF3FB950) : BkoTheme.goldAccent,
+                            color: hasPassword ? BkoTheme.getSuccess(context) : BkoTheme.goldAccent,
                           ),
                         ),
                       ),
@@ -454,10 +454,10 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                                 color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Icon(
                                   IconsaxPlusLinear.mobile,
-                                  color: BkoTheme.goldAccent,
+                                  color: BkoTheme.getAccent(context),
                                   size: 20,
                                 ),
                               ),
@@ -592,10 +592,10 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
+                Icon(
                   IconsaxPlusLinear.shield_security,
                   size: 20,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

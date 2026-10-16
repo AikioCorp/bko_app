@@ -236,7 +236,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           style: BkoTheme.fontLato(
                             fontWeight: FontWeight.w900,
                             fontSize: 18,
-                            color: BkoTheme.goldAccent,
+                            color: BkoTheme.getAccent(context),
                           ),
                         ),
                       ),
@@ -383,7 +383,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: BkoTheme.getBorderSubtle(context)),
               ),
-              child: Icon(icon, color: BkoTheme.goldAccent, size: 18),
+              child: Icon(icon, color: BkoTheme.getAccent(context), size: 18),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -469,7 +469,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(IconsaxPlusLinear.wifi_square, size: 52, color: BkoTheme.goldAccent),
+                      Icon(IconsaxPlusLinear.wifi_square, size: 52, color: BkoTheme.getAccent(context)),
                       const SizedBox(height: 16),
                       Text(
                         'Impossible de charger les données',
@@ -722,7 +722,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                   },
                                   child: Row(
                                     children: [
-                                      const Icon(IconsaxPlusBold.play, color: BkoTheme.goldAccent, size: 16),
+                                      Icon(IconsaxPlusBold.play, color: BkoTheme.getAccent(context), size: 16),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -794,8 +794,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                                 width: 44,
                                                 height: 44,
                                                 color: bgElevated,
-                                                child: const Center(
-                                                  child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent, size: 18),
+                                                child: Center(
+                                                  child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.getAccent(context), size: 18),
                                                 ),
                                               ),
                                             ),
@@ -1035,8 +1035,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           fit: BoxFit.cover,
                                           errorWidget: (context, url, error) => Container(
                                             color: bgElevated,
-                                            child: const Center(
-                                              child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent, size: 28),
+                                            child: Center(
+                                              child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.getAccent(context), size: 28),
                                             ),
                                           ),
                                         ),
@@ -1055,7 +1055,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                           reason,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: BkoTheme.fontLato(fontSize: 10, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
+                                          style: BkoTheme.fontLato(fontSize: 10, fontWeight: FontWeight.w700, color: BkoTheme.getAccent(context)),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -1129,7 +1129,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       children: [
-                        const Icon(IconsaxPlusBold.play, color: BkoTheme.goldAccent, size: 16),
+                        Icon(IconsaxPlusBold.play, color: BkoTheme.getAccent(context), size: 16),
                         const SizedBox(width: 8),
                         Text('Historique de lecture', style: BkoTheme.fontLato(fontSize: 18, fontWeight: FontWeight.w800, color: textPri)),
                       ],
@@ -1177,8 +1177,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                         fit: BoxFit.cover,
                                         errorWidget: (context, url, error) => Container(
                                           color: bgElevated,
-                                          child: const Center(
-                                            child: Icon(IconsaxPlusLinear.play, color: BkoTheme.goldAccent, size: 20),
+                                          child: Center(
+                                            child: Icon(IconsaxPlusLinear.play, color: BkoTheme.getAccent(context), size: 20),
                                           ),
                                         ),
                                       ),
@@ -1382,7 +1382,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                             child: Text(
                               'Réessayer',
-                              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: BkoTheme.goldAccent),
+                              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w800, color: BkoTheme.getAccent(context)),
                             ),
                           ),
                         ),
@@ -1437,8 +1437,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: borderSub),
                       ),
-                      child: const Center(
-                        child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.goldAccent, size: 20),
+                      child: Center(
+                        child: Icon(IconsaxPlusLinear.microphone_2, color: BkoTheme.getAccent(context), size: 20),
                       ),
                     ),
                     const SizedBox(width: 14),

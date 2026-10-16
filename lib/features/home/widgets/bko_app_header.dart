@@ -210,9 +210,9 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                       width: 38,
                                       height: 38,
                                       fit: BoxFit.contain,
-                                      errorBuilder: (context, error, stackTrace) => const Icon(
+                                      errorBuilder: (context, error, stackTrace) => Icon(
                                         IconsaxPlusLinear.microphone_2,
-                                        color: BkoTheme.goldAccent,
+                                        color: BkoTheme.getAccent(context),
                                         size: 20,
                                       ),
                                     ),
@@ -285,10 +285,10 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                           width: 44,
                                           height: 44,
                                           alignment: Alignment.center,
-                                          child: const Icon(
+                                          child: Icon(
                                             IconsaxPlusLinear.search_normal_1,
                                             size: 21,
-                                            color: BkoTheme.goldAccent,
+                                            color: BkoTheme.getAccent(context),
                                           ),
                                         ),
                                       ),
@@ -405,9 +405,9 @@ class _BkoAppHeaderState extends ConsumerState<BkoAppHeader>
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           IconsaxPlusLinear.search_normal_1,
-                                          color: BkoTheme.goldAccent,
+                                          color: BkoTheme.getAccent(context),
                                           size: 18,
                                         ),
                                         const SizedBox(width: 10),

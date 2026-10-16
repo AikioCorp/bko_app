@@ -270,15 +270,15 @@ class _UserTasteOnboardingScreenState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B0B),
+        backgroundColor: BkoTheme.getBgObsidian(context),
         elevation: 0,
         leading: _currentStep > 0 || widget.isEditing
             ? IconButton(
-                icon: const Icon(
+                icon: Icon(
                   IconsaxPlusLinear.arrow_left_1,
-                  color: Color(0xFFB8B8B8),
+                  color: BkoTheme.getTextSecondary(context),
                   size: 22,
                 ),
                 onPressed: _previousStep,
@@ -289,7 +289,7 @@ class _UserTasteOnboardingScreenState
           style: BkoTheme.fontPoppins(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
+            color: BkoTheme.getTextPrimary(context),
           ),
         ),
         centerTitle: true,
@@ -302,7 +302,7 @@ class _UserTasteOnboardingScreenState
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF888888),
+                  color: BkoTheme.getTextMuted(context),
                 ),
               ),
             ),
@@ -325,16 +325,16 @@ class _UserTasteOnboardingScreenState
                       child: Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3B1214),
+                          color: Theme.of(context).colorScheme.errorContainer,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF7F1D1D)),
+                          border: Border.all(color: Theme.of(context).colorScheme.errorContainer),
                         ),
                         child: Text(
                           _errorMessage!,
                           style: BkoTheme.fontPoppins(
                             fontSize: 12,
                             fontWeight: FontWeight.w500,
-                            color: const Color(0xFFFECACA),
+                            color: BkoTheme.getError(context),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -377,7 +377,7 @@ class _UserTasteOnboardingScreenState
                   margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
                   height: 4,
                   decoration: BoxDecoration(
-                    color: isActive ? BkoTheme.goldAccent : const Color(0xFF262626),
+                    color: isActive ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -390,7 +390,7 @@ class _UserTasteOnboardingScreenState
             style: BkoTheme.fontPoppins(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF888888),
+              color: BkoTheme.getTextMuted(context),
               letterSpacing: 0.5,
             ),
           ),
@@ -424,7 +424,7 @@ class _UserTasteOnboardingScreenState
             style: BkoTheme.fontPoppins(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
             ),
           ),
           const SizedBox(height: 6),
@@ -434,7 +434,7 @@ class _UserTasteOnboardingScreenState
               fontSize: 13,
               fontWeight: FontWeight.w400,
               height: 1.45,
-              color: const Color(0xFFB8B8B8),
+              color: BkoTheme.getTextSecondary(context),
             ),
           ),
           const SizedBox(height: 24),
@@ -442,16 +442,16 @@ class _UserTasteOnboardingScreenState
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF121212),
+                color: BkoTheme.getBgSurface(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF262626)),
+                border: Border.all(color: BkoTheme.getBorderSubtle(context)),
               ),
               child: Text(
                 'Aucune langue avec du contenu disponible pour le moment.',
                 textAlign: TextAlign.center,
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
-                  color: const Color(0xFF888888),
+                  color: BkoTheme.getTextMuted(context),
                 ),
               ),
             )
@@ -484,10 +484,10 @@ class _UserTasteOnboardingScreenState
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF19160E) : const Color(0xFF121212),
+                    color: isSelected ? BkoTheme.getBgSurface(context) : BkoTheme.getBgSurface(context),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? BkoTheme.goldAccent : const Color(0xFF262626),
+                      color: isSelected ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -498,7 +498,7 @@ class _UserTasteOnboardingScreenState
                         height: 36,
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: isSelected ? BkoTheme.goldAccent : const Color(0xFF1E1E1E),
+                          color: isSelected ? BkoTheme.goldAccent : BkoTheme.getBgSurface(context),
                           shape: BoxShape.circle,
                         ),
                         child: Text(
@@ -506,7 +506,7 @@ class _UserTasteOnboardingScreenState
                           style: BkoTheme.fontPoppins(
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
-                            color: isSelected ? Colors.black : const Color(0xFFCCCCCC),
+                            color: isSelected ? Colors.black : BkoTheme.getTextSecondary(context),
                           ),
                         ),
                       ),
@@ -520,7 +520,7 @@ class _UserTasteOnboardingScreenState
                               style: BkoTheme.fontPoppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: BkoTheme.getTextPrimary(context),
                               ),
                             ),
                             if (nativeName != null && nativeName != name)
@@ -529,7 +529,7 @@ class _UserTasteOnboardingScreenState
                                 style: BkoTheme.fontPoppins(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF888888),
+                                  color: BkoTheme.getTextMuted(context),
                                 ),
                               ),
                           ],
@@ -539,7 +539,7 @@ class _UserTasteOnboardingScreenState
                         isSelected
                             ? IconsaxPlusBold.tick_circle
                             : IconsaxPlusLinear.add_circle,
-                        color: isSelected ? BkoTheme.goldAccent : const Color(0xFF555555),
+                        color: isSelected ? BkoTheme.goldAccent : BkoTheme.getTextMuted(context),
                         size: 22,
                       ),
                     ],
@@ -566,7 +566,7 @@ class _UserTasteOnboardingScreenState
             style: BkoTheme.fontPoppins(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
             ),
           ),
           const SizedBox(height: 6),
@@ -576,7 +576,7 @@ class _UserTasteOnboardingScreenState
               fontSize: 13,
               fontWeight: FontWeight.w400,
               height: 1.45,
-              color: const Color(0xFFB8B8B8),
+              color: BkoTheme.getTextSecondary(context),
             ),
           ),
           const SizedBox(height: 20),
@@ -584,16 +584,16 @@ class _UserTasteOnboardingScreenState
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF121212),
+                color: BkoTheme.getBgSurface(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF262626)),
+                border: Border.all(color: BkoTheme.getBorderSubtle(context)),
               ),
               child: Text(
                 'Aucun centre d\'intérêt avec du contenu disponible pour le moment.',
                 textAlign: TextAlign.center,
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
-                  color: const Color(0xFF888888),
+                  color: BkoTheme.getTextMuted(context),
                 ),
               ),
             )
@@ -620,10 +620,10 @@ class _UserTasteOnboardingScreenState
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF19160E) : const Color(0xFF141414),
+                    color: isSelected ? BkoTheme.getBgSurface(context) : BkoTheme.getBgSurface(context),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isSelected ? BkoTheme.goldAccent : const Color(0xFF262626),
+                      color: isSelected ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
                       width: isSelected ? 1.5 : 1,
                     ),
                   ),
@@ -633,7 +633,7 @@ class _UserTasteOnboardingScreenState
                       Icon(
                         isSelected ? IconsaxPlusBold.tick_circle : IconsaxPlusBold.hashtag,
                         size: 15,
-                        color: isSelected ? BkoTheme.goldAccent : const Color(0xFF888888),
+                        color: isSelected ? BkoTheme.goldAccent : BkoTheme.getTextMuted(context),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -641,7 +641,7 @@ class _UserTasteOnboardingScreenState
                         style: BkoTheme.fontPoppins(
                           fontSize: 13,
                           fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                          color: isSelected ? Colors.white : const Color(0xFFCCCCCC),
+                          color: isSelected ? BkoTheme.getTextPrimary(context) : BkoTheme.getTextSecondary(context),
                         ),
                       ),
                     ],
@@ -668,7 +668,7 @@ class _UserTasteOnboardingScreenState
             style: BkoTheme.fontPoppins(
               fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: BkoTheme.getTextPrimary(context),
             ),
           ),
           const SizedBox(height: 6),
@@ -678,7 +678,7 @@ class _UserTasteOnboardingScreenState
               fontSize: 13,
               fontWeight: FontWeight.w400,
               height: 1.45,
-              color: const Color(0xFFB8B8B8),
+              color: BkoTheme.getTextSecondary(context),
             ),
           ),
           const SizedBox(height: 20),
@@ -686,16 +686,16 @@ class _UserTasteOnboardingScreenState
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: const Color(0xFF121212),
+                color: BkoTheme.getBgSurface(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF262626)),
+                border: Border.all(color: BkoTheme.getBorderSubtle(context)),
               ),
               child: Text(
                 'Aucune émission avec des épisodes disponible pour le moment. Vous pourrez suivre des émissions depuis l\'accueil à tout moment.',
                 textAlign: TextAlign.center,
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
-                  color: const Color(0xFF888888),
+                  color: BkoTheme.getTextMuted(context),
                 ),
               ),
             )
@@ -719,10 +719,10 @@ class _UserTasteOnboardingScreenState
                 return Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF121212),
+                    color: BkoTheme.getBgSurface(context),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isFollowed ? BkoTheme.goldAccent.withValues(alpha: 0.5) : const Color(0xFF262626),
+                      color: isFollowed ? BkoTheme.goldAccent.withValues(alpha: 0.5) : BkoTheme.getBorderSubtle(context),
                     ),
                   ),
                   child: Row(
@@ -733,20 +733,20 @@ class _UserTasteOnboardingScreenState
                         child: Container(
                           width: 52,
                           height: 52,
-                          color: const Color(0xFF1E1E1E),
+                          color: BkoTheme.getBgSurface(context),
                           child: cover != null && cover.isNotEmpty
                               ? Image.network(
                                   cover,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => const Icon(
+                                  errorBuilder: (_, __, ___) => Icon(
                                     IconsaxPlusBold.microphone_2,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                     size: 24,
                                   ),
                                 )
-                              : const Icon(
+                              : Icon(
                                   IconsaxPlusBold.microphone_2,
-                                  color: BkoTheme.goldAccent,
+                                  color: BkoTheme.getAccent(context),
                                   size: 24,
                                 ),
                         ),
@@ -764,21 +764,21 @@ class _UserTasteOnboardingScreenState
                               style: BkoTheme.fontPoppins(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: BkoTheme.getTextPrimary(context),
                               ),
                             ),
                             if (epCount != null && epCount > 0) ...[
                               const SizedBox(height: 2),
                               Row(
                                 children: [
-                                  const Icon(IconsaxPlusLinear.play, size: 10, color: BkoTheme.goldAccent),
+                                  Icon(IconsaxPlusLinear.play, size: 10, color: BkoTheme.getAccent(context)),
                                   const SizedBox(width: 4),
                                   Text(
                                     '$epCount ${epCount > 1 ? 'épisodes' : 'épisode'}',
                                     style: BkoTheme.fontPoppins(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: BkoTheme.goldAccent,
+                                      color: BkoTheme.getAccent(context),
                                     ),
                                   ),
                                 ],
@@ -792,7 +792,7 @@ class _UserTasteOnboardingScreenState
                                 overflow: TextOverflow.ellipsis,
                                 style: BkoTheme.fontPoppins(
                                   fontSize: 11.5,
-                                  color: const Color(0xFF888888),
+                                  color: BkoTheme.getTextMuted(context),
                                 ),
                               ),
                             ],
@@ -815,10 +815,10 @@ class _UserTasteOnboardingScreenState
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                           decoration: BoxDecoration(
-                            color: isFollowed ? BkoTheme.goldAccent : const Color(0xFF1E1E1E),
+                            color: isFollowed ? BkoTheme.goldAccent : BkoTheme.getBgSurface(context),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isFollowed ? BkoTheme.goldAccent : const Color(0xFF333333),
+                              color: isFollowed ? BkoTheme.goldAccent : BkoTheme.getBorderSubtle(context),
                             ),
                           ),
                           child: Row(
@@ -827,7 +827,7 @@ class _UserTasteOnboardingScreenState
                               Icon(
                                 isFollowed ? IconsaxPlusBold.tick_circle : IconsaxPlusLinear.add,
                                 size: 13,
-                                color: isFollowed ? Colors.black : Colors.white,
+                                color: isFollowed ? Colors.black : BkoTheme.getTextPrimary(context),
                               ),
                               const SizedBox(width: 5),
                               Text(
@@ -835,7 +835,7 @@ class _UserTasteOnboardingScreenState
                                 style: BkoTheme.fontPoppins(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w700,
-                                  color: isFollowed ? Colors.black : Colors.white,
+                                  color: isFollowed ? Colors.black : BkoTheme.getTextPrimary(context),
                                 ),
                               ),
                             ],
@@ -861,9 +861,9 @@ class _UserTasteOnboardingScreenState
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF0F0F0F),
-        border: Border(top: BorderSide(color: Color(0xFF1E1E1E))),
+      decoration: BoxDecoration(
+        color: BkoTheme.getBgObsidian(context),
+        border: Border(top: BorderSide(color: BkoTheme.getBgSurface(context))),
       ),
       child: Row(
         children: [
@@ -875,7 +875,7 @@ class _UserTasteOnboardingScreenState
                 style: BkoTheme.fontPoppins(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF777777),
+                  color: BkoTheme.getTextMuted(context),
                 ),
               ),
             ),

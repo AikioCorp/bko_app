@@ -79,9 +79,9 @@ class BkoMiniPlayer extends ConsumerWidget {
                                     width: 44,
                                     height: 44,
                                     color: BkoTheme.getBgSurfaceElevated(context),
-                                    child: const Icon(
+                                    child: Icon(
                                       IconsaxPlusLinear.music,
-                                      color: BkoTheme.goldAccent,
+                                      color: BkoTheme.getAccent(context),
                                       size: 20,
                                     ),
                                   ),

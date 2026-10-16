@@ -314,7 +314,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           elevation: 0,
           backgroundColor: Colors.transparent,
           leading: AppBackButton(
-            color: Colors.white,
+            color: BkoTheme.onMedia,
             fallbackLocation: '/podcasts/${widget.podcastSlug}',
           ),
         ),
@@ -408,7 +408,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: AppBackButton(
-          color: Colors.white,
+          color: BkoTheme.getTextPrimary(context),
           fallbackLocation: '/podcasts/${widget.podcastSlug}',
         ),
         actions: [
@@ -416,7 +416,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           IconButton(
             icon: Icon(
               _isLiked ? IconsaxPlusBold.heart : IconsaxPlusLinear.heart,
-              color: _isLiked ? Colors.redAccent : Colors.white,
+              color: _isLiked ? BkoTheme.getError(context) : BkoTheme.getTextPrimary(context),
               size: 22,
             ),
             tooltip: _isLiked ? 'Ne plus aimer' : 'Aimer cet épisode',
@@ -428,7 +428,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
           IconButton(
             icon: Icon(
               _isSaved ? IconsaxPlusBold.archive_add : IconsaxPlusLinear.archive_add,
-              color: _isSaved ? BkoTheme.goldAccent : Colors.white,
+              color: _isSaved ? BkoTheme.goldAccent : BkoTheme.getTextPrimary(context),
               size: 22,
             ),
             onPressed: () {
@@ -437,14 +437,14 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.share, color: Colors.white, size: 22),
+            icon: Icon(IconsaxPlusLinear.share, color: BkoTheme.getTextPrimary(context), size: 22),
             onPressed: () {
               BkoHaptics.select();
               _shareEpisode();
             },
           ),
           IconButton(
-            icon: const Icon(IconsaxPlusLinear.more, color: Colors.white, size: 22),
+            icon: Icon(IconsaxPlusLinear.more, color: BkoTheme.getTextPrimary(context), size: 22),
             onPressed: () {
               BkoHaptics.select();
               _openMoreActions();
@@ -509,7 +509,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                               imageUrl: cover,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => Container(
-                                color: const Color(0xFF141416),
+                                color: BkoTheme.getBgSurface(context),
                                 child: const Center(
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
@@ -518,15 +518,15 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                                 ),
                               ),
                               errorWidget: (_, __, ___) => Container(
-                                color: const Color(0xFF141416),
-                                child: const Icon(Icons.graphic_eq_rounded,
-                                    color: BkoTheme.goldAccent, size: 64),
+                                color: BkoTheme.getBgSurface(context),
+                                child: Icon(Icons.graphic_eq_rounded,
+                                    color: BkoTheme.getAccent(context), size: 64),
                               ),
                             )
                           : Container(
-                              color: const Color(0xFF141416),
-                              child: const Icon(Icons.graphic_eq_rounded,
-                                  color: BkoTheme.goldAccent, size: 64),
+                              color: BkoTheme.getBgSurface(context),
+                              child: Icon(Icons.graphic_eq_rounded,
+                                  color: BkoTheme.getAccent(context), size: 64),
                             ),
                     ),
                   ),
@@ -540,7 +540,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: const Color(0xE60B0B0B),
+                            color: BkoTheme.mediaScrim,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: BkoTheme.goldAccent.withValues(alpha: 0.5),
@@ -549,15 +549,15 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(IconsaxPlusBold.video,
-                                  color: BkoTheme.goldAccent, size: 16),
+                              Icon(IconsaxPlusBold.video,
+                                  color: BkoTheme.getAccent(context), size: 16),
                               const SizedBox(width: 6),
                               Text(
                                 'REGARDER EN VIDÉO',
                                 style: BkoTheme.fontLato(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                                  color: BkoTheme.onMedia,
                                   letterSpacing: 0.3,
                                 ),
                               ),
@@ -580,19 +580,19 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
               },
               child: Row(
                 children: [
-                  const Icon(Icons.podcasts_rounded,
-                      color: BkoTheme.goldAccent, size: 18),
+                  Icon(Icons.podcasts_rounded,
+                      color: BkoTheme.getAccent(context), size: 18),
                   const SizedBox(width: 8),
                   Text(
                     podcastName,
                     style: BkoTheme.fontLato(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: BkoTheme.goldAccent, size: 18),
+                  Icon(Icons.chevron_right_rounded,
+                      color: BkoTheme.getAccent(context), size: 18),
                 ],
               ),
             ),
@@ -626,15 +626,15 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                     style: BkoTheme.fontLato(fontSize: 12, color: textSec)),
                 if (isDownloaded) ...[
                   const SizedBox(width: 14),
-                  const Icon(Icons.download_done_rounded,
-                      size: 14, color: BkoTheme.goldAccent),
+                  Icon(Icons.download_done_rounded,
+                      size: 14, color: BkoTheme.getAccent(context)),
                   const SizedBox(width: 4),
                   Text(
                     'Hors ligne',
                     style: BkoTheme.fontLato(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ],
@@ -679,7 +679,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                             isThisVideoPlaying
                                 ? IconsaxPlusBold.pause
                                 : IconsaxPlusBold.play,
-                            color: BkoTheme.goldAccent,
+                            color: BkoTheme.getAccent(context),
                             size: 18,
                           ),
                           label: Text(
@@ -710,7 +710,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF141416),
+                color: BkoTheme.getBgSurface(context),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderSub),
               ),
@@ -803,7 +803,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF141416),
+                color: BkoTheme.getBgSurface(context),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: borderSub),
               ),
@@ -819,7 +819,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                           _isLiked
                               ? IconsaxPlusBold.heart
                               : IconsaxPlusLinear.heart,
-                          color: _isLiked ? Colors.redAccent : Colors.white70,
+                          color: _isLiked ? BkoTheme.getError(context) : BkoTheme.getTextSecondary(context),
                           size: 22,
                         ),
                         const SizedBox(width: 8),
@@ -828,7 +828,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                           style: BkoTheme.fontLato(
                             fontSize: 13.5,
                             fontWeight: FontWeight.bold,
-                            color: _isLiked ? Colors.redAccent : textPri,
+                            color: _isLiked ? BkoTheme.getError(context) : textPri,
                           ),
                         ),
                       ],
@@ -840,9 +840,9 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                     onTap: _openComments,
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           IconsaxPlusLinear.messages_2,
-                          color: Colors.white70,
+                          color: BkoTheme.getTextSecondary(context),
                           size: 20,
                         ),
                         const SizedBox(width: 8),
@@ -871,9 +871,9 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                     onTap: _shareEpisode,
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.share_rounded,
-                          color: Colors.white70,
+                          color: BkoTheme.getTextSecondary(context),
                           size: 20,
                         ),
                         const SizedBox(width: 6),
@@ -916,7 +916,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                           style: BkoTheme.fontLato(
                             fontSize: 12.5,
                             fontWeight: FontWeight.bold,
-                            color: BkoTheme.goldAccent,
+                            color: BkoTheme.getAccent(context),
                           ),
                         ),
                         const SizedBox(width: 2),
@@ -925,7 +925,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                               ? Icons.keyboard_arrow_up_rounded
                               : Icons.keyboard_arrow_down_rounded,
                           size: 18,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                         ),
                       ],
                     ),
@@ -965,7 +965,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                     style: BkoTheme.fontLato(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w700,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ),
@@ -987,14 +987,14 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                 ),
                 TextButton.icon(
                   onPressed: _openComments,
-                  icon: const Icon(Icons.edit_note_rounded,
-                      color: BkoTheme.goldAccent, size: 18),
+                  icon: Icon(Icons.edit_note_rounded,
+                      color: BkoTheme.getAccent(context), size: 18),
                   label: Text(
                     'Écrire',
                     style: BkoTheme.fontLato(
                       fontSize: 12.5,
                       fontWeight: FontWeight.bold,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                 ),
@@ -1013,8 +1013,8 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.chat_bubble_outline_rounded,
-                        color: BkoTheme.goldAccent, size: 22),
+                    Icon(Icons.chat_bubble_outline_rounded,
+                        color: BkoTheme.getAccent(context), size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -1027,8 +1027,8 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded,
-                        color: Colors.white54, size: 20),
+                    Icon(Icons.chevron_right_rounded,
+                        color: BkoTheme.getTextSecondary(context), size: 20),
                   ],
                 ),
               ),
@@ -1072,7 +1072,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                             style: BkoTheme.fontLato(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w900,
-                                color: BkoTheme.goldAccent),
+                                color: BkoTheme.getAccent(context)),
                           ),
                         ),
                         title: Text(
@@ -1082,8 +1082,8 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                               fontWeight: FontWeight.w700,
                               color: textPri),
                         ),
-                        trailing: const Icon(Icons.play_circle_fill_rounded,
-                            color: BkoTheme.goldAccent, size: 24),
+                        trailing: Icon(Icons.play_circle_fill_rounded,
+                            color: BkoTheme.getAccent(context), size: 24),
                         onTap: () => _seekToTimestamp(ch['time']!),
                       ),
                     );
@@ -1125,7 +1125,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
                 style: BkoTheme.fontLato(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white70,
+                  color: BkoTheme.getTextSecondary(context),
                 ),
               ),
             ],

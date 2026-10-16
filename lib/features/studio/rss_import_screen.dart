@@ -462,8 +462,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(IconsaxPlusLinear.microphone_2,
-                              color: BkoTheme.goldAccent, size: 18),
+                          Icon(IconsaxPlusLinear.microphone_2,
+                              color: BkoTheme.getAccent(context), size: 18),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -546,7 +546,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(IconsaxPlusLinear.radio, color: BkoTheme.goldAccent, size: 20),
+                      Icon(IconsaxPlusLinear.radio, color: BkoTheme.getAccent(context), size: 20),
                       const SizedBox(width: 8),
                       Text(
                         'FLUX RSS CONNECTÉ',
@@ -645,7 +645,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                         const SizedBox(height: 2),
                         Text(
                           '$importedCount épisode(s)',
-                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
+                          style: BkoTheme.fontLato(fontSize: 13, fontWeight: FontWeight.w700, color: BkoTheme.getAccent(context)),
                         ),
                       ],
                     ),
@@ -766,7 +766,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(IconsaxPlusLinear.info_circle, color: BkoTheme.goldAccent, size: 16),
+              Icon(IconsaxPlusLinear.info_circle, color: BkoTheme.getAccent(context), size: 16),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -861,10 +861,10 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
             onPressed: () {
               setState(() => _showReconfigure = true);
             },
-            icon: const Icon(IconsaxPlusLinear.edit_2, size: 14, color: BkoTheme.goldAccent),
+            icon: Icon(IconsaxPlusLinear.edit_2, size: 14, color: BkoTheme.getAccent(context)),
             label: Text(
               'Remplacer par un autre flux RSS',
-              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
+              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w700, color: BkoTheme.getAccent(context)),
             ),
           ),
         ),
@@ -880,10 +880,10 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
         if (_existingFeed != null) ...[
           TextButton.icon(
             onPressed: () => setState(() => _showReconfigure = false),
-            icon: const Icon(IconsaxPlusLinear.arrow_left_2, size: 14, color: BkoTheme.goldAccent),
+            icon: Icon(IconsaxPlusLinear.arrow_left_2, size: 14, color: BkoTheme.getAccent(context)),
             label: Text(
               'Retour au flux actuel',
-              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w700, color: BkoTheme.goldAccent),
+              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w700, color: BkoTheme.getAccent(context)),
             ),
           ),
           const SizedBox(height: 10),
@@ -1038,7 +1038,7 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    const Icon(IconsaxPlusLinear.radio, size: 16, color: BkoTheme.goldAccent),
+                    Icon(IconsaxPlusLinear.radio, size: 16, color: BkoTheme.getAccent(context)),
                     const SizedBox(width: 6),
                     Text(
                       '${_previewData!['episodeCount'] ?? _previewData!['itemCount'] ?? _previewData!['episodesCount'] ?? 0} épisodes détectés',
@@ -1060,8 +1060,8 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(IconsaxPlusLinear.microphone_2,
-                      color: BkoTheme.goldAccent, size: 18),
+                  Icon(IconsaxPlusLinear.microphone_2,
+                      color: BkoTheme.getAccent(context), size: 18),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -1483,10 +1483,10 @@ class _RssImportScreenState extends ConsumerState<RssImportScreen> {
                       color: BkoTheme.goldAccent.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       IconsaxPlusLinear.tick_circle,
                       size: 56,
-                      color: BkoTheme.goldAccent,
+                      color: BkoTheme.getAccent(context),
                     ),
                   ),
                   const SizedBox(height: 20),

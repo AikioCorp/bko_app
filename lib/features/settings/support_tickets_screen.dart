@@ -340,8 +340,8 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
                           Expanded(
                             child: Text(
                               _error,
-                              style: const TextStyle(
-                                  color: Color(0xFFFCA5A5), fontSize: 13),
+                              style: TextStyle(
+                                  color: BkoTheme.getError(context), fontSize: 13),
                             ),
                           ),
                         ],
@@ -361,14 +361,14 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(IconsaxPlusLinear.tick_circle,
-                              color: Color(0xFF10B981), size: 18),
+                          Icon(IconsaxPlusLinear.tick_circle,
+                              color: BkoTheme.getSuccess(context), size: 18),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
                               _successMsg,
-                              style: const TextStyle(
-                                  color: Color(0xFF6EE7B7), fontSize: 13),
+                              style: TextStyle(
+                                  color: BkoTheme.getSuccess(context), fontSize: 13),
                             ),
                           ),
                         ],
@@ -488,10 +488,10 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
                                             ),
                                           ),
                                           const SizedBox(width: 4),
-                                          const Icon(
+                                          Icon(
                                             IconsaxPlusLinear.verify,
                                             size: 13,
-                                            color: Color(0xFF10B981),
+                                            color: BkoTheme.getSuccess(context),
                                           ),
                                         ],
                                       ),
@@ -515,10 +515,10 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     IconsaxPlusLinear.info_circle,
                                     size: 14,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
@@ -623,10 +623,10 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     IconsaxPlusLinear.shield_search,
                                     size: 16,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
@@ -690,12 +690,12 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
                                       color: const Color(0x1F10B981),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Vérifié',
                                       style: TextStyle(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w700,
-                                        color: Color(0xFF10B981),
+                                        color: BkoTheme.getSuccess(context),
                                       ),
                                     ),
                                   ),
@@ -833,16 +833,16 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
     final updatedAt = _formatDate(ticket['updatedAt']?.toString() ?? ticket['createdAt']?.toString());
 
     Color statusBg = const Color(0x1F10B981);
-    Color statusFg = const Color(0xFF10B981);
+    Color statusFg = BkoTheme.getSuccess(context);
     String statusLabel = 'Ouvert';
 
     if (isClosed) {
       statusBg = const Color(0x1F6B7280);
-      statusFg = const Color(0xFF9CA3AF);
+      statusFg = BkoTheme.getTextSecondary(context);
       statusLabel = 'Fermé';
     } else if (isResolved) {
       statusBg = const Color(0x1F3B82F6);
-      statusFg = const Color(0xFF60A5FA);
+      statusFg = BkoTheme.getAccent(context);
       statusLabel = 'Résolu';
     }
 
@@ -941,21 +941,21 @@ class _SupportTicketsScreenState extends ConsumerState<SupportTicketsScreen> {
             BkoHaptics.selection();
             setState(() => _ticket = null);
           },
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
                 IconsaxPlusLinear.arrow_left_1,
                 size: 16,
-                color: BkoTheme.goldAccent,
+                color: BkoTheme.getAccent(context),
               ),
-              SizedBox(width: 6),
+              const SizedBox(width: 6),
               Text(
                 'Toutes mes demandes',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                 ),
               ),
             ],

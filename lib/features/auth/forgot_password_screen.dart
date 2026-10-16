@@ -221,11 +221,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   width: 58,
                   height: 58,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1C1A14),
+                    color: BkoTheme.getBgSurface(context),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
                   ),
-                  child: const Icon(IconsaxPlusLinear.key, color: BkoTheme.goldAccent, size: 28),
+                  child: Icon(IconsaxPlusLinear.key, color: BkoTheme.getAccent(context), size: 28),
                 ),
               ),
               const SizedBox(height: 20),
@@ -292,18 +292,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    color: BkoTheme.getSuccess(context).withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                    border: Border.all(color: BkoTheme.getSuccess(context).withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(IconsaxPlusLinear.tick_circle, color: Color(0xFF10B981), size: 18),
+                      Icon(IconsaxPlusLinear.tick_circle, color: BkoTheme.getSuccess(context), size: 18),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _infoMessage!,
-                          style: BkoTheme.fontLato(fontSize: 12.5, color: const Color(0xFF10B981)),
+                          style: BkoTheme.fontLato(fontSize: 12.5, color: BkoTheme.getSuccess(context)),
                         ),
                       ),
                     ],
@@ -337,7 +337,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         decoration: InputDecoration(
                           hintText: 'amadou@mail.com',
                           hintStyle: BkoTheme.fontLato(fontSize: 13.5, color: textSec),
-                          prefixIcon: const Icon(IconsaxPlusLinear.sms, color: Color(0xFF757575), size: 19),
+                          prefixIcon: Icon(IconsaxPlusLinear.sms, color: BkoTheme.getTextMuted(context), size: 19),
                           filled: true,
                           fillColor: surface,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -393,7 +393,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(IconsaxPlusLinear.sms, size: 16, color: BkoTheme.goldAccent),
+                            Icon(IconsaxPlusLinear.sms, size: 16, color: BkoTheme.getAccent(context)),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -412,7 +412,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               },
                               child: Text(
                                 'Modifier',
-                                style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.bold, color: BkoTheme.goldAccent),
+                                style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.bold, color: BkoTheme.getAccent(context)),
                               ),
                             ),
                           ],
@@ -452,7 +452,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 8,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                         ),
                         decoration: InputDecoration(
                           hintText: '000000',
@@ -487,11 +487,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         decoration: InputDecoration(
                           hintText: 'Au moins 8 caractères',
                           hintStyle: BkoTheme.fontLato(fontSize: 13.5, color: textSec),
-                          prefixIcon: const Icon(IconsaxPlusLinear.lock, color: Color(0xFF757575), size: 19),
+                          prefixIcon: Icon(IconsaxPlusLinear.lock, color: BkoTheme.getTextMuted(context), size: 19),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _showPassword ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
-                              color: const Color(0xFF757575),
+                              color: BkoTheme.getTextMuted(context),
                               size: 19,
                             ),
                             onPressed: () => setState(() => _showPassword = !_showPassword),
@@ -525,11 +525,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         decoration: InputDecoration(
                           hintText: 'Répétez le mot de passe',
                           hintStyle: BkoTheme.fontLato(fontSize: 13.5, color: textSec),
-                          prefixIcon: const Icon(IconsaxPlusLinear.lock, color: Color(0xFF757575), size: 19),
+                          prefixIcon: Icon(IconsaxPlusLinear.lock, color: BkoTheme.getTextMuted(context), size: 19),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _showConfirm ? IconsaxPlusLinear.eye_slash : IconsaxPlusLinear.eye,
-                              color: const Color(0xFF757575),
+                              color: BkoTheme.getTextMuted(context),
                               size: 19,
                             ),
                             onPressed: () => setState(() => _showConfirm = !_showConfirm),
@@ -582,11 +582,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         width: 72,
                         height: 72,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                          color: BkoTheme.getSuccess(context).withValues(alpha: 0.15),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.35)),
+                          border: Border.all(color: BkoTheme.getSuccess(context).withValues(alpha: 0.35)),
                         ),
-                        child: const Icon(IconsaxPlusLinear.tick_circle, color: Color(0xFF10B981), size: 38),
+                        child: Icon(IconsaxPlusLinear.tick_circle, color: BkoTheme.getSuccess(context), size: 38),
                       ),
                     ),
                     const SizedBox(height: 24),

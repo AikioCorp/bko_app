@@ -160,12 +160,12 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: BkoTheme.getBgObsidian(context),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B0B),
+        backgroundColor: BkoTheme.getBgObsidian(context),
         elevation: 0,
-        leading: const AppBackButton(
-          color: Color(0xFFB8B8B8),
+        leading: AppBackButton(
+          color: BkoTheme.getTextSecondary(context),
           fallbackLocation: '/login',
         ),
       ),
@@ -178,9 +178,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF121212),
+                  color: BkoTheme.getBgSurface(context),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFF262626)),
+                  border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -192,13 +192,13 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1E1A11),
+                          color: BkoTheme.getBgSurface(context),
                           shape: BoxShape.circle,
                           border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.mark_email_read_rounded,
-                          color: BkoTheme.goldAccent,
+                          color: BkoTheme.getAccent(context),
                           size: 28,
                         ),
                       ),
@@ -213,7 +213,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                       style: BkoTheme.fontPoppins(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: BkoTheme.getTextPrimary(context),
                       ),
                     ),
 
@@ -227,7 +227,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         fontSize: 13,
                         fontWeight: FontWeight.w400,
                         height: 1.45,
-                        color: const Color(0xFFB8B8B8),
+                        color: BkoTheme.getTextSecondary(context),
                       ),
                     ),
 
@@ -238,9 +238,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0E2818),
+                          color: BkoTheme.getSuccess(context),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF15803D)),
+                          border: Border.all(color: BkoTheme.getSuccess(context)),
                         ),
                         child: Text(
                           'Compte vérifié avec succès ✓\nAccès à votre espace en cours...',
@@ -248,7 +248,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                           style: BkoTheme.fontPoppins(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF86EFAC),
+                            color: BkoTheme.getSuccess(context),
                           ),
                         ),
                       ),
@@ -258,9 +258,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF3B1214),
+                            color: Theme.of(context).colorScheme.errorContainer,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF7F1D1D)),
+                            border: Border.all(color: Theme.of(context).colorScheme.errorContainer),
                           ),
                           child: Text(
                             _error!,
@@ -268,7 +268,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                             style: BkoTheme.fontPoppins(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFFFECACA),
+                              color: BkoTheme.getError(context),
                             ),
                           ),
                         ),
@@ -278,7 +278,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1E1A11),
+                            color: BkoTheme.getBgSurface(context),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.3)),
                           ),
@@ -288,7 +288,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                             style: BkoTheme.fontPoppins(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w500,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                             ),
                           ),
                         ),
@@ -309,21 +309,21 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF19160E),
+                                color: BkoTheme.getBgSurface(context),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(color: BkoTheme.goldAccent.withValues(alpha: 0.35)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(IconsaxPlusBold.shield_security, color: BkoTheme.goldAccent, size: 12),
+                                  Icon(IconsaxPlusBold.shield_security, color: BkoTheme.getAccent(context), size: 12),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Code de test : ',
                                     style: BkoTheme.fontPoppins(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: const Color(0xFFB8B8B8),
+                                      color: BkoTheme.getTextSecondary(context),
                                     ),
                                   ),
                                   Text(
@@ -332,11 +332,11 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                                       fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 2.0,
-                                      color: BkoTheme.goldAccent,
+                                      color: BkoTheme.getAccent(context),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
-                                  const Icon(IconsaxPlusLinear.arrow_circle_right, color: BkoTheme.goldAccent, size: 12),
+                                  Icon(IconsaxPlusLinear.arrow_circle_right, color: BkoTheme.getAccent(context), size: 12),
                                 ],
                               ),
                             ),
@@ -348,9 +348,9 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                       // Code Input Field avec autovalidation dès 6 chiffres
                       Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0E0E0E),
+                          color: BkoTheme.getBgObsidian(context),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFF262626)),
+                          border: Border.all(color: BkoTheme.getBorderSubtle(context)),
                         ),
                         child: TextField(
                           controller: _codeController,
@@ -376,7 +376,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 10,
-                            color: Colors.white,
+                            color: BkoTheme.getTextPrimary(context),
                           ),
                           decoration: InputDecoration(
                             counterText: '',
@@ -385,7 +385,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                               fontSize: 26,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 10,
-                              color: const Color(0xFF444444),
+                              color: BkoTheme.getBorderSubtle(context),
                             ),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -437,7 +437,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                                 style: BkoTheme.fontPoppins(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF757575),
+                                  color: BkoTheme.getTextMuted(context),
                                 ),
                               )
                             : TextButton(
@@ -447,7 +447,7 @@ class _VerifyOtpScreenState extends ConsumerState<VerifyOtpScreen> {
                                   style: BkoTheme.fontPoppins(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                 ),
                               ),

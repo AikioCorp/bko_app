@@ -193,7 +193,7 @@ class _PlaylistDetailsScreenState
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF18181C),
+        backgroundColor: BkoTheme.getBgSurface(context),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title: Text(
@@ -201,24 +201,24 @@ class _PlaylistDetailsScreenState
           style: BkoTheme.fontLato(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: BkoTheme.getTextPrimary(context),
           ),
         ),
         content: Text(
           'Cette action supprimera définitivement cette playlist.',
-          style: BkoTheme.fontLato(fontSize: 13, color: Colors.white70),
+          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextSecondary(context)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler',
-                style: TextStyle(color: Colors.white54)),
+            child: Text('Annuler',
+                style: TextStyle(color: BkoTheme.getTextSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
+              foregroundColor: BkoTheme.getTextPrimary(context),
             ),
             child: const Text('Supprimer'),
           ),
@@ -275,7 +275,7 @@ class _PlaylistDetailsScreenState
           const AppHeaderActions(),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert_rounded, color: textPri),
-            color: const Color(0xFF1E1E24),
+            color: BkoTheme.getBgSurface(context),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14)),
             onSelected: (val) {
@@ -379,7 +379,7 @@ class _PlaylistDetailsScreenState
                   fontSize: 11.5,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                 ),
               ),
               ElevatedButton.icon(
@@ -405,7 +405,7 @@ class _PlaylistDetailsScreenState
             ],
           ),
         ),
-        const Divider(height: 1, color: Color(0xFF222228)),
+        Divider(height: 1, color: BkoTheme.getBgSurfaceElevated(context)),
 
         Expanded(
           child: ListView.builder(
@@ -502,9 +502,9 @@ class _PlaylistDetailsScreenState
                       iconSize: 20,
                     ),
                     PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded,
-                          color: Colors.white60, size: 20),
-                      color: const Color(0xFF1E1E24),
+                      icon: Icon(Icons.more_vert_rounded,
+                          color: BkoTheme.getTextSecondary(context), size: 20),
+                      color: BkoTheme.getBgSurface(context),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                       onSelected: (val) {
@@ -516,15 +516,15 @@ class _PlaylistDetailsScreenState
                         }
                       },
                       itemBuilder: (ctx) => [
-                        const PopupMenuItem(
+                        PopupMenuItem(
                           value: 'options',
                           child: Row(
                             children: [
                               Icon(Icons.more_horiz_rounded,
-                                  color: Colors.white70, size: 18),
-                              SizedBox(width: 8),
+                                  color: BkoTheme.getTextSecondary(context), size: 18),
+                              const SizedBox(width: 8),
                               Text('Options de l’épisode',
-                                  style: TextStyle(color: Colors.white)),
+                                  style: TextStyle(color: BkoTheme.getTextPrimary(context))),
                             ],
                           ),
                         ),
@@ -556,6 +556,6 @@ class _PlaylistDetailsScreenState
         width: 48,
         height: 48,
         color: BkoTheme.goldAccent.withValues(alpha: 0.12),
-        child: const Icon(Icons.podcasts, color: BkoTheme.goldAccent),
+        child: Icon(Icons.podcasts, color: BkoTheme.getAccent(context)),
       );
 }

@@ -689,9 +689,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(
+                            Icon(
                               IconsaxPlusLinear.info_circle,
-                              color: BkoTheme.errorColor,
+                              color: BkoTheme.getError(context),
                               size: 18,
                             ),
                             const SizedBox(width: 10),
@@ -701,7 +701,7 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                                 style: BkoTheme.fontLato(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
-                                  color: BkoTheme.errorColor,
+                                  color: BkoTheme.getError(context),
                                 ),
                               ),
                             ),
@@ -723,9 +723,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               IconsaxPlusLinear.document_text,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                               size: 18,
                             ),
                             const SizedBox(width: 10),
@@ -769,7 +769,7 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                         child: Text(
                           'Aucune émission disponible. Créez d\'abord une émission.',
                           style: BkoTheme.fontLato(
-                              fontSize: 13, color: BkoTheme.goldAccent),
+                              fontSize: 13, color: BkoTheme.getAccent(context)),
                         ),
                       )
                     else
@@ -924,8 +924,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                         suffixIcon: _attachedAudioUrl != null &&
                                 _attachedAudioUrl ==
                                     _audioUrlController.text.trim()
-                            ? const Icon(IconsaxPlusBold.tick_circle,
-                                color: BkoTheme.successColor, size: 18)
+                            ? Icon(IconsaxPlusBold.tick_circle,
+                                color: BkoTheme.getSuccess(context), size: 18)
                             : null,
                       ),
                     ),
@@ -976,8 +976,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                                     (YoutubeUrlParser.normalizeWatchUrl(
                                             _videoUrlController.text.trim()) ??
                                         _videoUrlController.text.trim())
-                            ? const Icon(IconsaxPlusBold.tick_circle,
-                                color: BkoTheme.successColor, size: 18)
+                            ? Icon(IconsaxPlusBold.tick_circle,
+                                color: BkoTheme.getSuccess(context), size: 18)
                             : null,
                       ),
                     ),
@@ -997,9 +997,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   IconsaxPlusLinear.document_upload,
-                                  color: BkoTheme.goldAccent,
+                                  color: BkoTheme.getAccent(context),
                                   size: 16,
                                 ),
                                 const SizedBox(width: 8),
@@ -1042,8 +1042,8 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                                           MediaTransferStage.idle;
                                     });
                                   },
-                            icon: const Icon(IconsaxPlusLinear.close_circle,
-                                color: BkoTheme.errorColor, size: 18),
+                            icon: Icon(IconsaxPlusLinear.close_circle,
+                                color: BkoTheme.getError(context), size: 18),
                           ),
                         ],
                       ],
@@ -1122,9 +1122,9 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   IconsaxPlusLinear.gallery_export,
-                                  color: BkoTheme.goldAccent,
+                                  color: BkoTheme.getAccent(context),
                                   size: 18,
                                 ),
                                 const SizedBox(width: 6),
@@ -1339,7 +1339,7 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
         style: BkoTheme.fontLato(
           fontSize: 10,
           fontWeight: FontWeight.w800,
-          color: BkoTheme.goldAccent,
+          color: BkoTheme.getAccent(context),
         ),
       ),
     );
@@ -1425,7 +1425,7 @@ class _CreateEpisodeScreenState extends ConsumerState<CreateEpisodeScreen> {
                     style: BkoTheme.fontLato(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: BkoTheme.errorColor,
+                      color: BkoTheme.getError(context),
                     ),
                   ),
                 ),

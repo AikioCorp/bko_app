@@ -303,7 +303,7 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        color: const Color(0xFF141414),
+        color: BkoTheme.getBgSurfaceElevated(context),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -312,14 +312,14 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
             Container(
               width: 52,
               height: 52,
-              decoration: const BoxDecoration(
-                color: Color(0xFF222222),
+              decoration: BoxDecoration(
+                color: BkoTheme.getBgSurfaceElevated(context),
                 shape: BoxShape.circle,
               ),
-              child: const Center(
+              child: Center(
                 child: Icon(
                   IconsaxPlusLinear.video_slash,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                   size: 26,
                 ),
               ),
@@ -331,7 +331,7 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
               style: BkoTheme.fontLato(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: BkoTheme.getTextPrimary(context),
               ),
             ),
             const SizedBox(height: 6),
@@ -344,7 +344,7 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
               overflow: TextOverflow.ellipsis,
               style: BkoTheme.fontLato(
                 fontSize: 12.5,
-                color: const Color(0xFF9E9E9E),
+                color: BkoTheme.getTextSecondary(context),
                 height: 1.4,
               ),
             ),
@@ -362,22 +362,22 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF262626),
+                      color: BkoTheme.getBgSurfaceElevated(context),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF383838)),
+                      border: Border.all(color: BkoTheme.getBorderStrong(context)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(IconsaxPlusLinear.refresh_2,
-                            color: Colors.white, size: 16),
+                        Icon(IconsaxPlusLinear.refresh_2,
+                            color: BkoTheme.getTextPrimary(context), size: 16),
                         const SizedBox(width: 8),
                         Text(
                           'Réessayer',
                           style: BkoTheme.fontLato(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: BkoTheme.getTextPrimary(context),
                           ),
                         ),
                       ],
@@ -532,7 +532,7 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
                 imageUrl: widget.coverUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => Container(
-                  color: const Color(0xFF141414),
+                  color: BkoTheme.getBgSurfaceElevated(context),
                   child: const Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
@@ -541,19 +541,19 @@ class _BkoYoutubePlayerWidgetState extends State<BkoYoutubePlayerWidget>
                   ),
                 ),
                 errorWidget: (context, url, error) => Container(
-                  color: const Color(0xFF141414),
-                  child: const Icon(
+                  color: BkoTheme.getBgSurfaceElevated(context),
+                  child: Icon(
                     IconsaxPlusLinear.video,
-                    color: BkoTheme.goldAccent,
+                    color: BkoTheme.getAccent(context),
                     size: 48,
                   ),
                 ),
               )
             : Container(
-                color: const Color(0xFF141414),
-                child: const Icon(
+                color: BkoTheme.getBgSurfaceElevated(context),
+                child: Icon(
                   IconsaxPlusLinear.video,
-                  color: BkoTheme.goldAccent,
+                  color: BkoTheme.getAccent(context),
                   size: 48,
                 ),
               ),

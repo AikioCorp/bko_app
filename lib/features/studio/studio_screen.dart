@@ -106,8 +106,8 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(IconsaxPlusLinear.microphone_2,
-                    size: 56, color: BkoTheme.goldAccent),
+                Icon(IconsaxPlusLinear.microphone_2,
+                    size: 56, color: BkoTheme.getAccent(context)),
                 const SizedBox(height: 16),
                 Text(
                   'Rejoignez le Studio Bko',
@@ -254,7 +254,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                                         style: BkoTheme.fontLato(
                                           fontSize: 20,
                                           fontWeight: FontWeight.w800,
-                                          color: BkoTheme.goldAccent,
+                                          color: BkoTheme.getAccent(context),
                                         ),
                                       ),
                                     ),
@@ -273,7 +273,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                                       style: BkoTheme.fontLato(
                                         fontSize: 20,
                                         fontWeight: FontWeight.w800,
-                                        color: BkoTheme.goldAccent,
+                                        color: BkoTheme.getAccent(context),
                                       ),
                                     ),
                                   ),
@@ -512,7 +512,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
                               style: BkoTheme.fontLato(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
-                                color: BkoTheme.goldAccent,
+                                color: BkoTheme.getAccent(context),
                               ),
                             ),
                           ),
@@ -702,7 +702,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, size: 18, color: BkoTheme.goldAccent),
+          Icon(icon, size: 18, color: BkoTheme.getAccent(context)),
           const SizedBox(height: 6),
           Text(
             value,
@@ -784,7 +784,7 @@ class _StudioScreenState extends ConsumerState<StudioScreen> {
         width: 48,
         height: 48,
         color: BkoTheme.goldAccent.withValues(alpha: 0.15),
-        child: const Icon(IconsaxPlusLinear.radio,
-            color: BkoTheme.goldAccent, size: 22),
+        child: Icon(IconsaxPlusLinear.radio,
+            color: BkoTheme.getAccent(context), size: 22),
       );
 }

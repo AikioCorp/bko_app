@@ -123,7 +123,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BkoTheme.bgObsidian,
+      backgroundColor: BkoTheme.getBgObsidian(context),
       body: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -142,9 +142,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                         width: 96,
                         height: 96,
                         decoration: BoxDecoration(
-                          color: BkoTheme.bgSurface,
+                          color: BkoTheme.getBgSurface(context),
                           borderRadius: BorderRadius.circular(26),
-                          border: Border.all(color: BkoTheme.borderSubtle, width: 1),
+                          border: Border.all(color: BkoTheme.getBorderSubtle(context), width: 1),
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(25),
@@ -170,13 +170,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                     position: _textSlide,
                     child: Opacity(
                       opacity: _textOpacity.value,
-                      child: const Text(
+                      child: Text(
                         'BAMAKO PODCAST',
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 3.0,
-                          color: BkoTheme.textPrimary,
+                          color: BkoTheme.getTextPrimary(context),
                         ),
                       ),
                     ),
@@ -187,13 +187,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
                   // Subtitle with Fade
                   Opacity(
                     opacity: _subtextOpacity.value,
-                    child: const Text(
+                    child: Text(
                       'Écouter • Regarder • Découvrir',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         letterSpacing: 0.5,
-                        color: BkoTheme.textSecondary,
+                        color: BkoTheme.getTextSecondary(context),
                       ),
                     ),
                   ),

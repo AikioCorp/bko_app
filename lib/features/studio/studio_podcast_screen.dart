@@ -115,7 +115,7 @@ class _StudioPodcastScreenState extends ConsumerState<StudioPodcastScreen> {
                     style: BkoTheme.fontLato(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w800,
-                        color: BkoTheme.goldAccent),
+                        color: BkoTheme.getAccent(context)),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -173,8 +173,8 @@ class _StudioPodcastScreenState extends ConsumerState<StudioPodcastScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(IconsaxPlusLinear.routing,
-                              size: 16, color: BkoTheme.goldAccent),
+                          Icon(IconsaxPlusLinear.routing,
+                              size: 16, color: BkoTheme.getAccent(context)),
                           const SizedBox(width: 6),
                           Text(
                             'Flux RSS',
@@ -237,8 +237,8 @@ class _StudioPodcastScreenState extends ConsumerState<StudioPodcastScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(IconsaxPlusLinear.people,
-                        size: 16, color: BkoTheme.goldAccent),
+                    Icon(IconsaxPlusLinear.people,
+                        size: 16, color: BkoTheme.getAccent(context)),
                     const SizedBox(width: 6),
                     Text(
                       'Équipe & Collaborateurs',

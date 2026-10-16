@@ -445,21 +445,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: border),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               IconsaxPlusLinear.add_circle,
-                              color: BkoTheme.goldAccent,
+                              color: BkoTheme.getAccent(context),
                               size: 16,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(
                               'Créer',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: BkoTheme.goldAccent,
+                                color: BkoTheme.getAccent(context),
                               ),
                             ),
                           ],
@@ -583,10 +583,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     IconsaxPlusLinear.wifi_square,
                                     size: 48,
-                                    color: BkoTheme.goldAccent,
+                                    color: BkoTheme.getAccent(context),
                                   ),
                                   const SizedBox(height: 14),
                                   Text(
@@ -696,15 +696,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             ? CachedNetworkImage(
                                 imageUrl: cover,
                                 fit: BoxFit.cover,
-                                errorWidget: (_, __, ___) => const Icon(
+                                errorWidget: (_, __, ___) => Icon(
                                   IconsaxPlusLinear.music_playlist,
-                                  color: BkoTheme.goldAccent,
+                                  color: BkoTheme.getAccent(context),
                                   size: 22,
                                 ),
                               )
-                            : const Icon(
+                            : Icon(
                                 IconsaxPlusLinear.music_playlist,
-                                color: BkoTheme.goldAccent,
+                                color: BkoTheme.getAccent(context),
                                 size: 22,
                               ),
                       ),
@@ -1033,7 +1033,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: border),
               ),
-              child: Icon(icon, size: 32, color: BkoTheme.goldAccent),
+              child: Icon(icon, size: 32, color: BkoTheme.getAccent(context)),
             ),
           ),
           const SizedBox(height: 20),
@@ -1088,9 +1088,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         height: 52,
         color: BkoTheme.goldAccent.withValues(alpha: 0.12),
         alignment: Alignment.center,
-        child: const Icon(
+        child: Icon(
           IconsaxPlusLinear.microphone_2,
-          color: BkoTheme.goldAccent,
+          color: BkoTheme.getAccent(context),
           size: 22,
         ),
       );

@@ -219,7 +219,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 0.5,
-                                          color: BkoTheme.bgObsidian,
+                                          color: BkoTheme.onBrand,
                                         ),
                                       ),
                                     ),
@@ -269,7 +269,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w900,
                                         letterSpacing: 1.1,
-                                        color: BkoTheme.goldAccent,
+                                        color: BkoTheme.getAccent(context),
                                       ),
                                     ),
                                   ),
@@ -347,14 +347,14 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                                   height: 16,
                                                   child: CircularProgressIndicator(
                                                     strokeWidth: 2,
-                                                    valueColor: AlwaysStoppedAnimation<Color>(BkoTheme.bgObsidian),
+                                                    valueColor: AlwaysStoppedAnimation<Color>(BkoTheme.onBrand),
                                                   ),
                                                 )
                                               else
                                                 Icon(
                                                   isPlayingThis ? IconsaxPlusBold.pause : IconsaxPlusBold.play,
                                                   size: 16,
-                                                  color: BkoTheme.bgObsidian,
+                                                  color: BkoTheme.onBrand,
                                                 ),
                                               const SizedBox(width: 8),
                                               Text(
@@ -367,7 +367,7 @@ class _HeroBannerSliderState extends ConsumerState<HeroBannerSlider>
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w900,
                                                   letterSpacing: 0.5,
-                                                  color: BkoTheme.bgObsidian,
+                                                  color: BkoTheme.onBrand,
                                                 ),
                                               ),
                                             ],
