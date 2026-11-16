@@ -1,8 +1,5 @@
 
-import 'dart:io';
-
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 
 class ApiException implements Exception {
@@ -48,7 +45,7 @@ class BkoApi {
 
   static String _resolveDefaultBaseUrl() {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
-    return 'http://c0mq60vovgz6xkdvi8hkyejk.194.31.52.77.sslip.io/api/v1';
+    return 'https://api.bamakopodcast.studio/api/v1';
   }
 
   static String _baseUrl = _resolveDefaultBaseUrl();
@@ -65,23 +62,6 @@ class BkoApi {
         headers: const {'Accept': 'application/json'},
       ),
     );
-
-    if (!kIsWeb) {
-      dio.httpClientAdapter = IOHttpClientAdapter(
-        createHttpClient: () {
-          final client = HttpClient();
-          client.connectionFactory = (Uri uri, String? proxyHost, int? proxyPort) async {
-            // Contournement du blocage DNS mobile : si l'hôte est sur sslip.io ou pointe vers le VPS,
-            // connecte le socket directement à l'adresse IP 194.31.52.77 sans résolution DNS dépendante de l'opérateur.
-            if (uri.host.contains('sslip.io') || uri.host.contains('194.31.52.77')) {
-              return Socket.startConnect('194.31.52.77', uri.port);
-            }
-            return Socket.startConnect(uri.host, uri.port);
-          };
-          return client;
-        },
-      );
-    }
 
     return dio;
   }

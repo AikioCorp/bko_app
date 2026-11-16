@@ -1,4 +1,3 @@
-import 'dart:math' as math;
 import 'package:country_picker/country_picker.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
@@ -892,10 +891,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               child: TextButton(
                 onPressed: () {
                   final email = _loginIdentifier.text.trim();
-                  final pwd = _loginPassword.text;
-                  final testCode = (100000 + math.Random().nextInt(900000)).toString();
-                  final pwdParam = pwd.isNotEmpty ? '&pwd=${Uri.encodeQueryComponent(pwd)}' : '';
-                  context.push('/verify-otp?email=${Uri.encodeQueryComponent(email)}&code=$testCode$pwdParam');
+                  context.push('/verify-otp?email=${Uri.encodeQueryComponent(email)}');
                 },
                 style: TextButton.styleFrom(
                   foregroundColor: BkoTheme.goldAccent,

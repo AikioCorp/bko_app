@@ -190,12 +190,14 @@ class AliChatNotifier extends StateNotifier<AliChatState> {
     );
 
     try {
+      final auth = _ref.read(authProvider);
       final response = await BkoApi.post(
         'advisor/chat',
         {
           'sessionId': _sessionId ?? 'bko_mobile_user',
           'chatInput': cleanText,
         },
+        token: auth.token,
       );
 
       // BkoApi.post déballe déjà 'data', mais on gère les deux cas (déballé ou imbriqué)

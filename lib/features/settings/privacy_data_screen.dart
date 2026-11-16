@@ -216,7 +216,7 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
         await ref.read(authProvider.notifier).logout();
         if (mounted) {
           BkoHaptics.success();
-          context.go('/home');
+          context.go('/');
           BkoToast.showInfo(
             context,
             title: 'Compte supprimé',

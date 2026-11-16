@@ -3,10 +3,12 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:just_audio/just_audio.dart';
+import '../auth/auth_controller.dart';
 import '../player/bko_audio_handler.dart';
 import '../../core/network/bko_telemetry.dart';
 import '../downloads/download_manager.dart';
@@ -50,6 +52,19 @@ class QueueItem {
         'podcastSlug': podcastSlug,
         'slug': episodeSlug,
       };
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is QueueItem &&
+        other.episodeId == episodeId &&
+        other.title == title &&
+        other.audioUrl == audioUrl &&
+        other.videoUrl == videoUrl;
+  }
+
+  @override
+  int get hashCode => Object.hash(episodeId, title, audioUrl, videoUrl);
 }
 
 enum PlaybackStatus {
@@ -204,7 +219,10 @@ class ActiveEpisodeState {
         other.episodeSlug == episodeSlug &&
         other.playbackSpeed == playbackSpeed &&
         other.sleepTimerEndsAt == sleepTimerEndsAt &&
-        other.errorMessage == errorMessage;
+        listEquals(other.queue, queue) &&
+        other.errorMessage == errorMessage &&
+        other.videoSeekRequestId == videoSeekRequestId &&
+        other.videoSeekTarget == videoSeekTarget;
   }
 
   @override
@@ -216,6 +234,9 @@ class ActiveEpisodeState {
         currentPosition,
         totalDuration,
         mode,
+        Object.hashAll(queue),
+        videoSeekRequestId,
+        videoSeekTarget,
       );
 }
 
@@ -250,7 +271,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
           } else if (playerState.processingState == ProcessingState.completed) {
             newStatus = PlaybackStatus.completed;
             if (_telemetrySessionId != null && state.episodeId.isNotEmpty) {
-              BkoTelemetryService().trackListeningEvent(
+              _trackListeningEvent(
                 sessionId: _telemetrySessionId!,
                 episodeId: state.episodeId,
                 eventType: 'complete',
@@ -334,6 +355,31 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     );
   }
 
+  void _trackListeningEvent({
+    required String sessionId,
+    required String episodeId,
+    required String eventType,
+    required int positionSeconds,
+    int deltaSeconds = 0,
+    double playbackRate = 1.0,
+    String? recommendationId,
+    String? sectionId,
+  }) {
+    final auth = _ref?.read(authProvider);
+    BkoTelemetryService().trackListeningEvent(
+      sessionId: sessionId,
+      episodeId: episodeId,
+      eventType: eventType,
+      positionSeconds: positionSeconds,
+      deltaSeconds: deltaSeconds,
+      playbackRate: playbackRate,
+      recommendationId: recommendationId,
+      sectionId: sectionId,
+      token: auth?.token,
+      userId: auth?.user?['id']?.toString(),
+    );
+  }
+
   void _startHeartbeat(String epId, {String? recommendationId, String? sectionId}) {
     _heartbeatTimer?.cancel();
     _lastTickTime = DateTime.now();
@@ -359,7 +405,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
         // Le temps écouté réel est strictement borné par l'horloge murale ET le contenu / vitesse
         final wallClockDelta = min(wallClockSec, contentDelta / speed).round();
         if (wallClockDelta > 0) {
-          BkoTelemetryService().trackListeningEvent(
+          _trackListeningEvent(
             sessionId: _telemetrySessionId!,
             episodeId: epId,
             eventType: 'progress',
@@ -386,6 +432,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     bool? hasAudio,
     bool? hasVideo,
     String? initialMode,
+    Duration? initialPosition,
     String? episodeId,
     String? podcastSlug,
     String? episodeSlug,
@@ -426,17 +473,20 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
 
     final totalDur = _parseDuration(duration);
     final epId = episodeId ?? '';
+    final startPos = (initialPosition != null && initialPosition > Duration.zero)
+        ? initialPosition
+        : Duration.zero;
 
     // Initialiser une nouvelle session d'écoute pour la télémétrie
     _telemetrySessionId = BkoTelemetryService().generateSessionId();
-    _lastProgressSec = 0;
+    _lastProgressSec = startPos.inSeconds;
 
     if (epId.isNotEmpty) {
-      BkoTelemetryService().trackListeningEvent(
+      _trackListeningEvent(
         sessionId: _telemetrySessionId!,
         episodeId: epId,
         eventType: 'start',
-        positionSeconds: 0,
+        positionSeconds: startPos.inSeconds,
         playbackRate: state.playbackSpeed,
         recommendationId: recommendationId,
         sectionId: sectionId,
@@ -457,8 +507,8 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
       mode: targetMode,
       hasAudio: audioAvail,
       hasVideo: videoAvail,
-      progress: 0,
-      currentPosition: Duration.zero,
+      progress: _progress(startPos, totalDur),
+      currentPosition: startPos,
       totalDuration: totalDur,
       episodeId: epId,
       podcastSlug: podcastSlug ?? '',
@@ -467,6 +517,10 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
       sleepTimerEndsAt: state.sleepTimerEndsAt,
       queue: newQueue ?? state.queue,
       errorMessage: null,
+      videoSeekRequestId:
+          targetMode == 'VIDEO' && startPos > Duration.zero ? state.videoSeekRequestId + 1 : 0,
+      videoSeekTarget:
+          targetMode == 'VIDEO' && startPos > Duration.zero ? startPos : null,
     );
 
     if (targetMode == 'AUDIO') {
@@ -482,6 +536,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
             artUri: _validUri(coverUrl),
           ),
           source: audioSource!,
+          initialPosition: startPos,
         );
         if (state.playbackSpeed != 1.0) {
           await _audioHandler.setSpeed(state.playbackSpeed);
@@ -641,7 +696,9 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     );
 
     _sleepTimer = Timer(duration, () async {
-      await togglePlayPause();
+      if (state.isPlaying) {
+        await pause();
+      }
       state = state.copyWith(clearSleepTimer: true);
     });
   }
@@ -773,7 +830,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
       await _audioHandler.pause();
       _lastTickTime = null;
       if (_telemetrySessionId != null && state.episodeId.isNotEmpty) {
-        BkoTelemetryService().trackListeningEvent(
+        _trackListeningEvent(
           sessionId: _telemetrySessionId!,
           episodeId: state.episodeId,
           eventType: 'pause',
@@ -802,7 +859,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
         await _audioHandler.pause();
         _lastTickTime = null;
         if (_telemetrySessionId != null && state.episodeId.isNotEmpty) {
-          BkoTelemetryService().trackListeningEvent(
+          _trackListeningEvent(
             sessionId: _telemetrySessionId!,
             episodeId: state.episodeId,
             eventType: 'pause',
@@ -844,6 +901,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     bool? hasAudio,
     bool? hasVideo,
     String? initialMode,
+    Duration? initialPosition,
     String? podcastSlug,
     String? episodeSlug,
     List<QueueItem>? newQueue,
@@ -872,6 +930,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
           hasAudio: hasAudio ?? state.hasAudio,
           hasVideo: hasVideo ?? state.hasVideo,
           initialMode: initialMode ?? state.mode,
+          initialPosition: initialPosition,
           episodeId: episodeId,
           podcastSlug: podcastSlug ?? state.podcastSlug,
           episodeSlug: episodeSlug ?? state.episodeSlug,
@@ -899,6 +958,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
       hasAudio: hasAudio,
       hasVideo: hasVideo,
       initialMode: initialMode,
+      initialPosition: initialPosition,
       episodeId: episodeId,
       podcastSlug: podcastSlug,
       episodeSlug: episodeSlug,
@@ -918,7 +978,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     _lastProgressSec = bounded.inSeconds;
     _lastTickTime = state.isPlaying ? DateTime.now() : null;
     if (_telemetrySessionId != null && state.episodeId.isNotEmpty) {
-      BkoTelemetryService().trackListeningEvent(
+      _trackListeningEvent(
         sessionId: _telemetrySessionId!,
         episodeId: state.episodeId,
         eventType: 'seek',
@@ -943,7 +1003,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     _heartbeatTimer?.cancel();
     _lastTickTime = null;
     if (_telemetrySessionId != null && state.episodeId.isNotEmpty) {
-      BkoTelemetryService().trackListeningEvent(
+      _trackListeningEvent(
         sessionId: _telemetrySessionId!,
         episodeId: state.episodeId,
         eventType: 'pause',
@@ -1005,17 +1065,17 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
     int minutes = 0;
     int seconds = 0;
 
-    final hourMatch = RegExp(r'(\d+)\s*(?:h|heure|heures)', caseSensitive: false).firstMatch(str);
+    final hourMatch = RegExp(r'(\d+)\s*(?:h|heure|heures)\b', caseSensitive: false).firstMatch(str);
     if (hourMatch != null) {
       hours = int.tryParse(hourMatch.group(1)!) ?? 0;
     }
 
-    final minMatch = RegExp(r'(\d+)\s*(?:m|min|minute|minutes)', caseSensitive: false).firstMatch(str);
+    final minMatch = RegExp(r'(\d+)\s*(?:m|min|minute|minutes)\b', caseSensitive: false).firstMatch(str);
     if (minMatch != null) {
       minutes = int.tryParse(minMatch.group(1)!) ?? 0;
     }
 
-    final secMatch = RegExp(r'(\d+)\s*(?:s|sec|seconde|secondes)', caseSensitive: false).firstMatch(str);
+    final secMatch = RegExp(r'(\d+)\s*(?:s|sec|seconde|secondes)\b', caseSensitive: false).firstMatch(str);
     if (secMatch != null) {
       seconds = int.tryParse(secMatch.group(1)!) ?? 0;
     }
@@ -1037,6 +1097,7 @@ class ActiveEpisodeNotifier extends StateNotifier<ActiveEpisodeState> {
   @override
   void dispose() {
     _sleepTimer?.cancel();
+    _heartbeatTimer?.cancel();
     for (final subscription in _subscriptions) {
       subscription.cancel();
     }

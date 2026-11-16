@@ -346,14 +346,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _buildSectionHeader(context,
                 title: 'MES PLAYLISTS',
                 actionLabel: 'Gérer',
-                onAction: () => context.go('/library?tab=3')),
+                onAction: () => context.go('/library?tab=4')),
             if (_playlists.isEmpty)
               _emptySection(
                   context,
                   'Votre sélection, votre rythme',
                   'Rassemblez vos épisodes dans une playlist.',
                   'Créer une playlist',
-                  '/library?tab=3')
+                  '/library?tab=4')
             else
               ..._playlists.take(3).map((pl) => ListTile(
                     leading: const Icon(IconsaxPlusLinear.music_playlist),
@@ -366,7 +366,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             _buildSectionHeader(context,
                 title: 'RÉCEMMENT ÉCOUTÉS',
                 actionLabel: 'Historique',
-                onAction: () => context.go('/library?tab=2')),
+                onAction: () => context.go('/library?tab=3')),
             if (_history.isEmpty)
               _emptySection(
                   context,
@@ -412,7 +412,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 context,
                 title: 'MES ÉMISSIONS SUIVIES',
                 actionLabel: 'Tout voir',
-                onAction: () => context.go('/library?tab=1'),
+                onAction: () => context.go('/library?tab=2'),
               ),
               const SizedBox(height: 12),
               _buildFollowedPodcastsScroll(context, _followedPodcasts),
@@ -571,7 +571,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Suivis',
             count: followingCount,
             icon: IconsaxPlusLinear.heart,
-            onTap: () => context.go('/library?tab=1'),
+            onTap: () => context.go('/library?tab=2'),
           ),
         ),
         const SizedBox(width: 10),
@@ -581,7 +581,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Playlists',
             count: playlistsCount,
             icon: IconsaxPlusLinear.music_playlist,
-            onTap: () => context.go('/library?tab=3'),
+            onTap: () => context.go('/library?tab=4'),
           ),
         ),
         const SizedBox(width: 10),
