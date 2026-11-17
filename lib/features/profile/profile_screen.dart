@@ -779,6 +779,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         videoUrl: videoUrl,
                         hasAudio: audioUrl != null && audioUrl.isNotEmpty,
                         hasVideo: videoUrl != null && videoUrl.isNotEmpty,
+                        initialPosition: pos > 0 ? Duration(seconds: pos) : null,
                         episodeId: episodeId,
                         podcastSlug: podcastSlug,
                         episodeSlug: episodeSlug,

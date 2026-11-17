@@ -159,20 +159,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           videoUrl: videoUrl,
           hasAudio: hasAudio,
           hasVideo: hasVideo,
+          initialPosition: (resumePositionSeconds != null && resumePositionSeconds > 0)
+              ? Duration(seconds: resumePositionSeconds)
+              : null,
           episodeId: episodeId,
           podcastSlug: '${podcast?['slug'] ?? ''}',
           episodeSlug: '${ep['slug'] ?? ''}',
         );
-
-    if (resumePositionSeconds != null && resumePositionSeconds > 0) {
-      final active = ref.read(activeEpisodeProvider);
-      if (active.episodeId == episodeId &&
-          active.currentPosition == Duration.zero) {
-        ref
-            .read(activeEpisodeProvider.notifier)
-            .seek(Duration(seconds: resumePositionSeconds));
-      }
-    }
   }
 
   Future<void> _createPlaylistDialog() async {
