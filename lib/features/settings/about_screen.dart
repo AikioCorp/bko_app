@@ -163,6 +163,13 @@ class AboutScreen extends StatelessWidget {
                 Divider(height: 1, thickness: 1, color: BkoTheme.getBorderSubtle(context)),
                 _buildLinkTile(
                   context: context,
+                  title: 'Suppression de compte & données',
+                  icon: IconsaxPlusLinear.user_remove,
+                  onTap: () => _launchUrl('https://bamakopodcast.studio/data-deletion'),
+                ),
+                Divider(height: 1, thickness: 1, color: BkoTheme.getBorderSubtle(context)),
+                _buildLinkTile(
+                  context: context,
                   title: 'Licences Open-Source',
                   icon: IconsaxPlusLinear.code_circle,
                   onTap: () {

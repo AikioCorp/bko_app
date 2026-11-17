@@ -165,7 +165,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
     Navigator.pop(context);
     // ignore: deprecated_member_use
     await Share.share(
-      'https://bamakopodcast.com/podcasts/$podcastSlug/episodes/$episodeSlug',
+      'https://bamakopodcast.studio/podcasts/$podcastSlug/episodes/$episodeSlug',
     );
   }
 
@@ -209,7 +209,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
         onAction: () async {
           try {
             await BkoApi.delete(
-              '/recommendations/feedback',
+              '/recommendations/feedback?targetType=EPISODE&targetId=${Uri.encodeQueryComponent(episodeId)}',
               token: auth.token,
             );
           } catch (_) {}
@@ -248,7 +248,7 @@ class _EpisodeActionsSheetState extends ConsumerState<EpisodeActionsSheet> {
         onAction: () async {
           try {
             await BkoApi.delete(
-              '/recommendations/feedback',
+              '/recommendations/feedback?targetType=PODCAST&targetId=${Uri.encodeQueryComponent(podcastId)}',
               token: auth.token,
             );
           } catch (_) {}

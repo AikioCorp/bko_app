@@ -532,7 +532,7 @@ class DownloadNotifier extends StateNotifier<List<DownloadTask>> {
     ref.read(activeEpisodeProvider.notifier).handlePlayOrPause(
           title: task.title,
           showName: task.podcastName,
-          duration: task.formattedSize,
+          duration: '',
           coverUrl: task.coverUrl,
           audioUrl: task.localPath,
           videoUrl: null,

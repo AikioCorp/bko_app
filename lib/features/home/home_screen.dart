@@ -109,7 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return [];
   }
 
-  void _triggerPlayEpisode(Map<String, dynamic> ep, {Map<String, dynamic>? attribution}) {
+  void _triggerPlayEpisode(Map<String, dynamic> ep, {Map<String, dynamic>? attribution, int? resumePositionSeconds}) {
     final title = ep['title'] ?? 'Épisode';
     final podcastName = ep['podcast']?['name']?.toString() ?? ep['showName']?.toString() ?? '';
     final durationSeconds = ep['durationSeconds'] ?? 1800;
@@ -148,6 +148,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           videoUrl: videoUrl,
           hasAudio: hasAudioTrack,
           hasVideo: videoUrl != null,
+          initialPosition: (resumePositionSeconds != null && resumePositionSeconds > 0)
+              ? Duration(seconds: resumePositionSeconds)
+              : null,
           episodeId: episodeId,
           podcastSlug: '${ep['podcast']?['slug'] ?? ''}',
           episodeSlug: '${ep['slug'] ?? ''}',
@@ -769,6 +772,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 onTap: () => _triggerPlayEpisode(
                                   ep,
                                   attribution: item['attribution'] is Map ? Map<String, dynamic>.from(item['attribution']) : null,
+                                  resumePositionSeconds: pos,
                                 ),
                                 child: Container(
                                   width: 260,

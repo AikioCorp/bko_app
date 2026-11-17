@@ -183,7 +183,7 @@ class _EpisodeDetailsScreenState extends ConsumerState<EpisodeDetailsScreen> {
     final podcastSlug = _podcast?['slug'] ?? widget.podcastSlug;
     // ignore: deprecated_member_use
     await Share.share(
-      'https://bamakopodcast.com/podcasts/$podcastSlug/episodes/$episodeSlug',
+      'https://bamakopodcast.studio/podcasts/$podcastSlug/episodes/$episodeSlug',
     );
   }
 

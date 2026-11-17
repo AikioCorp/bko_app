@@ -233,18 +233,6 @@ class _NotificationPreferencesScreenState
                     setState(() => _editorialHighlights = val);
                     _savePreferences();
                   },
-                ),
-                Divider(height: 1, thickness: 1, color: BkoTheme.getBorderSubtle(context)),
-                _buildSwitchTile(
-                  context: context,
-                  title: 'Actualités & Communications du service',
-                  subtitle: 'Nouveautés de la plateforme, mises à jour et événements au Mali.',
-                  icon: IconsaxPlusLinear.info_circle,
-                  value: _editorialHighlights,
-                  onChanged: (val) {
-                    setState(() => _editorialHighlights = val);
-                    _savePreferences();
-                  },
                   isLast: true,
                 ),
               ],
