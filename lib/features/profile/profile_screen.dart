@@ -10,6 +10,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
+import '../discovery/suggest_show_sheet.dart';
 import '../downloads/download_manager.dart';
 import '../home/widgets/bko_drawer.dart';
 import '../library/library_screen.dart';
@@ -1094,6 +1095,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          _buildFooterButton(
+            context,
+            title: 'Tarifs & Réserver le Studio',
+            icon: IconsaxPlusLinear.microphone_2,
+            onTap: () => context.push('/studio-tarifs'),
+          ),
+          const SizedBox(height: 12),
+          _buildFooterButton(
+            context,
+            title: 'Proposer une émission',
+            icon: IconsaxPlusLinear.radio,
+            onTap: () => showSuggestShowSheet(context),
           ),
           const SizedBox(height: 12),
           _buildFooterButton(
