@@ -4,6 +4,7 @@ import '../../features/studio/studio_podcast_screen.dart';
 import '../../features/studio/studio_access_gate.dart';
 import '../../features/studio/claim_podcast_screen.dart';
 import '../../features/studio/studio_tarifs_screen.dart';
+import '../../features/admin/admin_users_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
@@ -113,6 +114,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/studio-tarifs',
       builder: (context, state) => const StudioTarifsScreen(),
+    ),
+    GoRoute(
+      path: '/admin/users',
+      builder: (context, state) => const AdminUsersScreen(),
     ),
 
     // Stateful branch navigation preserving tabs, scroll positions & input states

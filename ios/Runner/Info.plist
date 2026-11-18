@@ -66,7 +66,7 @@
 		<true/>
 	</dict>
 	<key>GIDClientID</key>
-	<string>336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com</string>
+	<string>336909810836-mptue6hd4k11mmi2iue5q7nlomnq4aa1.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -77,7 +77,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>bko</string>
-				<string>com.googleusercontent.apps.336909810836-pqrofnv72svi1te1uak9beimdbe1r3st</string>
+				<string>com.googleusercontent.apps.336909810836-mptue6hd4k11mmi2iue5q7nlomnq4aa1</string>
 			</array>
 		</dict>
 	</array>

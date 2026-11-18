@@ -21,7 +21,7 @@ const String _kGoogleWebClientId = String.fromEnvironment(
 );
 const String _kGoogleIosClientId = String.fromEnvironment(
   'BKO_GOOGLE_IOS_CLIENT_ID',
-  defaultValue: '336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com',
+  defaultValue: '336909810836-mptue6hd4k11mmi2iue5q7nlomnq4aa1.apps.googleusercontent.com',
 );
 
 /// État d'authentification.

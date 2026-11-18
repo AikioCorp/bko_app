@@ -10,6 +10,7 @@ import '../../core/theme/bko_theme.dart';
 import '../../core/widgets/bko_bounceable.dart';
 import '../../core/widgets/bko_haptics.dart';
 import '../auth/auth_controller.dart';
+import '../admin/admin_users_screen.dart';
 import '../discovery/suggest_show_sheet.dart';
 import '../downloads/download_manager.dart';
 import '../home/widgets/bko_drawer.dart';
@@ -1116,6 +1117,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             title: 'Préférences & réglages de l\'application',
             icon: IconsaxPlusLinear.setting_2,
             onTap: () => context.push('/settings/playback'),
+          ),
+          Builder(
+            builder: (context) {
+              final access = ref.watch(adminAccessProvider).value;
+              final canManageAccounts = hasAdminPermission(access, 'users.view') ||
+                  hasAdminPermission(access, 'users.create') ||
+                  hasAdminPermission(access, 'users.edit');
+              if (!canManageAccounts) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: _buildFooterButton(
+                  context,
+                  title: 'Gestion des comptes (Équipe)',
+                  icon: IconsaxPlusLinear.user_edit,
+                  accentColor: Theme.of(context).colorScheme.primary,
+                  onTap: () => context.push('/admin/users'),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           _buildFooterButton(

@@ -111,6 +111,13 @@ class BkoApi {
   }) =>
       _request('PATCH', path, body: body, token: token);
 
+  static Future<dynamic> put(
+    String path,
+    Map<String, dynamic> body, {
+    String? token,
+  }) =>
+      _request('PUT', path, body: body, token: token);
+
   static Future<dynamic> delete(
     String path, {
     Map<String, dynamic>? body,
