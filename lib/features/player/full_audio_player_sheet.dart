@@ -37,6 +37,7 @@ class FullAudioPlayerSheet extends ConsumerStatefulWidget {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
+        constraints: const BoxConstraints(maxWidth: 600),
         backgroundColor: Colors.transparent,
         barrierColor: isDark ? Colors.black54 : const Color(0x33000000),
         builder: (_) => const FullAudioPlayerSheet(),
@@ -577,30 +578,39 @@ class _FullAudioPlayerSheetState extends ConsumerState<FullAudioPlayerSheet> {
                       },
                     )
                   else
-                    Container(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.width * 0.76,
-                        maxWidth: MediaQuery.of(context).size.width * 0.76,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: borderSub, width: 1.5),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: AspectRatio(
-                          aspectRatio: 1,
-                          child: active.coverUrl.isNotEmpty &&
-                                  active.coverUrl.startsWith('http')
-                              ? CachedNetworkImage(
-                                  imageUrl: active.coverUrl,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) =>
-                                      _fallbackCover(bgElevated),
-                                )
-                              : _fallbackCover(bgElevated),
-                        ),
-                      ),
+                    Builder(
+                      builder: (context) {
+                        final mediaSize = MediaQuery.sizeOf(context);
+                        final maxByHeight =
+                            (mediaSize.height * 0.38).clamp(180.0, 320.0);
+                        final coverDim =
+                            (mediaSize.width * 0.72).clamp(180.0, maxByHeight);
+                        return Container(
+                          constraints: BoxConstraints(
+                            maxHeight: coverDim,
+                            maxWidth: coverDim,
+                          ),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(color: borderSub, width: 1.5),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: AspectRatio(
+                              aspectRatio: 1,
+                              child: active.coverUrl.isNotEmpty &&
+                                      active.coverUrl.startsWith('http')
+                                  ? CachedNetworkImage(
+                                      imageUrl: active.coverUrl,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) =>
+                                          _fallbackCover(bgElevated),
+                                    )
+                                  : _fallbackCover(bgElevated),
+                            ),
+                          ),
+                        );
+                      },
                     ),
 
                   const SizedBox(height: 24),

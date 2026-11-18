@@ -388,8 +388,8 @@ class _SectionDiscoveryScreenState
                                           },
                                           childCount: filteredItems.length,
                                         ),
-                                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: 2,
+                                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                                          maxCrossAxisExtent: 220,
                                           crossAxisSpacing: 16,
                                           mainAxisSpacing: 16,
                                           childAspectRatio: 0.68,
@@ -826,8 +826,8 @@ class _SectionDiscoveryScreenState
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 220,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.68,

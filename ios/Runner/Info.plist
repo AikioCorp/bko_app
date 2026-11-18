@@ -59,14 +59,25 @@
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+		<key>NSAllowsArbitraryLoadsForMedia</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>GIDClientID</key>
+	<string>336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>studio.bamakopodcast.app</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>bko</string>
+				<string>com.googleusercontent.apps.336909810836-pqrofnv72svi1te1uak9beimdbe1r3st</string>
 			</array>
 		</dict>
 	</array>

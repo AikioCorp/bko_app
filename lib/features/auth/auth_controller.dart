@@ -1,5 +1,12 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../core/network/bko_api.dart';
 import '../../core/network/bko_telemetry.dart';
 import '../../core/storage/token_storage.dart';
@@ -7,6 +14,15 @@ import '../../core/routing/app_router.dart';
 import '../shell/shell_providers.dart';
 import '../downloads/download_manager.dart';
 import '../../core/services/push_notification_service.dart';
+
+const String _kGoogleWebClientId = String.fromEnvironment(
+  'BKO_GOOGLE_WEB_CLIENT_ID',
+  defaultValue: '336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com',
+);
+const String _kGoogleIosClientId = String.fromEnvironment(
+  'BKO_GOOGLE_IOS_CLIENT_ID',
+  defaultValue: '336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com',
+);
 
 /// État d'authentification.
 ///
@@ -49,6 +65,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
   static bool _isSuspensionHandled = false;
   static Map<String, dynamic>? lastSuspendedDetails;
   static String? supportToken;
+
+  String get _platformDeviceType {
+    if (kIsWeb) return 'WEB';
+    if (Platform.isIOS) return 'IOS';
+    if (Platform.isAndroid) return 'ANDROID';
+    return 'MOBILE';
+  }
+
+  String get _platformDeviceName {
+    if (kIsWeb) return 'Navigateur Web';
+    if (Platform.isIOS) return 'Application iOS (iPhone)';
+    if (Platform.isAndroid) return 'Application Android';
+    return 'Application Mobile';
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
 
   static void resetSuspensionHandled() {
     _isSuspensionHandled = false;
@@ -173,8 +219,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = await BkoApi.post('/auth/login', {
         'identifier': identifier,
         'password': password,
-        'deviceType': 'MOBILE',
-        'deviceName': 'Application Flutter',
+        'deviceType': _platformDeviceType,
+        'deviceName': _platformDeviceName,
       });
       if (data is! Map) {
         const err = 'Réponse de connexion invalide du serveur.';
@@ -294,8 +340,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = await BkoApi.post('/auth/verify-otp', {
         'email': email,
         'otpCode': otpCode.trim(),
-        'deviceType': 'MOBILE',
-        'deviceName': 'Application Flutter',
+        'deviceType': _platformDeviceType,
+        'deviceName': _platformDeviceName,
       });
 
       if (data is Map) {
@@ -378,8 +424,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final data = await BkoApi.post('/auth/otp-login/verify', {
         'identifier': identifier.trim(),
         'otpCode': otpCode.trim(),
-        'deviceType': 'MOBILE',
-        'deviceName': 'Application Flutter',
+        'deviceType': _platformDeviceType,
+        'deviceName': _platformDeviceName,
       });
 
       if (data is Map) {
@@ -450,8 +496,53 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  void _restoreIdleState() {
+    state = AuthState(
+      isAuthenticated: state.isAuthenticated,
+      token: state.token,
+      refreshToken: state.refreshToken,
+      user: state.user,
+      isLoading: false,
+    );
+  }
+
+  Future<({bool ok, String? error, bool onboardingCompleted})> _finalizeSocialAuthResponse(
+    dynamic data, {
+    required String fallbackError,
+  }) async {
+    if (data is Map) {
+      final token = data['accessToken'] as String?;
+      final refreshToken = data['refreshToken'] as String?;
+      final user = data['user'] is Map
+          ? Map<String, dynamic>.from(data['user'] as Map)
+          : null;
+
+      if (token == null || token.isEmpty || user == null || user['id'] == null) {
+        state = const AuthState(isAuthenticated: false, error: 'Réponse serveur invalide');
+        return (ok: false, error: 'Réponse serveur invalide', onboardingCompleted: false);
+      }
+
+      await TokenStorage.save(token, user, refreshToken: refreshToken);
+      await BkoTelemetryService().onUserSwitched(user['id']?.toString());
+      state = AuthState(
+        isAuthenticated: true,
+        token: token,
+        refreshToken: refreshToken,
+        user: user,
+      );
+      PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
+
+      final onboardingDone = user['onboardingCompleted'] == true;
+      return (ok: true, error: null, onboardingCompleted: onboardingDone);
+    }
+
+    state = AuthState(isAuthenticated: false, error: fallbackError);
+    return (ok: false, error: fallbackError, onboardingCompleted: false);
+  }
+
   Future<({bool ok, String? error, bool onboardingCompleted})> loginWithGoogle() async {
     state = AuthState(
+      isAuthenticated: state.isAuthenticated,
       isLoading: true,
       token: state.token,
       refreshToken: state.refreshToken,
@@ -460,57 +551,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final googleSignIn = GoogleSignIn.instance;
       await googleSignIn.initialize(
-        serverClientId: '336909810836-pqrofnv72svi1te1uak9beimdbe1r3st.apps.googleusercontent.com',
+        clientId: (!kIsWeb && Platform.isIOS) ? _kGoogleIosClientId : null,
+        serverClientId: _kGoogleWebClientId,
       );
 
       final GoogleSignInAccount account = await googleSignIn.authenticate();
       final String? idToken = account.authentication.idToken;
 
       if (idToken == null || idToken.isEmpty) {
-        state = AuthState(
-          isAuthenticated: state.isAuthenticated,
-          token: state.token,
-          refreshToken: state.refreshToken,
-          user: state.user,
-          isLoading: false,
-        );
+        _restoreIdleState();
         return (ok: false, error: 'Jeton Google introuvable', onboardingCompleted: false);
       }
 
       final data = await BkoApi.post('/auth/google', {
         'idToken': idToken,
-        'deviceType': 'ANDROID',
-        'deviceName': 'Application Android',
+        'deviceType': _platformDeviceType,
+        'deviceName': _platformDeviceName,
       });
 
-      if (data is Map) {
-        final token = data['accessToken'] as String?;
-        final refreshToken = data['refreshToken'] as String?;
-        final user = data['user'] is Map
-            ? Map<String, dynamic>.from(data['user'] as Map)
-            : null;
-
-        if (token == null || token.isEmpty || user == null || user['id'] == null) {
-          state = const AuthState(isAuthenticated: false, error: 'Réponse serveur invalide');
-          return (ok: false, error: 'Réponse serveur invalide', onboardingCompleted: false);
-        }
-
-        await TokenStorage.save(token, user, refreshToken: refreshToken);
-        await BkoTelemetryService().onUserSwitched(user['id']?.toString());
-        state = AuthState(
-          isAuthenticated: true,
-          token: token,
-          refreshToken: refreshToken,
-          user: user,
-        );
-        PushNotificationService.instance.syncTokenWithBackend(null, authToken: token);
-
-        final onboardingDone = user['onboardingCompleted'] == true;
-        return (ok: true, error: null, onboardingCompleted: onboardingDone);
-      }
-
-      state = const AuthState(isAuthenticated: false, error: 'Échec de connexion Google');
-      return (ok: false, error: 'Échec de connexion Google', onboardingCompleted: false);
+      return _finalizeSocialAuthResponse(
+        data,
+        fallbackError: 'Échec de connexion Google',
+      );
     } on AccountSuspendedException catch (error) {
       await handleAccountSuspended(error);
       return (ok: false, error: error.message, onboardingCompleted: false);
@@ -520,6 +582,72 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = const AuthState(isAuthenticated: false, error: 'Erreur lors de la connexion Google');
       return (ok: false, error: 'Erreur lors de la connexion Google : $e', onboardingCompleted: false);
+    }
+  }
+
+  Future<({bool ok, String? error, bool onboardingCompleted})> loginWithApple() async {
+    state = AuthState(
+      isAuthenticated: state.isAuthenticated,
+      isLoading: true,
+      token: state.token,
+      refreshToken: state.refreshToken,
+      user: state.user,
+    );
+    try {
+      final rawNonce = _generateNonce();
+      final sha256Nonce = _sha256ofString(rawNonce);
+
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: sha256Nonce,
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        _restoreIdleState();
+        return (ok: false, error: 'Jeton Apple introuvable', onboardingCompleted: false);
+      }
+
+      final nameParts = [
+        credential.givenName?.trim(),
+        credential.familyName?.trim(),
+      ].whereType<String>().where((part) => part.isNotEmpty).toList();
+      final fullName = nameParts.isEmpty ? null : nameParts.join(' ');
+
+      final data = await BkoApi.post('/auth/apple', {
+        'identityToken': identityToken,
+        if (credential.authorizationCode.isNotEmpty)
+          'authorizationCode': credential.authorizationCode,
+        if (credential.email != null && credential.email!.trim().isNotEmpty)
+          'email': credential.email!.trim(),
+        if (fullName != null) 'fullName': fullName,
+        'deviceType': _platformDeviceType,
+        'deviceName': _platformDeviceName,
+      });
+
+      return _finalizeSocialAuthResponse(
+        data,
+        fallbackError: 'Échec de connexion Apple',
+      );
+    } on SignInWithAppleAuthorizationException catch (error) {
+      if (error.code == AuthorizationErrorCode.canceled) {
+        _restoreIdleState();
+        return (ok: false, error: null, onboardingCompleted: false);
+      }
+      state = AuthState(isAuthenticated: false, error: error.message);
+      return (ok: false, error: error.message, onboardingCompleted: false);
+    } on AccountSuspendedException catch (error) {
+      await handleAccountSuspended(error);
+      return (ok: false, error: error.message, onboardingCompleted: false);
+    } on ApiException catch (error) {
+      state = AuthState(isAuthenticated: false, error: error.message);
+      return (ok: false, error: error.message, onboardingCompleted: false);
+    } catch (e) {
+      state = const AuthState(isAuthenticated: false, error: 'Erreur lors de la connexion Apple');
+      return (ok: false, error: 'Erreur lors de la connexion Apple : $e', onboardingCompleted: false);
     }
   }
 

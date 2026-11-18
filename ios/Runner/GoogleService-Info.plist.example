@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  MODÈLE POUR FIREBASE iOS (Push Notifications APNs & Google Sign-In)
+  1. Ouvrez votre projet dans https://console.firebase.google.com
+  2. Ajoutez une application iOS avec le Bundle ID exact : studio.bamakopodcast.app
+  3. Téléchargez le fichier GoogleService-Info.plist généré par Firebase
+  4. Placez-le exactement à l'emplacement : Bko_app/ios/Runner/GoogleService-Info.plist
+  5. Dans Firebase Console > Project Settings > Cloud Messaging > Apple app configuration,
+     uploadez votre clé APNs (.p8) générée depuis https://developer.apple.com
+-->
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>REMPLACER_PAR_IOS_CLIENT_ID.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.REMPLACER_PAR_IOS_CLIENT_ID</string>
+	<key>API_KEY</key>
+	<string>REMPLACER_PAR_API_KEY_FIREBASE</string>
+	<key>GCM_SENDER_ID</key>
+	<string>336909810836</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>studio.bamakopodcast.app</string>
+	<key>PROJECT_ID</key>
+	<string>REMPLACER_PAR_PROJECT_ID</string>
+	<key>STORAGE_BUCKET</key>
+	<string>REMPLACER_PAR_PROJECT_ID.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:336909810836:ios:REMPLACER_PAR_APP_ID</string>
+</dict>
+</plist>

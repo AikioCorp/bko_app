@@ -1,4 +1,5 @@
 import 'package:country_picker/country_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import 'package:flutter/material.dart';
@@ -502,20 +503,33 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-  Future<void> _handleGoogleLogin() async {
+  Future<void> _handleSocialLogin(
+    Future<({bool ok, String? error, bool onboardingCompleted})> Function() runner,
+  ) async {
     FocusScope.of(context).unfocus();
-    setState(() { _localError = null; _isSubmitting = true; });
+    setState(() {
+      _localError = null;
+      _isSubmitting = true;
+    });
 
-    final res = await ref.read(authProvider.notifier).loginWithGoogle();
+    final res = await runner();
     if (!mounted) return;
     setState(() => _isSubmitting = false);
 
     if (res.ok) {
+      BkoHaptics.success();
       _navigatePostLogin(isNewUser: !res.onboardingCompleted);
     } else if (res.error != null) {
+      BkoHaptics.error();
       setState(() => _localError = res.error);
     }
   }
+
+  Future<void> _handleGoogleLogin() =>
+      _handleSocialLogin(() => ref.read(authProvider.notifier).loginWithGoogle());
+
+  Future<void> _handleAppleLogin() =>
+      _handleSocialLogin(() => ref.read(authProvider.notifier).loginWithApple());
 
   Future<void> _handleRegister() async {
     FocusScope.of(context).unfocus();
@@ -1343,8 +1357,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
           const SizedBox(height: 16),
 
-          // Bouton Google
-          _buildGoogleButton(),
+          // Boutons sociaux (Apple en premier sur iOS conformément à la règle 4.8)
+          _buildSocialAuthButtons(),
         ],
       ),
     );
@@ -1644,9 +1658,59 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
           const SizedBox(height: 16),
 
-          // Bouton Google
-          _buildGoogleButton(),
+          // Boutons sociaux (Apple en premier sur iOS conformément à la règle 4.8)
+          _buildSocialAuthButtons(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSocialAuthButtons() {
+    final isIos = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    if (!isIos) {
+      return _buildGoogleButton();
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildAppleButton(),
+        const SizedBox(height: 12),
+        _buildGoogleButton(),
+      ],
+    );
+  }
+
+  Widget _buildAppleButton() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? Colors.white : const Color(0xFF0B0B0B);
+    final fgColor = isDark ? const Color(0xFF0B0B0B) : Colors.white;
+
+    return SizedBox(
+      height: 52,
+      child: ElevatedButton(
+        onPressed: _isSubmitting ? null : _handleAppleLogin,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: bgColor,
+          foregroundColor: fgColor,
+          disabledBackgroundColor: bgColor.withValues(alpha: 0.55),
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.apple_rounded, size: 24, color: fgColor),
+            const SizedBox(width: 10),
+            Text(
+              'Continuer avec Apple',
+              style: BkoTheme.fontPoppins(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w600,
+                color: fgColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

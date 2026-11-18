@@ -29,6 +29,8 @@ dependencies:
   phone_numbers_parser: ^9.0.28
   image_picker: ^1.2.4
   google_sign_in: ^7.2.0
+  sign_in_with_apple: ^6.1.2
+  crypto: ^3.0.3
   firebase_core: ^4.15.0
   firebase_messaging: ^16.7.0
   video_player: ^2.14.1
@@ -53,3 +55,4 @@ flutter:
     - assets/images/
     - assets/brand/
     - assets/fonts/
+    - shorebird.yaml

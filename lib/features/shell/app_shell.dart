@@ -154,43 +154,50 @@ class _AppShellState extends ConsumerState<AppShell>
           12,
           bottomPadding > 0 ? bottomPadding + 6 : 14,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // -----------------------------------------------------------------
-            // 1. MINI-PLAYER CAPSULE (TOP OR CENTERED)
-            // -----------------------------------------------------------------
-            AnimatedCrossFade(
-              duration: animDuration,
-              firstCurve: appleEase,
-              secondCurve: appleEase,
-              crossFadeState: hasLecture
-                  ? CrossFadeState.showFirst
-                  : CrossFadeState.showSecond,
-              firstChild: Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: isMorphed3Pills
-                    ? _buildCompactMorphed3PillBar(context)
-                    : const BkoMiniPlayer(),
-              ),
-              secondChild: const SizedBox.shrink(),
-            ),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          heightFactor: 1.0,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // -----------------------------------------------------------------
+                // 1. MINI-PLAYER CAPSULE (TOP OR CENTERED)
+                // -----------------------------------------------------------------
+                AnimatedCrossFade(
+                  duration: animDuration,
+                  firstCurve: appleEase,
+                  secondCurve: appleEase,
+                  crossFadeState: hasLecture
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: isMorphed3Pills
+                        ? _buildCompactMorphed3PillBar(context)
+                        : const BkoMiniPlayer(),
+                  ),
+                  secondChild: const SizedBox.shrink(),
+                ),
 
-            // -----------------------------------------------------------------
-            // 2. BOTTOM NAVIGATION CAPSULE (SLIDES DOWN & SCALES IN MORPH MODE)
-            // -----------------------------------------------------------------
-            AnimatedCrossFade(
-              duration: animDuration,
-              firstCurve: appleEase,
-              secondCurve: appleEase,
-              crossFadeState: isMorphed3Pills
-                  ? CrossFadeState.showSecond
-                  : CrossFadeState.showFirst,
-              firstChild: _buildAppleFullBottomNav(
-                  context, selectedIndex, glassBg, glassBorder),
-              secondChild: const SizedBox.shrink(),
+                // -----------------------------------------------------------------
+                // 2. BOTTOM NAVIGATION CAPSULE (SLIDES DOWN & SCALES IN MORPH MODE)
+                // -----------------------------------------------------------------
+                AnimatedCrossFade(
+                  duration: animDuration,
+                  firstCurve: appleEase,
+                  secondCurve: appleEase,
+                  crossFadeState: isMorphed3Pills
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  firstChild: _buildAppleFullBottomNav(
+                      context, selectedIndex, glassBg, glassBorder),
+                  secondChild: const SizedBox.shrink(),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

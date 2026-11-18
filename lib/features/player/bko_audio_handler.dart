@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
@@ -109,11 +110,15 @@ class BkoAudioHandler extends BaseAudioHandler with SeekHandler {
         debugPrint('[BkoAudioHandler] AudioSession setActive warning: $e');
       }
 
+      final userAgent = (!kIsWeb && Platform.isIOS)
+          ? 'BamakoPodcast/1.0 (iOS; iPhone)'
+          : 'BamakoPodcast/1.0 (Android; Mobile)';
+
       final resolvedDuration = await _player.setAudioSource(
         AudioSource.uri(
           source,
-          headers: const {
-            'User-Agent': 'BamakoPodcast/1.0 (Android; Mobile)',
+          headers: {
+            'User-Agent': userAgent,
             'Accept': '*/*',
           },
         ),

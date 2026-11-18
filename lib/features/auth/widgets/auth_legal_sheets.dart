@@ -26,7 +26,7 @@ class AuthLegalSheets {
         _Section(
           title: 'Support technique',
           body:
-              'Besoin d\'aide ou suggestion ? Écrivez-nous à support@bamakopodcast.studio ou via notre site bamakopodcast.studio.',
+              'Besoin d\'aide ou suggestion ? Écrivez-nous à support@bamakopodcast.com ou via notre site bamakopodcast.com.',
         ),
       ],
     );
