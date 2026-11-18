@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +32,54 @@ class _AppShellState extends ConsumerState<AppShell>
     with SingleTickerProviderStateMixin {
   DateTime? _lastHistorySync;
   String? _lastTrackedEpisodeId;
+  Timer? _activityPingTimer;
+  Timer? _initialActivityTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialActivityTimer = Timer(const Duration(seconds: 5), () {
+      _sendActivityPing(15);
+    });
+    _activityPingTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      _sendActivityPing(60);
+    });
+  }
+
+  @override
+  void dispose() {
+    _initialActivityTimer?.cancel();
+    _activityPingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _sendActivityPing(int activeSeconds) async {
+    if (!mounted) return;
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    if (lifecycle != null && lifecycle != AppLifecycleState.resumed) {
+      return;
+    }
+
+    final token = ref.read(authProvider).token;
+    if (token == null || token.isEmpty) return;
+
+    final isIos = !kIsWeb && Platform.isIOS;
+    try {
+      await BkoApi.post(
+        '/me/activity-ping',
+        {
+          'activeSeconds': activeSeconds,
+          'deviceType': kIsWeb ? 'WEB' : (isIos ? 'IOS' : 'ANDROID'),
+          'deviceName': kIsWeb
+              ? 'Navigateur Web'
+              : (isIos ? 'Application iOS (iPhone)' : 'Application Android'),
+        },
+        token: token,
+      );
+    } catch (_) {
+      // Silencieux en cas de perte réseau passagère
+    }
+  }
 
   int _calculateSelectedIndex(BuildContext context) {
     if (widget.navigationShell != null) {

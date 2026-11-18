@@ -37,6 +37,7 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
   bool _isLoadingDevices = false;
   bool _isRevoking = false;
   List<Map<String, dynamic>> _devices = [];
+  List<Map<String, dynamic>> _loginHistory = [];
 
   @override
   void initState() {
@@ -70,9 +71,50 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
       }
     } catch (_) {
       // Ignorer si pas encore d'appareils enregistrés
+    }
+    try {
+      final activityRes = await BkoApi.get('/me/activity', token: token);
+      final activityMap = (activityRes is Map && activityRes['data'] is Map)
+          ? Map<String, dynamic>.from(activityRes['data'] as Map)
+          : (activityRes is Map
+              ? Map<String, dynamic>.from(activityRes)
+              : null);
+      final rawHistory = activityMap?['loginHistory'];
+      if (rawHistory is List && mounted) {
+        final history = rawHistory
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+        setState(() => _loginHistory = history);
+      }
+    } catch (_) {
+      // Historique optionnel si endpoint indisponible
     } finally {
       if (mounted) setState(() => _isLoadingDevices = false);
     }
+  }
+
+  String _formatMethodLabel(String method) {
+    switch (method.toUpperCase()) {
+      case 'PASSWORD':
+        return 'Mot de passe';
+      case 'OTP':
+        return 'Code OTP';
+      case 'GOOGLE':
+        return 'Google';
+      case 'APPLE':
+        return 'Apple';
+      default:
+        return 'Session';
+    }
+  }
+
+  String _formatHistoryDate(String? iso) {
+    if (iso == null || iso.isEmpty) return 'Date inconnue';
+    final dt = DateTime.tryParse(iso)?.toLocal();
+    if (dt == null) return 'Date inconnue';
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(dt.day)}/${two(dt.month)}/${dt.year} • ${two(dt.hour)}:${two(dt.minute)}';
   }
 
   Future<void> _handleChangePassword(bool hasPassword) async {
@@ -572,6 +614,192 @@ class _SecuritySettingsScreenState extends ConsumerState<SecuritySettingsScreen>
                                       ),
                                     ),
                                   ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Section Historique des connexions récentes
+          Text(
+            'HISTORIQUE DES CONNEXIONS RÉCENTES',
+            style: BkoTheme.fontLato(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.1,
+              color: BkoTheme.getTextMuted(context),
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          Container(
+            decoration: BoxDecoration(
+              color: BkoTheme.getBgSurface(context),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: BkoTheme.getBorderSubtle(context)),
+            ),
+            child: _isLoadingDevices && _loginHistory.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation(BkoTheme.goldAccent),
+                      ),
+                    ),
+                  )
+                : _loginHistory.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Row(
+                          children: [
+                            Icon(
+                              IconsaxPlusLinear.clock,
+                              size: 20,
+                              color: BkoTheme.getTextMuted(context),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Aucune connexion enregistrée pour le moment.',
+                                style: BkoTheme.fontLato(
+                                  fontSize: 13,
+                                  color: BkoTheme.getTextSecondary(context),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Column(
+                        children: _loginHistory.take(10).toList().asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final item = entry.value;
+                          final itemsCount = _loginHistory.take(10).length;
+                          final isLast = idx == itemsCount - 1;
+                          final method = '${item['method'] ?? 'SESSION'}';
+                          final deviceName = (item['deviceName'] as String?)?.isNotEmpty == true
+                              ? item['deviceName'] as String
+                              : 'Appareil';
+                          final deviceType = '${item['deviceType'] ?? ''}'.toUpperCase();
+                          final ipAddress = item['ipAddress'] as String?;
+                          final createdAt = _formatHistoryDate(item['createdAt']?.toString());
+                          final isActive = item['isActive'] == true;
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                            decoration: BoxDecoration(
+                              border: isLast
+                                  ? null
+                                  : Border(
+                                      bottom: BorderSide(
+                                        color: BkoTheme.getBorderSubtle(context),
+                                        width: 0.8,
+                                      ),
+                                    ),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: BkoTheme.getBgSurfaceElevated(context),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: BkoTheme.getBorderSubtle(context),
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    deviceType == 'WEB'
+                                        ? IconsaxPlusLinear.monitor
+                                        : IconsaxPlusLinear.mobile,
+                                    size: 18,
+                                    color: BkoTheme.getAccent(context),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        crossAxisAlignment: WrapCrossAlignment.center,
+                                        children: [
+                                          Text(
+                                            deviceName,
+                                            style: BkoTheme.fontLato(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
+                                              color: BkoTheme.getTextPrimary(context),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 2,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: BkoTheme.goldAccent.withValues(alpha: 0.14),
+                                              borderRadius: BorderRadius.circular(5),
+                                            ),
+                                            child: Text(
+                                              _formatMethodLabel(method),
+                                              style: BkoTheme.fontLato(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: BkoTheme.getAccent(context),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        ipAddress != null && ipAddress.isNotEmpty
+                                            ? '$createdAt • IP $ipAddress'
+                                            : createdAt,
+                                        style: BkoTheme.fontLato(
+                                          fontSize: 11.5,
+                                          color: BkoTheme.getTextSecondary(context),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isActive
+                                        ? BkoTheme.goldAccent.withValues(alpha: 0.18)
+                                        : BkoTheme.getBgSurfaceElevated(context),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: isActive
+                                          ? BkoTheme.goldAccent.withValues(alpha: 0.45)
+                                          : BkoTheme.getBorderSubtle(context),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    isActive ? 'Active' : 'Terminée',
+                                    style: BkoTheme.fontLato(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: isActive
+                                          ? BkoTheme.getAccent(context)
+                                          : BkoTheme.getTextMuted(context),
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           );

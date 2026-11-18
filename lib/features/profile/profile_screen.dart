@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../../core/widgets/app_header_actions.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -46,6 +47,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   List<Map<String, dynamic>> _saved = [];
   List<Map<String, dynamic>> _playlists = [];
   List<Map<String, dynamic>> _latestEpisodes = [];
+  int _platformSeconds = 0;
+  String? _lastLoginAt;
   String? _loadError;
   int _generation = 0;
 
@@ -71,6 +74,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         BkoApi.get('/me/playlists', token: auth.token),
         BkoApi.get('/me/history', token: auth.token),
         BkoApi.get('/trending?country=all', token: auth.token),
+        BkoApi.get('/me/activity', token: auth.token)
+            .then<dynamic>((v) => v)
+            .catchError((_) => null),
       ]);
 
       if (!mounted ||
@@ -88,11 +94,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           : ((results[4] is Map && results[4]['data'] is List)
               ? results[4]['data'] as List
               : []);
+      final activityRaw = results[5];
+      final activityMap = (activityRaw is Map && activityRaw['data'] is Map)
+          ? Map<String, dynamic>.from(activityRaw['data'] as Map)
+          : (activityRaw is Map
+              ? Map<String, dynamic>.from(activityRaw)
+              : null);
+      final platformSeconds = activityMap != null
+          ? ((activityMap['totalPlatformSeconds'] as num?)?.toInt() ?? 0)
+          : ((auth.user?['totalPlatformSeconds'] as num?)?.toInt() ?? 0);
+      final lastLoginAt = activityMap != null
+          ? activityMap['lastLoginAt']?.toString()
+          : auth.user?['lastLoginAt']?.toString();
 
       setState(() {
         _followingCount = followingData.length;
         _savedCount = savedData.length;
         _playlistsCount = playlistsData.length;
+        _platformSeconds = platformSeconds;
+        _lastLoginAt = lastLoginAt;
         _saved = savedData
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
@@ -174,6 +194,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         _followedPodcasts = [];
         _recommendations = [];
         _savedCount = _followingCount = _playlistsCount = 0;
+        _platformSeconds = 0;
+        _lastLoginAt = null;
         _loadError = null;
         _isLoading = false;
       });
@@ -422,14 +444,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
 
             // 5. Bloc « Votre activité » réelle
-            if (_history.isNotEmpty) ...[
-              _buildSectionHeader(context, title: 'VOTRE ACTIVITÉ D\'ÉCOUTE'),
+            if (_history.isNotEmpty || _platformSeconds > 0 || _lastLoginAt != null) ...[
+              _buildSectionHeader(context, title: 'VOTRE ACTIVITÉ'),
               const SizedBox(height: 10),
               _buildActivityCard(
                 context: context,
                 historyCount: _history.length,
                 completedCount: completedCount,
                 totalSeconds: totalListeningSeconds,
+                platformSeconds: _platformSeconds,
+                lastLoginAt: _lastLoginAt,
               ),
               const SizedBox(height: 24),
             ],
@@ -889,50 +913,116 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  String _formatDateTimeFr(String? iso) {
+    if (iso == null || iso.isEmpty) return '';
+    final dt = DateTime.tryParse(iso)?.toLocal();
+    if (dt == null) return '';
+    String two(int n) => n.toString().padLeft(2, '0');
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(dt.year, dt.month, dt.day);
+    final diffDays = today.difference(target).inDays;
+    final timeStr = '${two(dt.hour)}:${two(dt.minute)}';
+    if (diffDays == 0) return 'Aujourd\'hui à $timeStr';
+    if (diffDays == 1) return 'Hier à $timeStr';
+    return '${two(dt.day)}/${two(dt.month)}/${dt.year} à $timeStr';
+  }
+
   Widget _buildActivityCard({
     required BuildContext context,
     required int historyCount,
     required int completedCount,
     required int totalSeconds,
+    required int platformSeconds,
+    String? lastLoginAt,
   }) {
+    final effectivePlatformSeconds = math.max(platformSeconds, totalSeconds);
+    final formattedLastLogin = _formatDateTimeFr(lastLoginAt);
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       decoration: BoxDecoration(
         color: BkoTheme.getBgSurface(context),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: BkoTheme.getBorderSubtle(context)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
+      child: Column(
         children: [
-          _buildActivityMetric(
-            context,
-            label: 'Épisodes écoutés',
-            value: '$historyCount',
-            icon: IconsaxPlusLinear.music_dashboard,
+          Row(
+            children: [
+              Expanded(
+                child: _buildActivityMetric(
+                  context,
+                  label: 'Épisodes',
+                  value: '$historyCount',
+                  icon: IconsaxPlusLinear.music_dashboard,
+                ),
+              ),
+              Container(
+                height: 36,
+                width: 1,
+                color: BkoTheme.getBorderSubtle(context),
+              ),
+              Expanded(
+                child: _buildActivityMetric(
+                  context,
+                  label: 'Terminés',
+                  value: '$completedCount',
+                  icon: IconsaxPlusLinear.tick_circle,
+                ),
+              ),
+              Container(
+                height: 36,
+                width: 1,
+                color: BkoTheme.getBorderSubtle(context),
+              ),
+              Expanded(
+                child: _buildActivityMetric(
+                  context,
+                  label: 'Temps d\'écoute',
+                  value: _formatTotalListeningTime(totalSeconds),
+                  icon: IconsaxPlusLinear.clock,
+                ),
+              ),
+              Container(
+                height: 36,
+                width: 1,
+                color: BkoTheme.getBorderSubtle(context),
+              ),
+              Expanded(
+                child: _buildActivityMetric(
+                  context,
+                  label: 'Temps sur l\'app',
+                  value: _formatTotalListeningTime(effectivePlatformSeconds),
+                  icon: IconsaxPlusLinear.timer_1,
+                ),
+              ),
+            ],
           ),
-          Container(
-            height: 36,
-            width: 1,
-            color: BkoTheme.getBorderSubtle(context),
-          ),
-          _buildActivityMetric(
-            context,
-            label: 'Terminés',
-            value: '$completedCount',
-            icon: IconsaxPlusLinear.tick_circle,
-          ),
-          Container(
-            height: 36,
-            width: 1,
-            color: BkoTheme.getBorderSubtle(context),
-          ),
-          _buildActivityMetric(
-            context,
-            label: 'Temps d\'écoute',
-            value: _formatTotalListeningTime(totalSeconds),
-            icon: IconsaxPlusLinear.clock,
-          ),
+          if (formattedLastLogin.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Divider(height: 1, color: BkoTheme.getBorderSubtle(context)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(
+                  IconsaxPlusLinear.login_1,
+                  size: 15,
+                  color: BkoTheme.getAccent(context),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Dernière connexion : $formattedLastLogin',
+                    style: BkoTheme.fontLato(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: BkoTheme.getTextSecondary(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -944,27 +1034,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String value,
     required IconData icon,
   }) {
-    return Column(
-      children: [
-        Icon(icon, size: 18, color: BkoTheme.getAccent(context)),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: BkoTheme.fontLato(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: BkoTheme.getTextPrimary(context),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Column(
+        children: [
+          Icon(icon, size: 18, color: BkoTheme.getAccent(context)),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              maxLines: 1,
+              style: BkoTheme.fontLato(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w800,
+                color: BkoTheme.getTextPrimary(context),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: BkoTheme.fontLato(
-            fontSize: 10.5,
-            color: BkoTheme.getTextSecondary(context),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: BkoTheme.fontLato(
+              fontSize: 10.5,
+              color: BkoTheme.getTextSecondary(context),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
