@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax_plus/iconsax_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/network/bko_api.dart';
 import '../../../core/theme/bko_theme.dart';
@@ -79,6 +80,10 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
   // Commentaire sur lequel le dock de réactions est actuellement ouvert
   String? _activeReactionsCommentId;
 
+  // Utilisateurs bloqués localement (conformité Apple UGC Guideline 1.2)
+  Set<String> _blockedUserIds = {};
+  static const String _blockedUsersPrefsKey = 'bko_blocked_user_ids';
+
   // Palette d'émotions WhatsApp (principale 6 + étendue avec +)
   static const List<String> _reactionEmojis = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
   static const List<String> _extendedReactionEmojis = ['🔥', '👏', '💡', '🎙️', '💯', '🤝', '🚀', '🎉'];
@@ -86,7 +91,18 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
   @override
   void initState() {
     super.initState();
+    _loadBlockedUsers();
     _fetchComments();
+  }
+
+  Future<void> _loadBlockedUsers() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = prefs.getStringList(_blockedUsersPrefsKey) ?? const [];
+      if (mounted && list.isNotEmpty) {
+        setState(() => _blockedUserIds = list.toSet());
+      }
+    } catch (_) {}
   }
 
   @override
@@ -457,6 +473,210 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
     }
   }
 
+  String _extractAuthorId(Map<String, dynamic> item) {
+    final author = item['user'] is Map ? item['user'] as Map : const {};
+    return '${item['userId'] ?? author['id'] ?? ''}'.trim();
+  }
+
+  Future<void> _openModerationSheet(Map<String, dynamic> item) async {
+    final commentId = '${item['id']}';
+    final authorId = _extractAuthorId(item);
+    final authorName = _getAuthorName(item);
+    final surface = BkoTheme.getBgSurface(context);
+    final textPri = BkoTheme.getTextPrimary(context);
+    final textSec = BkoTheme.getTextSecondary(context);
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(IconsaxPlusLinear.flag, color: Theme.of(ctx).colorScheme.primary),
+                title: Text(
+                  'Signaler ce commentaire',
+                  style: BkoTheme.fontLato(fontSize: 15, fontWeight: FontWeight.w700, color: textPri),
+                ),
+                subtitle: Text(
+                  'Contenu inapproprié, spam ou abusif',
+                  style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _reportComment(commentId);
+                },
+              ),
+              if (authorId.isNotEmpty)
+                ListTile(
+                  leading: Icon(IconsaxPlusLinear.user_remove, color: Theme.of(ctx).colorScheme.error),
+                  title: Text(
+                    'Bloquer $authorName',
+                    style: BkoTheme.fontLato(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(ctx).colorScheme.error,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Masquer tous ses commentaires sur votre appareil',
+                    style: BkoTheme.fontLato(fontSize: 12, color: textSec),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _blockUser(authorId, authorName);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _reportComment(String commentId) async {
+    final auth = ref.read(authProvider);
+    if (!auth.isAuthenticated || auth.token == null) {
+      AuthRequiredModal.show(context, actionTitle: 'signaler ce commentaire');
+      return;
+    }
+
+    const reasons = [
+      ('INAPPROPRIATE', 'Contenu inapproprié ou offensant'),
+      ('SPAM', 'Spam ou publicité'),
+      ('MISINFORMATION', 'Désinformation'),
+      ('OTHER', 'Autre motif'),
+    ];
+    String selected = 'INAPPROPRIATE';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: BkoTheme.getBgSurface(ctx),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: Text(
+            'Signaler le commentaire',
+            style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: reasons.map((r) {
+              final isSelected = selected == r.$1;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                onTap: () => setDialogState(() => selected = r.$1),
+                leading: Icon(
+                  isSelected ? IconsaxPlusBold.tick_circle : IconsaxPlusLinear.record,
+                  size: 20,
+                  color: isSelected
+                      ? Theme.of(ctx).colorScheme.primary
+                      : BkoTheme.getTextSecondary(ctx),
+                ),
+                title: Text(r.$2, style: BkoTheme.fontLato(fontSize: 13)),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Annuler'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(elevation: 0),
+              child: const Text('Envoyer'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await BkoApi.post(
+        '/reports',
+        {
+          'targetType': 'COMMENT',
+          'targetId': commentId,
+          'reason': selected,
+        },
+        token: auth.token,
+      );
+      if (!mounted) return;
+      BkoHaptics.success();
+      BkoToast.showSuccess(
+        context,
+        title: 'Signalement envoyé',
+        message: 'Merci. Notre équipe de modération va examiner ce commentaire.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      BkoToast.showError(
+        context,
+        title: 'Signalement impossible',
+        message: '$e',
+      );
+    }
+  }
+
+  Future<void> _blockUser(String userId, String authorName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: BkoTheme.getBgSurface(ctx),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: Text(
+          'Bloquer $authorName ?',
+          style: BkoTheme.fontLato(fontSize: 16, fontWeight: FontWeight.w800),
+        ),
+        content: Text(
+          'Vous ne verrez plus les commentaires de cet utilisateur dans l\'application.',
+          style: BkoTheme.fontLato(fontSize: 13, color: BkoTheme.getTextSecondary(ctx)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+              elevation: 0,
+            ),
+            child: const Text('Bloquer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final updated = {..._blockedUserIds, userId};
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_blockedUsersPrefsKey, updated.toList());
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => _blockedUserIds = updated);
+    BkoHaptics.success();
+    BkoToast.showInfo(
+      context,
+      title: 'Utilisateur bloqué',
+      message: 'Les commentaires de $authorName sont désormais masqués.',
+    );
+  }
+
   String _formatDate(String? raw) {
     if (raw == null) return '';
     try {
@@ -618,6 +838,9 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                     Divider(height: 16, color: BkoTheme.getBgSurface(context)),
                                 itemBuilder: (context, index) {
                                   final item = _comments[index];
+                                  if (_blockedUserIds.contains(_extractAuthorId(item))) {
+                                    return const SizedBox.shrink();
+                                  }
                                   final commentId = '${item['id']}';
                                   final authorName = _getAuthorName(item);
                                   final author = item['user'] is Map
@@ -680,6 +903,7 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                           });
                                         },
                                         onDelete: () => _deleteComment(commentId),
+                                        onModerate: () => _openModerationSheet(item),
                                       ),
 
                                       // Bouton déplier/replier les réponses style TikTok / Facebook
@@ -748,7 +972,9 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                               ),
                                               Column(
                                                 mainAxisSize: MainAxisSize.min,
-                                                children: replies.map((rep) {
+                                                children: replies
+                                                    .where((rep) => !_blockedUserIds.contains(_extractAuthorId(rep)))
+                                                    .map((rep) {
                                                   final repId = '${rep['id']}';
                                                   final repAuthorName = _getAuthorName(rep);
                                                   final repAuthor = rep['user'] is Map
@@ -810,6 +1036,8 @@ class _EpisodeCommentsSheetState extends ConsumerState<EpisodeCommentsSheet> {
                                                       },
                                                       onDelete: () =>
                                                           _deleteComment(repId),
+                                                      onModerate: () =>
+                                                          _openModerationSheet(rep),
                                                     ),
                                                   );
                                                 }).toList(),
@@ -978,6 +1206,7 @@ class _CommentItem extends StatefulWidget {
   final Function(String emoji) onToggleReaction;
   final VoidCallback onOpenReactions;
   final VoidCallback onDelete;
+  final VoidCallback? onModerate;
 
   const _CommentItem({
     this.isReply = false,
@@ -1000,6 +1229,7 @@ class _CommentItem extends StatefulWidget {
     required this.onToggleReaction,
     required this.onOpenReactions,
     required this.onDelete,
+    this.onModerate,
   });
 
   @override
@@ -1162,6 +1392,19 @@ class _CommentItemState extends State<_CommentItem>
                                       IconsaxPlusLinear.trash,
                                       size: 14,
                                       color: Colors.redAccent,
+                                    ),
+                                  ),
+                                ),
+                              ] else if (widget.onModerate != null) ...[
+                                const SizedBox(width: 4),
+                                GestureDetector(
+                                  onTap: widget.onModerate,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: Icon(
+                                      IconsaxPlusLinear.more,
+                                      size: 15,
+                                      color: BkoTheme.getTextSecondary(context),
                                     ),
                                   ),
                                 ),

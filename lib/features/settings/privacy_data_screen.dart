@@ -125,6 +125,19 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
     final roles = (user?['roles'] as List?)?.map((e) => '$e').toList() ?? [];
     final isCreator = roles.contains('CREATOR') || roles.contains('ADMIN');
 
+    bool hasPassword = user?['hasPassword'] == true;
+    if (user?['hasPassword'] == null) {
+      try {
+        final me = await BkoApi.get('/me', token: token);
+        if (me is Map) {
+          hasPassword = me['hasPassword'] == true;
+        }
+      } catch (_) {
+        hasPassword = true;
+      }
+    }
+    if (!mounted) return;
+
     final passwordCtrl = TextEditingController();
 
     final confirmed = await showDialog<bool>(
@@ -167,24 +180,26 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 14),
-            Text(
-              'Confirmez votre mot de passe pour valider :',
-              style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w600, color: BkoTheme.getTextPrimary(context)),
-            ),
-            const SizedBox(height: 6),
-            TextField(
-              controller: passwordCtrl,
-              obscureText: true,
-              style: BkoTheme.fontLato(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'Mot de passe...',
-                filled: true,
-                fillColor: BkoTheme.getBgSurfaceElevated(context),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            if (hasPassword) ...[
+              const SizedBox(height: 14),
+              Text(
+                'Confirmez votre mot de passe pour valider :',
+                style: BkoTheme.fontLato(fontSize: 12, fontWeight: FontWeight.w600, color: BkoTheme.getTextPrimary(context)),
               ),
-            ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: passwordCtrl,
+                obscureText: true,
+                style: BkoTheme.fontLato(fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: 'Mot de passe...',
+                  filled: true,
+                  fillColor: BkoTheme.getBgSurfaceElevated(context),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
@@ -210,7 +225,7 @@ class _PrivacyDataScreenState extends ConsumerState<PrivacyDataScreen> {
       try {
         await BkoApi.delete(
           '/me',
-          body: {'passwordConfirm': passwordCtrl.text},
+          body: hasPassword ? {'passwordConfirm': passwordCtrl.text} : {},
           token: token,
         );
         await ref.read(authProvider.notifier).logout();
